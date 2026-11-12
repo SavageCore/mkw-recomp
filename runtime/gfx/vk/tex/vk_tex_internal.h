@@ -40,6 +40,7 @@ typedef struct Tex {
     uint8_t listed;               // in owned[]
     uint32_t wt_n;                // WriteTexels into the storage since the last upload
     struct Tex *rel_prev, *rel_next;   // while released: the list of released entries, oldest first
+    uint64_t rel_bytes;           // while released: its own memory, counted in released_bytes
     uint64_t shash;               // XXH3 of the storage at the last upload (same_storage: no write watch)
     uint32_t shash_epoch;         // submit_epoch of the last hash check
     uint8_t sparse;               // a Vulkan sparse image whose tiles follow the game's MapVirtual (vk_sparse.c)
@@ -72,6 +73,7 @@ extern TexSlot *tslots;
 extern int ntslots;
 extern SampSlot *sslots;
 extern int nsslots, nreleased;
+extern uint64_t released_bytes;   // own memory of the released entries (vk_tex_evict.c sweep_released)
 extern Tex *rel_head, *rel_tail;
 extern uint64_t n_uploads, n_reuploads, ru_n, ru_bytes, ru_ns, ru_wt_n, ru_wt_bytes, ru_wt_ns;
 extern int tex_alias;

@@ -122,6 +122,10 @@ static void own_remove(Tex *e) {
 }
 
 void rel_append(Tex *e) {
+    VkCtx *c = vk_ctx();
+    VmaAllocationInfo vi = {0};
+    if (e->alloc && c) vmaGetAllocationInfo(c->vma, e->alloc, &vi);
+    e->rel_bytes = vi.size, released_bytes += vi.size;
     e->rel_next = NULL;
     e->rel_prev = rel_tail;
     if (rel_tail) rel_tail->rel_next = e;
@@ -130,6 +134,7 @@ void rel_append(Tex *e) {
 }
 
 void rel_unlink(Tex *e) {
+    released_bytes -= e->rel_bytes, e->rel_bytes = 0;
     if (e->rel_prev) e->rel_prev->rel_next = e->rel_next;
     else rel_head = e->rel_next;
     if (e->rel_next) e->rel_next->rel_prev = e->rel_prev;
@@ -183,8 +188,48 @@ void destroy_idle(Tex *e) {
 // finalizes and initializes transient textures every frame, so a released entry is mostly taken back within frames.
 // Dropping all of them at once when the count passed 4096 destroyed thousands of images in one frame: 333-422 ms
 // frames every 40-50 s on a GTX 1050 Ti, then the textures still in use were created and uploaded again.
+// The count alone let them hold 1 603 MiB on an 8 GB RTX 4070 Laptop (2 032 entries, at the character select after the
+// title's menus, 12/11/2026): with the rest, 7 333 MiB against the driver's 7 180 MiB budget, so Windows moved memory
+// out of the GPU and the game ran at 0.24x (the GPU 80-444 ms a frame at 33 W); the ctl "trim" of them brought it back
+// to 1.00x at once, under the budget. Their memory is bounded too: MKW_TEX_RELEASED_MIB (default a twelfth of the
+// device-local budget at start, 256 MiB to 2 GiB: ~600 MiB on 8 GB, 2 GiB from 24 GB), the oldest recreatable ones
+// going first.
 #define RELEASED_MAX 2048
+static uint64_t released_cap(void) {
+    static uint64_t cap;
+    if (cap) return cap;
+    const char *e = cfg_get("MKW_TEX_RELEASED_MIB");
+    uint64_t used, budget;
+    int exact;
+    if (e && *e) cap = (uint64_t)atoll(e) << 20;
+    else if (vk_mem_vram(&used, &budget, &exact) && budget) cap = budget / 12;
+    else cap = 512ull << 20;
+    if (!(e && *e)) cap = cap < (256ull << 20) ? 256ull << 20 : cap > (2048ull << 20) ? 2048ull << 20 : cap;
+    if (!cap) cap = 1;   // MKW_TEX_RELEASED_MIB=0: none kept
+    rt_log("vk: released textures keep at most %d entries and %llu MiB (MKW_TEX_RELEASED_MIB)", RELEASED_MAX,
+           (unsigned long long)(cap >> 20));
+    return cap;
+}
+
+// Past the count the oldest goes, as before. Past the memory only entries whose contents come back with them go: a
+// mirror of CPU-visible storage the GPU never wrote, re-uploaded on demand (evict_idle's rule). A render target or
+// another GPU-written image taken back at the same address would come back without what was drawn there, which the
+// console keeps (the same memory); the count's rule takes that risk only past 2 048 entries. On the 8 GB laptop the
+// recreatable ones were enough: the cap was never passed in two cups (no "over the cap" line).
+static int recreatable(const Tex *e) { return e->pub.mirrored && !e->pub.gpu_owned && !e->gpu_dirty; }
+
 void sweep_released(void) {
     while (nreleased > RELEASED_MAX && rel_head) destroy_idle(rel_head);
+    if (released_bytes <= released_cap()) return;
+    for (Tex *e = rel_head, *next; e && released_bytes > released_cap(); e = next) {
+        next = e->rel_next;
+        if (recreatable(e)) destroy_idle(e);
+    }
+    static uint64_t logged_at;   // what stays over the cap: released images the GPU wrote (render targets and such)
+    if (released_bytes > released_cap() && released_bytes > logged_at + (256ull << 20)) {
+        logged_at = released_bytes;
+        rt_log("vk: released textures hold %llu MiB, over the %llu MiB cap: the rest are GPU-written, kept",
+               (unsigned long long)(released_bytes >> 20), (unsigned long long)(released_cap() >> 20));
+    }
 }
 
