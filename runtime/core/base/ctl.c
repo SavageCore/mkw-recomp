@@ -11,6 +11,7 @@
 //   tex ADDR             textures whose storage or pool-bound Vulkan image covers ADDR (0: every image larger than its storage)
 //   mem ADDR SIZE PATH   SIZE bytes of guest memory at ADDR to PATH (what a CPU-written texture holds)
 //   frame                the present count
+//   vram                 the "mem: vram" line now: what holds device-local memory (vk_mem_log.c, MKW_VRAM_LOG)
 //   focus 0|1            the window lost (0) or took (1) the focus, as the window system reports it
 //   seq                  the game's active sequence nodes (MKW_SEQ_WATCH, seqwatch.c)
 //   capture DIR [N]      the next N presented frames (2) as a capture for mkw --replay (runtime/gfx/cap; MKW_CAPTURE=1)
@@ -85,6 +86,9 @@ void ctl_run(char *line) {
         freeze_set(cmd[0] == 'p', 0);
     } else if (!strcmp(cmd, "step")) {
         freeze_set(1, *arg ? atoll(arg) : 1);
+    } else if (!strcmp(cmd, "vram")) {
+        vram_log_now();   // vk_mem_log.c: what holds device-local memory, as MKW_VRAM_LOG's periodic line
+        rt_log("ctl: vram at frame %llu", (unsigned long long)frame);
     } else if (!strcmp(cmd, "frame")) {
         rt_log("ctl: frame %llu", (unsigned long long)frame);
     } else if (!strcmp(cmd, "focus") && (*arg == '0' || *arg == '1')) {
