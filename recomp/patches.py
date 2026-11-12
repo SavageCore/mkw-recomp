@@ -43,7 +43,7 @@ def adrp(pc, target, rd):
 
 class Table:
     """sets: [(name, env, default)]; sites: {module: {offset: (set index, [word | ('page', reg)], original)}};
-    spans: {module: {offset: (set index, [words])}} (filled by a later span mechanism, if any); page."""
+    spans: {module: {offset: (set index, [words])}} (a span's words are the originals); page."""
 
     def __init__(self, sets=(), sites=None, page=0, spins=None, spans=None):
         self.sets = list(sets)
@@ -57,6 +57,11 @@ class Table:
         """{absolute back-edge address: absolute head address}."""
         return {base + b: base + h for b, h in self.spins.get(name, {}).items()}
 
+    def spans_for(self, name, base):
+        """{absolute span start: (set index, absolute span end)}."""
+        return {base + off: (k, base + off + 4 * len(words))
+                for off, (k, words) in self.spans.get(name, {}).items()}
+
     def for_module(self, name, base):
         """{absolute address: (set index, [words])} with @page resolved."""
         out = {}
@@ -68,7 +73,7 @@ class Table:
 
 def load(path, mods):
     """Table from a patch file; mods is layout() output [(name, base, size)]."""
-    sets, index, sites, spins, spans = [], {}, {}, {}, {}
+    sets, index, sites, spins, spans, sources = [], {}, {}, {}, {}, {}
     bases = {n: (b, s) for n, b, s in mods}
     for no, raw in enumerate(Path(path).read_text().splitlines(), 1):
         f = raw.split('#', 1)[0].split()
@@ -95,7 +100,33 @@ def load(path, mods):
             mod = sites.setdefault(f[2], {})
             if off in mod:
                 raise PatchError(f'{where}: {f[2]}+{off:#x} patched twice')
+            for o, (k, ws) in spans.get(f[2], {}).items():
+                if o <= off < o + 4 * len(ws):
+                    raise PatchError(f'{where}: {f[2]}+{off:#x} is both a site and in a span')
             mod[off] = (index[f[1]], repl, orig)
+            sources[(f[2], off)] = 'table'
+        elif f[0] == 'span' and len(f) >= 6:
+            # a span the switch skips whole (a mod's branch over code, which a site cannot replace): lists every
+            # original word; the generator lifts them as usual inside if (!switch), so the function's control flow
+            # stays the original's and no replacement code is needed
+            if f[1] not in index:
+                raise PatchError(f'{where}: unknown set {f[1]}')
+            if f[2] not in bases:
+                raise PatchError(f'{where}: module {f[2]} not in the layout')
+            off, words = int(f[3], 16), [int(w, 16) for w in f[4:]]
+            if not words:
+                raise PatchError(f'{where}: span {f[1]} is empty')
+            mod = spans.setdefault(f[2], {})
+            if off in mod:
+                raise PatchError(f'{where}: {f[2]}+{off:#x} spanned twice')
+            for o, (k, ws) in mod.items():
+                if off < o + 4 * len(ws) and o < off + 4 * len(words):
+                    raise PatchError(f'{where}: {f[2]}+{off:#x} overlaps the span at {o:#x}')
+            for o in sites.get(f[2], {}):
+                if off <= o < off + 4 * len(words):
+                    raise PatchError(f'{where}: {f[2]}+{o:#x} is both a site and in a span')
+            mod[off] = (index[f[1]], words)
+            sources[(f[2], off)] = 'table'
         elif f[0] == 'spin' and len(f) >= 4:
             if f[1] not in bases:
                 raise PatchError(f'{where}: module {f[1]} not in the layout')
@@ -113,9 +144,7 @@ def load(path, mods):
     if nxt is not None and page + PAGE > nxt:
         raise PatchError(f'no room for the patch page after main ({page:#x})')
     table = Table(sets, sites, page, spins, spans)
-    for name, mod in sites.items():   # who patched what, for the mod merger's overlap report
-        for off in mod:
-            table.sources[(name, off)] = 'table'
+    table.sources = sources
     return table
 
 
@@ -139,8 +168,43 @@ def load_mods(table, mods_dir, bases):
             continue
         if not mp:
             continue
-        if mp.get("spans"):
-            raise PatchError(f'{where}: spans need the span mechanism (a later commit)')
+        if not mp.get("spans"):
+            pass
+        else:
+            for sp in mp["spans"]:
+                for k in ("set", "env", "module", "off", "words"):
+                    if k not in sp:
+                        raise PatchError(f'{where}: span misses "{k}"')
+                if not sp["env"].startswith("MKW_"):
+                    raise PatchError(f'{where}: env switch {sp["env"]} needs its MKW_ prefix')
+                if sp["set"] in index:
+                    if table.sets[index[sp["set"]]][1] != sp["env"]:
+                        raise PatchError(f'{where}: set {sp["set"]} has two env switches')
+                else:
+                    index[sp["set"]] = len(table.sets)
+                    table.sets.append((sp["set"], sp["env"], 0))
+                if sp["module"] not in bases:
+                    raise PatchError(f'{where}: module {sp["module"]} not in the layout')
+                try:
+                    off, words = int(sp["off"], 16), [int(w, 16) for w in sp["words"]]
+                except ValueError:
+                    raise PatchError(f'{where}: span {sp["set"]} has non-hex words')
+                if not words:
+                    raise PatchError(f'{where}: span {sp["set"]} is empty')
+                other = clash(sp["module"], off, len(words))
+                if other is not None and other != name:
+                    raise PatchError(f'{where}: span at {sp["module"]}+{off:#x} overlaps {other}, not merged')
+                mod = table.spans.setdefault(sp["module"], {})
+                if off in mod:
+                    raise PatchError(f'{where}: {sp["module"]}+{off:#x} spanned twice')
+                for o, (k, ws) in mod.items():
+                    if off < o + 4 * len(ws) and o < off + 4 * len(words):
+                        raise PatchError(f'{where}: {sp["module"]}+{off:#x} overlaps the span at {o:#x}')
+                for o in table.sites.get(sp["module"], {}):
+                    if off <= o < off + 4 * len(words):
+                        raise PatchError(f'{where}: {sp["module"]}+{o:#x} is both a site and in a span')
+                mod[off] = (index[sp["set"]], words)
+                table.sources[(sp["module"], off)] = name
         where = f'{path}: patches'
         index = {s[0]: i for i, s in enumerate(table.sets)}
 
@@ -197,6 +261,14 @@ def check(table, mod, name):
         have = mod.word(a)
         if have != want:
             raise PatchError(f'{name}+{off:#x}: module has {have:08x}, the patch expects {want:08x}')
+    for off, (_, words) in table.spans.get(name, {}).items():
+        for i, want in enumerate(words):
+            a = mod.base + off + 4 * i
+            if not mod.in_text(a):
+                raise PatchError(f'{name}+{off:#x}: patch span outside .text')
+            have = mod.word(a)
+            if have != want:
+                raise PatchError(f'{name}+{off + 4 * i:#x}: module has {have:08x}, the span expects {want:08x}')
     for b, head in table.spins.get(name, {}).items():
         a = mod.base + b
         if not mod.in_text(a) or branch_target(mod.word(a), a) != mod.base + head:

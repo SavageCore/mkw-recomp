@@ -218,11 +218,13 @@ def partition(est, max_fns, max_bytes, big_fn):
 class Emitter:
     """C for the functions of one module. starts is the set of every function start of the module."""
 
-    def __init__(self, mod, starts, patched=None, reg_locals=regs.LOCALS, callee_saved=True, spins=None):
+    def __init__(self, mod, starts, patched=None, reg_locals=regs.LOCALS, callee_saved=True, spins=None,
+                 spanned=None):
         self.mod = mod
         self.starts = starts
         self.patched = patched or {}   # {address: (set index, [replacement words])} (recomp/patches.py)
         self.spins = spins or {}       # {spin wait back-edge: its head} (recomp/patches.py `spin`)
+        self.spanned = spanned or {}   # {span start: (set index, span end)} (skipped whole when the set is on)
         self.reg_locals = reg_locals   # recomp/regs.py: registers per function in C locals
         self.kept = regs.CALLEE_SAVED if callee_saved else frozenset()   # not reloaded after a call
         self.uses_patches = False
@@ -418,6 +420,64 @@ class Emitter:
         def emit(i, line):
             body.append((i, line))
 
+        # A span the switch skips whole: its words lift as usual inside if (!switch), so the function's control
+        # flow, labels and jump tables stay the original's. Entries into the span must be impossible with the switch
+        # on: its head is fall-through only, and an outside branch into its interior is allowed only when the source
+        # is itself unreachable without the span (a re-entry from the span's own early exit, like a timer block's
+        # mode check rejoining its tail).
+        open_span = None
+        nins = len(insns)
+        for s, (sk, se) in sorted(self.spanned.items()):
+            if se <= entry or s >= end:
+                continue
+            if not (entry <= s and se <= end):
+                raise patches.PatchError(f'{s:#x}: span ends at {se:#x}, outside this function')
+            si, se_i = (s - entry) // 4, (se - entry) // 4
+            targets = {}   # branch source index: target indices in this function
+            for i, ins in enumerate(insns):
+                tgts = []
+                if ins.kind in ('b', 'bcond'):
+                    tgts = [ins.target]
+                elif ins.kind == 'br':
+                    jt = tables.get(entry + 4 * i)
+                    if jt == 'all':
+                        raise patches.PatchError(f'{s:#x}: an unresolved computed branch with the span')
+                    tgts = [t for t in (jt or []) if entry <= t < end]
+                targets[i] = [(t - entry) // 4 for t in tgts if entry <= t < end]
+            for i, ins in enumerate(insns):
+                a = entry + 4 * i
+                if a in self.patched and s <= a < se:
+                    raise patches.PatchError(f'{a:#x}: a site inside the span at {s:#x}')
+                for t in targets[i]:
+                    if not (s <= entry + 4 * t < se and not (si <= i < se_i)):
+                        continue
+                    if entry + 4 * t == s:
+                        raise patches.PatchError(f'{a:#x}: outside branch to the span head at {s:#x}')
+                    # a re-entry: allowed only when the source is unreachable without the span, walking
+                    # its predecessors back (through the span is gated; the function entry is not)
+                    ok, todo, back = True, [i], set()
+                    while todo:
+                        j = todo.pop()
+                        if j in back:
+                            continue
+                        back.add(j)
+                        if si <= j < se_i:
+                            continue   # through the span: gated
+                        if j == 0:
+                            ok = False   # function entry reaches it without the span
+                            break
+                        preds = [p for p in range(nins) if j in targets.get(p, [])]
+                        pj = j - 1
+                        if pj >= 0 and insns[pj].kind not in ('b', 'br', 'ret', 'trap'):
+                            preds.append(pj)   # falls through from the previous instruction
+                        if not preds:
+                            ok = False
+                            break
+                        todo.extend(preds)
+                    if not ok:
+                        raise patches.PatchError(f'{a:#x}: outside branch into the span at {s:#x}')
+            self.stats['spans'] += 1
+
         # Calls up to each instruction: a loop with none needs a compiler barrier on its back-edge (below).
         calls = [0]
         for ins in insns:
@@ -426,6 +486,14 @@ class Emitter:
         k = None
         for i, ins in enumerate(insns):
             a = entry + 4 * i
+            if open_span is not None and a == open_span:
+                emit(None, '    }')
+                open_span = None
+            if a in self.spanned:
+                sk, se = self.spanned[a]
+                emit(None, f'    if (!rt_patch_on[{sk}]) {{')
+                open_span = se
+                self.uses_patches = True
             if a in labels:
                 emit(None, f'L_{a:x}:;')
             k = ins.kind
@@ -466,6 +534,9 @@ class Emitter:
             else:
                 raise ValueError(f'{a:#x}: unknown instruction kind {k!r}')
         n = len(insns)
+        if open_span is not None:   # a span ending at the function end closes after its last word
+            emit(None, '    }')
+            open_span = None
         if k not in TERMINATORS:  # falls through into the next function
             if end < mod.hi:
                 emit(n, '    ' + jump(end, n))
@@ -559,7 +630,8 @@ def _emitter(name):
         mod = Module(name, path, base, 'c')
         e = _W['emitters'][name] = Emitter(mod, set(_W['starts'][name].tolist()),
                                            _W['patches'].for_module(name, base),
-                                           spins=_W['patches'].spins_for(name, base), **_W['opts'])
+                                           spins=_W['patches'].spins_for(name, base),
+                                           spanned=_W['patches'].spans_for(name, base), **_W['opts'])
     return e
 
 
