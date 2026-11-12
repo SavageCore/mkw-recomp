@@ -22,27 +22,32 @@ static SetupState g_state = {0, -1, {}, 0, 0, 0, {}, {}};
 static SDL_Process *g_proc;
 
 // The Python and prepare.py: the package's (setup/python, setup/src) beside the executable, else a source checkout's
-// (the executable in build/: the repository's .venv and tools/).
-static bool find_tools(const char *exe_dir, char *python, char *script, size_t cap) {
+// (the executable in build/: the repository's .venv and tools/). rel names the tool under tools/ ("prepare/prepare.py").
+static bool find_tool(const char *exe_dir, const char *rel, char *python, char *script, size_t cap) {
 #ifdef _WIN32
     snprintf(python, cap, "%s/setup/python/python.exe", exe_dir);
 #else
     snprintf(python, cap, "%s/setup/python/bin/python3", exe_dir);
 #endif
-    snprintf(script, cap, "%s/setup/src/tools/prepare/prepare.py", exe_dir);
+    snprintf(script, cap, "%s/setup/src/tools/%s", exe_dir, rel);
     if (plat_file_exists(python) && plat_file_exists(script)) return true;
 #ifdef _WIN32
     snprintf(python, cap, "%s/../.venv/Scripts/python.exe", exe_dir);
 #else
     snprintf(python, cap, "%s/../.venv/bin/python3", exe_dir);
 #endif
-    snprintf(script, cap, "%s/../tools/prepare/prepare.py", exe_dir);
+    snprintf(script, cap, "%s/../tools/%s", exe_dir, rel);
     return plat_file_exists(python) && plat_file_exists(script);
 }
 
 int setup_available(const char *exe_dir) {
     char python[1200], script[1200];
-    return find_tools(exe_dir, python, script, sizeof python);
+    return find_tool(exe_dir, "prepare/prepare.py", python, script, sizeof python);
+}
+
+// The package's Python and a tool under tools/ (import.py), for pages that run scripts like the setup does.
+int setup_tool(const char *exe_dir, const char *rel, char *python, char *script, size_t cap) {
+    return find_tool(exe_dir, rel, python, script, cap);
 }
 
 static void set_finished(int how, const char *code, const char *why) {
@@ -119,7 +124,7 @@ void setup_start(const char *exe_dir, const char *source, int link_romfs) {
     SDL_LockMutex(g_lock);
     g_state = SetupState{1, -1, {}, 0, 0, 0, {}, {}};
     SDL_UnlockMutex(g_lock);
-    if (!find_tools(exe_dir, python, script, sizeof python)) {
+    if (!find_tool(exe_dir, "prepare/prepare.py", python, script, sizeof python)) {
         set_finished(-1, "no_setup", "");
         return;
     }

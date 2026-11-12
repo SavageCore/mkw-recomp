@@ -11,8 +11,10 @@
 // 5173d27, MIT, Copyright (c) 2026 Revivedx and the Savage Wind Recomp contributors).
 //
 // Test hooks: MKW_LAUNCHER_SHOT=<frame>[:<page>[:<tab>[:<scroll 0..1>]]] saves that frame as MKW_LAUNCHER_SHOT_OUT (default
-// launcher.png) and quits; page main, settings (tab 0..5) or files. The user's input is ignored while it runs.
+// launcher.png) and quits; page main, settings (tab 0..5), files or mods. The user's input is ignored while it runs.
 // MKW_LAUNCHER_SETUP=<folder>[:link] starts the setup from that folder at once, on the game files page.
+// MKW_LAUNCHER_MODS_PICK=<zip|folder> picks it on the Mods page, as its dialogs do; MKW_LAUNCHER_MODS_TOGGLE=<mod>
+// toggles that mod once, as its checkbox does (both for shots without a display server).
 // MKW_LAUNCHER_SHORTCUT=1 makes the desktop shortcut at start, as its button does.
 // MKW_LAUNCHER_EXIT_AFTER_SETUP=1 quits when that setup ends, after saving the page as <shot out>-end.png (its result
 // is in the log); MKW_LAUNCHER_SHOT then takes its shot without quitting. During a shot the update check runs only
@@ -33,6 +35,7 @@
 #include "ui/launcher/launcher_look.h"
 #include "ui/launcher/launcher_setup.h"
 #include "ui/launcher/launcher_update.h"
+#include "ui/launcher/mods.h"
 #include "ui/menu/menu_look.h"
 #include "ui/menu/option_rows.h"
 #include "ui/menu/settings_tabs.h"
@@ -46,7 +49,7 @@ void rt_log(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 extern const char rt_port_version[];
 }
 
-enum Page { PAGE_MAIN, PAGE_SETTINGS, PAGE_FILES };
+enum Page { PAGE_MAIN, PAGE_SETTINGS, PAGE_FILES, PAGE_MODS };
 
 static struct {
     SDL_Window *win;
@@ -117,7 +120,9 @@ static void parse_test(void) {
     const char *p = strchr(e, ':');
     if (!p) return;
     p++;
-    L.shot_page = !strncmp(p, "settings", 8) ? PAGE_SETTINGS : !strncmp(p, "files", 5) ? PAGE_FILES : PAGE_MAIN;
+    L.shot_page = !strncmp(p, "settings", 8) ? PAGE_SETTINGS : !strncmp(p, "files", 5) ? PAGE_FILES
+                  : !strncmp(p, "mods", 4)                                              ? PAGE_MODS
+                                                                                        : PAGE_MAIN;
     const char *t = strchr(p, ':');
     L.shot_tab = t ? atoi(t + 1) : 0;
     const char *sc = t ? strchr(t + 1, ':') : NULL;   // settings:<tab>:<scroll 0..1>
@@ -267,7 +272,7 @@ static void page_main(float w, float h) {
     bool ready = rt_game_present() && update_state().phase != UPDATE_FETCHING;
     // the column's height, to centre it: logo and title, the gap, Play, the menu, the gap and Quit
     float mark = 84 * s, items = item_height(), gap = 12 * s;
-    float play_h = fmaxf(52.0f, 76 * s), col_h = mark + 48 * s + play_h + gap * 2 + items * 3 + 28 * s + items;
+    float play_h = fmaxf(52.0f, 76 * s), col_h = mark + 48 * s + play_h + gap * 2 + items * 4 + 28 * s + items;
     ImGui::SetNextWindowPos(ImVec2(left - 8 * s, fmaxf(32 * s, (h - col_h) * 0.45f) - 8 * s));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8 * s, 8 * s));   // room for the cursor's ring
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, gap));
@@ -304,12 +309,15 @@ static void page_main(float w, float h) {
     if (menu_item(menu_text(UI_LAUNCH_FILES), cw, true)) L.page = PAGE_FILES;
     intro_apply(dl, v0, intro(3));
     v0 = dl->VtxBuffer.Size;
-    if (menu_item(menu_text(UI_LAUNCH_SHORTCUT), cw, true)) make_shortcut();
+    if (menu_item(menu_text(UI_LAUNCH_MODS), cw, true)) L.page = PAGE_MODS;
     intro_apply(dl, v0, intro(4));
+    v0 = dl->VtxBuffer.Size;
+    if (menu_item(menu_text(UI_LAUNCH_SHORTCUT), cw, true)) make_shortcut();
+    intro_apply(dl, v0, intro(5));
     ImGui::Dummy(ImVec2(0, 28 * s));
     v0 = dl->VtxBuffer.Size;
     if (menu_item(menu_text(UI_LAUNCH_QUIT), cw, true)) L.result = LAUNCHER_QUIT;
-    intro_apply(dl, v0, intro(5));
+    intro_apply(dl, v0, intro(6));
     ImGui::PopStyleVar();
     if (L.shortcut_note[0]) {
         ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + cw);
@@ -564,6 +572,137 @@ static void page_files(float w, float h) {
     else L.result = LAUNCHER_QUIT;
 }
 
+// ---- the Mods page: the player's mods, imported from a zip or a folder, enabled for the next start
+static void SDLCALL pick_zip(void *, const char *const *files, int) {
+    if (files && files[0]) mods_pick(files[0], 1);
+}
+
+static void SDLCALL pick_folder(void *, const char *const *files, int) {
+    if (files && files[0]) mods_pick(files[0], 0);
+}
+
+// import.py's "error <code> <detail>" in the menu language; an unknown code shows the detail alone.
+static void mods_error_text(const ModsState &st, char *out, size_t cap) {
+    static const struct {
+        const char *code;
+        UiTextId text;
+    } kWhy[] = {{"layout", UI_MOD_ERR_LAYOUT}, {"name", UI_MOD_ERR_NAME}, {"io", UI_MOD_ERR_IO},
+                {"nogame", UI_SETUP_ERR_NOGAME}, {"no_setup", UI_SETUP_ERR_NO_SETUP}};
+    char why[600];
+    snprintf(why, sizeof why, "%s", st.error);
+    for (const auto &w : kWhy)
+        if (!strcmp(st.code, w.code)) {
+            // the name clash is the player's doing: the detail names the mod
+            snprintf(why, sizeof why, "%s", menu_text(w.text));
+            if (st.error[0]) snprintf(why + strlen(why), sizeof why - strlen(why), ": %s", st.error);
+        }
+    snprintf(out, cap, "%s", why);
+}
+
+static void page_mods(float w, float h) {
+    float bottom = panel_begin("##mods", UI_LAUNCH_MODS, w, h);
+    ImGui::BeginChild("##mods_body", ImVec2(0, -bottom), ImGuiChildFlags_NavFlattened);
+    bool ready = rt_game_present();
+    static char shown[PLAT_PATH_MAX] = "";
+    if (strcmp(shown, L.exe_dir)) {   // entered (buttons and the shot hook both land here)
+        mods_refresh(L.exe_dir);
+        snprintf(shown, sizeof shown, "%s", L.exe_dir);
+    }
+    if (const char *t = getenv("MKW_LAUNCHER_MODS_PICK")) {   // (test) the picked zip or folder, as its dialog does
+        if (!mods_has_pick()) {
+            size_t n = strlen(t);
+            mods_pick(t, n > 4 && t[n - 4] == '.' && (t[n - 3] == 'z' || t[n - 3] == 'Z'));
+        }
+    }
+    static int toggled = 0;   // (test) toggle one mod once, as its checkbox does
+    if (!toggled) {
+        if (const char *t = getenv("MKW_LAUNCHER_MODS_TOGGLE")) {
+            toggled = 1;
+            mods_toggle(t, !mods_is_enabled(t));
+        }
+    }
+    static char confirm[MOD_NAME_MAX] = "";
+    if (mods_count() == 0) {
+        ImGui::TextDisabled("%s", menu_text(UI_LAUNCH_MODS_EMPTY));
+    }
+    for (int i = 0; i < mods_count(); i++) {
+        const Mod *m = mods_at(i);
+        bool on = m->enabled;
+        if (ImGui::Checkbox(m->title, &on)) mods_toggle(m->name, on);
+        ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(menu_text(UI_MOD_DELETE)).x -
+                        ImGui::GetStyle().FramePadding.x * 2);
+        if (strcmp(confirm, m->name)) {
+            if (ImGui::Button(menu_text(UI_MOD_DELETE))) snprintf(confirm, sizeof confirm, "%s", m->name);
+        } else {
+            char ask[MOD_NAME_MAX + 32];
+            snprintf(ask, sizeof ask, menu_text(UI_MOD_CONFIRM), m->name);
+            if (ImGui::Button(ask)) {
+                mods_delete(m->name);
+                confirm[0] = 0;
+            }
+        }
+        // what the mod replaces: the romfs file count, then the code part's state
+        char detail[160] = "";
+        if (m->has_romfs && m->romfs_files == 1) snprintf(detail, sizeof detail, "%s", menu_text(UI_MOD_ROMFS_1));
+        else if (m->has_romfs) snprintf(detail, sizeof detail, menu_text(UI_MOD_ROMFS), m->romfs_files);
+        const char *code = nullptr;
+        char codebuf[96];
+        if (!m->has_exefs) code = menu_text(UI_MOD_CODE_NONE);
+        else if (m->nswitches == 1) code = menu_text(UI_MOD_CODE_SWITCH_1);
+        else if (m->nswitches > 1) {
+            snprintf(codebuf, sizeof codebuf, menu_text(UI_MOD_CODE_SWITCHES), m->nswitches);
+            code = codebuf;
+        } else if (m->exefs_match) code = menu_text(UI_MOD_CODE_PORT);
+        else {
+            snprintf(codebuf, sizeof codebuf, menu_text(UI_MOD_CODE_BUILD), m->exefs_build);
+            code = codebuf;
+        }
+        ImGui::TextDisabled("%s  -  %s", detail[0] ? detail : "-", code);
+        ImGui::Separator();
+    }
+    ImGui::Spacing();
+    ModsState ms = mods_state();
+    if (!L.tools || !ready) {
+        ImGui::TextWrapped("%s", menu_text(!ready ? UI_LAUNCH_FILES_MISSING : UI_LAUNCH_NO_TOOLS));
+    } else if (ms.running) {
+        ImGui::ProgressBar(-1.0f * (float)ImGui::GetTime(), ImVec2(-1, 0), "");
+        ImGui::SameLine();
+        if (ImGui::Button(menu_text(UI_LAUNCH_CANCEL))) mods_cancel();
+    } else if (!mods_has_pick() && !ms.finished) {
+        static const SDL_DialogFileFilter zip_filter = {"Mod zip", "zip"};
+        if (ImGui::Button(menu_text(UI_MOD_IMPORT_ZIP)))
+            SDL_ShowOpenFileDialog(pick_zip, nullptr, L.win, &zip_filter, 1, nullptr, false);
+        ImGui::SameLine();
+        if (ImGui::Button(menu_text(UI_MOD_IMPORT_FOLDER)))
+            SDL_ShowOpenFolderDialog(pick_folder, nullptr, L.win, nullptr, false);
+    } else if (ms.finished) {
+        if (ms.finished > 0) {
+            char done[128];
+            snprintf(done, sizeof done, "%s: %s", menu_text(UI_LAUNCH_SETUP_DONE), ms.done);
+            ImGui::TextColored(ImVec4(0.55f, 0.85f, 0.6f, 1), "%s", done);
+        } else {
+            char msg[700];
+            mods_error_text(ms, msg, sizeof msg);
+            ImGui::PushTextWrapPos(0);
+            ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.35f, 1), "%s", msg);
+            ImGui::PopTextWrapPos();
+        }
+        if (ImGui::Button(menu_text(UI_LAUNCH_BACK))) mods_clear_pick();
+    } else {
+        ImGui::TextUnformatted(mods_pick_path());
+        ImGui::TextUnformatted(menu_text(UI_MOD_NAME));
+        ImGui::SameLine();
+        ImGui::InputText("##modname", mods_name_buf(), MOD_NAME_MAX);
+        if (ImGui::Button(menu_text(UI_MOD_IMPORT))) mods_import_start(L.exe_dir);
+        ImGui::SameLine();
+        if (ImGui::Button(menu_text(UI_LAUNCH_BACK))) mods_clear_pick();
+    }
+    ImGui::EndChild();
+    bool leave = panel_back_row() || back_pressed();
+    ImGui::End();
+    if (leave) go_main();
+}
+
 // ---- the window
 static bool open_window(void) {
     // MKW_BACKGROUND_WINDOW=1 (agents' shots, never the player's default): the runs' app id, which the KWin rule opens
@@ -686,6 +825,7 @@ extern "C" int launcher_run(void) {
         case PAGE_MAIN: page_main((float)pw, (float)ph); break;
         case PAGE_SETTINGS: page_settings((float)pw, (float)ph); break;
         case PAGE_FILES: page_files((float)pw, (float)ph); break;
+        case PAGE_MODS: page_mods((float)pw, (float)ph); break;
         }
         // the page just switched to comes in from its own colour in 0.15 s, over everything drawn this frame
         if (L.page_t0 > 0 && !launcher_fade(ImGui::GetForegroundDrawList(), (float)pw, (float)ph,

@@ -39,7 +39,7 @@ typedef struct { uint64_t offset, size; uint32_t name, len; } Entry;
 _Static_assert(sizeof(Entry) == 24, "index entry layout");
 
 typedef struct { uint32_t volume, pad; uint64_t file_id, size, write_time, create_time; } Identity;   // no padding
-typedef struct { uint64_t index, size; char *path, *name; Identity id; } Overlay;
+typedef struct { uint64_t index, size; char *path, *name; Identity id; unsigned ord; } Overlay;
 
 static uint8_t *index_bytes;
 static size_t index_size;
@@ -56,6 +56,7 @@ static Pack *package;                // the RomFS is a packed dump; its rows are
 static const PackEntry *package_rows;
 static Overlay *overlays;            // sorted by RomFS index after overlay_init
 static size_t noverlay, overlay_cap;
+static unsigned load_seq;            // overlay_load call count: later dirs win shared files
 static char **added;                 // RomFS paths of the added files, sorted; added[k] is index file_count + k
 static size_t nadded;
 
@@ -241,7 +242,7 @@ static void overlay_load(const char *dir) {
         }
         char *copy = strdup(file), *rel = strdup(name);
         need(copy && rel, "overlay path copy");
-        overlays[noverlay++] = (Overlay){i, size, copy, rel, id};
+        overlays[noverlay++] = (Overlay){i, size, copy, rel, id, load_seq};
         if (noverlay - first <= 16)
             rt_log("RomFS overlay: %s (%llu bytes) %s", name, size, add ? "is added" : "replaces the original");
     }
@@ -254,11 +255,18 @@ static void overlay_load(const char *dir) {
 
 static int overlay_order(const void *a, const void *b) {
     uint64_t x = ((const Overlay *)a)->index, y = ((const Overlay *)b)->index;
-    return (x > y) - (x < y);
+    // added files all share ADDED until added_init numbers them: never equal, keep load order among them
+    if (x == ADDED || y == ADDED) return (x > y) - (x < y);
+    if (x != y) return (x > y) - (x < y);
+    unsigned ox = ((const Overlay *)a)->ord, oy = ((const Overlay *)b)->ord;
+    return (ox > oy) - (ox < oy);
 }
 
 static int added_order(const void *a, const void *b) {
-    return strcmp((*(Overlay *const *)a)->name, (*(Overlay *const *)b)->name);
+    int c = strcmp((*(Overlay *const *)a)->name, (*(Overlay *const *)b)->name);
+    if (c) return c;
+    unsigned x = (*(Overlay *const *)a)->ord, y = (*(Overlay *const *)b)->ord;
+    return (x > y) - (x < y);
 }
 
 // Number the added files in path order after the RomFS's own (file_count + k); two overlays adding one path stop.
@@ -272,11 +280,22 @@ static void added_init(void) {
         }
     if (!nadded) return;
     qsort(list, nadded, sizeof *list, added_order);
+    // two mods adding one path: the later mod wins, like replacements (the MODS order is the precedence)
+    size_t kept = 0;
+    for (size_t k = 0; k < nadded; k++) {
+        if (kept && !strcmp(list[k]->name, list[kept - 1]->name)) {
+            rt_log("RomFS overlay: %s loses added %s to %s", list[kept - 1]->path, list[k]->name, list[k]->path);
+            free(list[kept - 1]->path);
+            free(list[kept - 1]->name);
+            list[kept - 1] = list[k];
+        } else {
+            list[kept++] = list[k];
+        }
+    }
+    nadded = kept;
     added = malloc(nadded * sizeof *added);
     need(added != NULL, "added files");
     for (size_t k = 0; k < nadded; k++) {
-        if (k && !strcmp(list[k]->name, list[k - 1]->name))
-            rt_fatal("RomFS overlay: %s and %s both add %s", list[k - 1]->path, list[k]->path, list[k]->name);
         list[k]->index = file_count + k;
         added[k] = list[k]->name;
     }
@@ -298,17 +317,60 @@ static const char *lang_overlay(void) {
 static void overlay_init(void) {
     // MKW_ROMFS_PATCHES (the scripts' build/romfs-res) wins; else the resolution setting writes its own
     const char *patches = cfg_get("MKW_ROMFS_PATCHES");
-    const char *dirs[3] = {patches && *patches ? patches : romfs_resolution_overlay(), cfg_get("MKW_ROMFS_MODS"),
-                           lang_overlay()};
+    const char *first = patches && *patches ? patches : romfs_resolution_overlay();
     if (patches && *patches && strcmp(patches, "0")) romfs_resolution_external();
-    for (int i = 0; i < 3; i++)
-        if (dirs[i] && *dirs[i] && strcmp(dirs[i], "0")) overlay_load(dirs[i]);
+    if (first && *first && strcmp(first, "0")) {
+        load_seq++;
+        overlay_load(first);
+    }
+    const char *legacy = cfg_get("MKW_ROMFS_MODS");
+    if (legacy && *legacy && strcmp(legacy, "0")) {
+        load_seq++;
+        overlay_load(legacy);
+    }
+    // the Mods page's enabled mods, in MODS order: later mods win shared files
+    char exe[PLAT_PATH_MAX * 2], mods[4096], seen[64][64];
+    size_t nseen = 0;
+    const char *list = cfg_get("MKW_MODS");
+    if (plat_exe_path(exe, sizeof exe - 64) && list && *list) {
+        char *cut = plat_last_sep(exe);
+        if (cut) *cut = 0;
+        snprintf(mods, sizeof mods, "%s", list);
+        for (char *t = strtok(mods, ","); t; t = strtok(NULL, ",")) {
+            while (*t == ' ') t++;
+            char *e = t + strlen(t);
+            while (e > t && (e[-1] == ' ' || e[-1] == '\t')) *--e = 0;
+            if (!*t || strlen(t) >= sizeof seen[0] || nseen >= 64) continue;
+            size_t k = 0;
+            while (k < nseen && strcmp(seen[k], t)) k++;
+            if (k < nseen) continue;
+            snprintf(seen[nseen++], sizeof seen[0], "%s", t);
+            char dir[PLAT_PATH_MAX * 2 + 16];
+            snprintf(dir, sizeof dir, "%s/mods/%s/romfs", exe, t);
+            load_seq++;
+            overlay_load(dir);
+        }
+    }
+    const char *lang = lang_overlay();
+    if (lang && *lang) {
+        load_seq++;
+        overlay_load(lang);
+    }
     added_init();
     if (noverlay) qsort(overlays, noverlay, sizeof *overlays, overlay_order);
-    for (size_t k = 1; k < noverlay; k++)
-        if (overlays[k].index == overlays[k - 1].index)
-            rt_fatal("RomFS overlay: %s and %s replace the same file %s", overlays[k - 1].path, overlays[k].path,
-                     overlays[k].name);
+    // two dirs replacing one file: the later dir wins (MODS order); the loser's strings are freed
+    size_t kept = 0;
+    for (size_t k = 0; k < noverlay; k++) {
+        if (kept && overlays[k].index != ADDED && overlays[k].index == overlays[kept - 1].index) {
+            rt_log("RomFS overlay: %s loses %s to %s", overlays[kept - 1].path, overlays[k].name, overlays[k].path);
+            free(overlays[kept - 1].path);
+            free(overlays[kept - 1].name);
+            overlays[kept - 1] = overlays[k];
+        } else {
+            overlays[kept++] = overlays[k];
+        }
+    }
+    noverlay = kept;
 }
 
 // ---- start

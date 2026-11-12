@@ -1874,6 +1874,82 @@ msgctxt "UI_LAUNCH_SHORTCUT_FAILED"
 msgid "Could not make the shortcut"
 msgstr "Non se puido crear o atallo"
 
+msgctxt "UI_LAUNCH_MODS"
+msgid "Mods"
+msgstr ""
+
+msgctxt "UI_LAUNCH_MODS_EMPTY"
+msgid "No mods yet: import a zip or a folder below"
+msgstr ""
+
+msgctxt "UI_MOD_IMPORT_ZIP"
+msgid "Import zip..."
+msgstr ""
+
+msgctxt "UI_MOD_IMPORT_FOLDER"
+msgid "Import folder..."
+msgstr ""
+
+msgctxt "UI_MOD_NAME"
+msgid "Name"
+msgstr ""
+
+msgctxt "UI_MOD_IMPORT"
+msgid "Import"
+msgstr ""
+
+msgctxt "UI_MOD_DELETE"
+msgid "Delete"
+msgstr ""
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_MOD_CONFIRM"
+msgid "Delete %s?"
+msgstr ""
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_MOD_ROMFS"
+msgid "%d files"
+msgstr ""
+
+msgctxt "UI_MOD_ROMFS_1"
+msgid "1 file"
+msgstr ""
+
+msgctxt "UI_MOD_CODE_NONE"
+msgid "code: none"
+msgstr ""
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_MOD_CODE_BUILD"
+msgid "code: built for %s"
+msgstr ""
+
+msgctxt "UI_MOD_CODE_PORT"
+msgid "code: needs a ported build"
+msgstr ""
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_MOD_CODE_SWITCHES"
+msgid "code: %d switches"
+msgstr ""
+
+msgctxt "UI_MOD_CODE_SWITCH_1"
+msgid "code: 1 switch"
+msgstr ""
+
+msgctxt "UI_MOD_ERR_LAYOUT"
+msgid "Not a mod: no romfs/ or exefs/ inside"
+msgstr ""
+
+msgctxt "UI_MOD_ERR_NAME"
+msgid "That name is taken or empty"
+msgstr ""
+
+msgctxt "UI_MOD_ERR_IO"
+msgid "Could not copy the files"
+msgstr ""
+
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_UPDATE"
 msgid "Update to %s (%d MB)"
