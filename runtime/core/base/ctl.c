@@ -11,6 +11,8 @@
 //   tex ADDR             textures whose storage or pool-bound Vulkan image covers ADDR (0: every image larger than its storage)
 //   mem ADDR SIZE PATH   SIZE bytes of guest memory at ADDR to PATH (what a CPU-written texture holds)
 //   frame                the present count
+//   trim [MiB]           frees that much (1024) as an allocation failure would: released textures, idle mirrored ones
+//                        (vk_mem_relieve), with the vram line before and after
 //   vram                 the "mem: vram" line now: what holds device-local memory (vk_mem_log.c, MKW_VRAM_LOG)
 //   focus 0|1            the window lost (0) or took (1) the focus, as the window system reports it
 //   seq                  the game's active sequence nodes (MKW_SEQ_WATCH, seqwatch.c)
@@ -89,6 +91,14 @@ void ctl_run(char *line) {
     } else if (!strcmp(cmd, "vram")) {
         vram_log_now();   // vk_mem_log.c: what holds device-local memory, as MKW_VRAM_LOG's periodic line
         rt_log("ctl: vram at frame %llu", (unsigned long long)frame);
+    } else if (!strcmp(cmd, "trim")) {
+        // vk_mem_relieve, as when an allocation fails: released textures, then idle mirrored ones, then the GPU waited
+        // for and what it held freed; the vram line before and after shows what went back
+        uint64_t mib = *arg ? strtoull(arg, NULL, 10) : 1024;
+        vram_log_now();
+        vk_mem_relieve(mib << 20, "ctl trim");
+        vram_log_now();
+        rt_log("ctl: trim %llu MiB at frame %llu", (unsigned long long)mib, (unsigned long long)frame);
     } else if (!strcmp(cmd, "frame")) {
         rt_log("ctl: frame %llu", (unsigned long long)frame);
     } else if (!strcmp(cmd, "focus") && (*arg == '0' || *arg == '1')) {
