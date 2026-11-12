@@ -1889,79 +1889,107 @@ msgstr "Snelkoppeling maken mislukt"
 
 msgctxt "UI_LAUNCH_MODS"
 msgid "Mods"
-msgstr ""
+msgstr "Mods"
 
 msgctxt "UI_LAUNCH_MODS_EMPTY"
 msgid "No mods yet: import a zip or a folder below"
-msgstr ""
+msgstr "Nog geen mods: importeer hieronder een zip of een map"
 
 msgctxt "UI_MOD_IMPORT_ZIP"
 msgid "Import zip..."
-msgstr ""
+msgstr "Zip importeren..."
 
 msgctxt "UI_MOD_IMPORT_FOLDER"
 msgid "Import folder..."
-msgstr ""
+msgstr "Map importeren..."
 
 msgctxt "UI_MOD_NAME"
 msgid "Name"
-msgstr ""
+msgstr "Naam"
 
 msgctxt "UI_MOD_IMPORT"
 msgid "Import"
-msgstr ""
+msgstr "Importeren"
 
 msgctxt "UI_MOD_DELETE"
 msgid "Delete"
-msgstr ""
+msgstr "Verwijderen"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_MOD_CONFIRM"
 msgid "Delete %s?"
-msgstr ""
+msgstr "%s verwijderen?"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_MOD_ROMFS"
 msgid "%d files"
-msgstr ""
+msgstr "%d bestanden"
 
 msgctxt "UI_MOD_ROMFS_1"
 msgid "1 file"
-msgstr ""
-
-msgctxt "UI_MOD_CODE_NONE"
-msgid "code: none"
-msgstr ""
+msgstr "1 bestand"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_MOD_CODE_BUILD"
 msgid "code: built for %s"
-msgstr ""
+msgstr "code: gebouwd voor %s"
 
 msgctxt "UI_MOD_CODE_PORT"
 msgid "code: needs a ported build"
-msgstr ""
+msgstr "code: moet nog geport worden"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_MOD_CODE_SWITCHES"
 msgid "code: %d switches"
-msgstr ""
+msgstr "code: %d schakelaars"
 
 msgctxt "UI_MOD_CODE_SWITCH_1"
 msgid "code: 1 switch"
+msgstr "code: 1 schakelaar"
+
+msgctxt "UI_MOD_MERGING"
+msgid "Merging mods..."
+msgstr "Mods samenvoegen..."
+
+msgctxt "UI_MOD_CONFLICTS"
+msgid "Conflicts: click the winner to change it"
+msgstr "Conflicten: klik op de winnaar om deze te wijzigen"
+
+msgctxt "UI_MOD_VANILLA"
+msgid "Vanilla"
 msgstr ""
+
+msgctxt "UI_MOD_IMPORTED"
+msgid "Imported %s"
+msgstr "%s geïmporteerd"
+
+msgctxt "UI_MOD_RESOLVE"
+msgid "Resolve conflicts"
+msgstr "Conflicten oplossen"
+
+msgctxt "UI_MOD_OK"
+msgid "OK"
+msgstr "OK"
 
 msgctxt "UI_MOD_ERR_LAYOUT"
 msgid "Not a mod: no romfs/ or exefs/ inside"
-msgstr ""
+msgstr "Geen mod: geen romfs/ of exefs/ erin"
 
 msgctxt "UI_MOD_ERR_NAME"
 msgid "That name is taken or empty"
-msgstr ""
+msgstr "Die naam is bezet of leeg"
 
 msgctxt "UI_MOD_ERR_IO"
 msgid "Could not copy the files"
-msgstr ""
+msgstr "Bestanden konden niet worden gekopieerd"
+
+msgctxt "UI_MOD_ERR_NOPORT"
+msgid "Not ported yet: no code patches for this game"
+msgstr "Nog niet geport: geen codepatches voor dit spel"
+
+msgctxt "UI_MOD_ERR_NOGAME"
+msgid "Game files not set up: do that on the Files page first"
+msgstr "Spelbestanden ontbreken: stel ze eerst in op de pagina Bestanden"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_UPDATE"

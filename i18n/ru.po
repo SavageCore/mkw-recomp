@@ -1872,79 +1872,107 @@ msgstr "Не удалось создать ярлык"
 
 msgctxt "UI_LAUNCH_MODS"
 msgid "Mods"
-msgstr ""
+msgstr "Моды"
 
 msgctxt "UI_LAUNCH_MODS_EMPTY"
 msgid "No mods yet: import a zip or a folder below"
-msgstr ""
+msgstr "Модов пока нет: импортируйте zip или папку ниже"
 
 msgctxt "UI_MOD_IMPORT_ZIP"
 msgid "Import zip..."
-msgstr ""
+msgstr "Импорт zip..."
 
 msgctxt "UI_MOD_IMPORT_FOLDER"
 msgid "Import folder..."
-msgstr ""
+msgstr "Импорт папки..."
 
 msgctxt "UI_MOD_NAME"
 msgid "Name"
-msgstr ""
+msgstr "Имя"
 
 msgctxt "UI_MOD_IMPORT"
 msgid "Import"
-msgstr ""
+msgstr "Импортировать"
 
 msgctxt "UI_MOD_DELETE"
 msgid "Delete"
-msgstr ""
+msgstr "Удалить"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_MOD_CONFIRM"
 msgid "Delete %s?"
-msgstr ""
+msgstr "Удалить %s?"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_MOD_ROMFS"
 msgid "%d files"
-msgstr ""
+msgstr "%d файлов"
 
 msgctxt "UI_MOD_ROMFS_1"
 msgid "1 file"
-msgstr ""
-
-msgctxt "UI_MOD_CODE_NONE"
-msgid "code: none"
-msgstr ""
+msgstr "1 файл"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_MOD_CODE_BUILD"
 msgid "code: built for %s"
-msgstr ""
+msgstr "код: собран для %s"
 
 msgctxt "UI_MOD_CODE_PORT"
 msgid "code: needs a ported build"
-msgstr ""
+msgstr "код: нужен порт"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_MOD_CODE_SWITCHES"
 msgid "code: %d switches"
-msgstr ""
+msgstr "код: %d переключателей"
 
 msgctxt "UI_MOD_CODE_SWITCH_1"
 msgid "code: 1 switch"
+msgstr "код: 1 переключатель"
+
+msgctxt "UI_MOD_MERGING"
+msgid "Merging mods..."
+msgstr "Объединение модов..."
+
+msgctxt "UI_MOD_CONFLICTS"
+msgid "Conflicts: click the winner to change it"
+msgstr "Конфликты: нажмите на победителя, чтобы изменить его"
+
+msgctxt "UI_MOD_VANILLA"
+msgid "Vanilla"
 msgstr ""
+
+msgctxt "UI_MOD_IMPORTED"
+msgid "Imported %s"
+msgstr "%s импортирован"
+
+msgctxt "UI_MOD_RESOLVE"
+msgid "Resolve conflicts"
+msgstr "Разрешить конфликты"
+
+msgctxt "UI_MOD_OK"
+msgid "OK"
+msgstr "ОК"
 
 msgctxt "UI_MOD_ERR_LAYOUT"
 msgid "Not a mod: no romfs/ or exefs/ inside"
-msgstr ""
+msgstr "Не мод: внутри нет romfs/ или exefs/"
 
 msgctxt "UI_MOD_ERR_NAME"
 msgid "That name is taken or empty"
-msgstr ""
+msgstr "Это имя занято или пусто"
 
 msgctxt "UI_MOD_ERR_IO"
 msgid "Could not copy the files"
-msgstr ""
+msgstr "Не удалось скопировать файлы"
+
+msgctxt "UI_MOD_ERR_NOPORT"
+msgid "Not ported yet: no code patches for this game"
+msgstr "Пока не портировано: нет патчей кода для этой игры"
+
+msgctxt "UI_MOD_ERR_NOGAME"
+msgid "Game files not set up: do that on the Files page first"
+msgstr "Файлы игры не настроены: сначала укажите их на странице «Файлы»"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_UPDATE"

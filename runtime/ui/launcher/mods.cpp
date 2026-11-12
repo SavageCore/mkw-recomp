@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef _WIN32
+#include <sys/stat.h>
+#endif
 
 #include "imgui.h"
 #include "ui/launcher/launcher_setup.h"
@@ -31,6 +34,13 @@ static struct {
     char pick[PLAT_PATH_MAX];   // the zip or folder the dialog chose
     int pick_is_zip;
     char name[MOD_NAME_MAX];    // the rename field; empty: import.py takes the mod's own name
+    // merge (tools/mod/merge.py, same child-process pattern; reruns after every toggle/import/delete)
+    SDL_Thread *mthread;
+    SDL_Process *mproc;
+    int mrunning, mfinished;
+    char mcode[32], merror[512];
+    ModConflict conflicts[64];
+    int nconflicts;
 } G = {};
 
 ModsState mods_state(void) {
@@ -94,6 +104,7 @@ static void json_switches(const char *json, Mod *m) {
 
 static int list_cb(const char *name, int kind, uint64_t, void *ctx) {
     char (*exe)[PLAT_PATH_MAX] = (char (*)[PLAT_PATH_MAX])ctx;
+    if (name[0] == '.') return 1;   // .merged and the like are the menu's own, not mods
     if (kind != PLAT_FS_DIR || G.n >= MODS_MAX) return 1;
     if (strlen(name) >= MOD_NAME_MAX) return 1;   // import.py caps names at 64; not ours
     Mod *m = &G.mods[G.n];
@@ -127,6 +138,11 @@ static int list_cb(const char *name, int kind, uint64_t, void *ctx) {
     return 1;
 }
 
+static void remove_tree(const char *path);
+static void conflicts_load(const char *exe_dir);   // .merged/conflicts.json, defined below
+// rewrite mods/choices.json, optionally setting one pick or dropping a mod's picks (defined below)
+static void rewrite_choices(const char *archive, const char *inner, const char *winner, const char *drop_mod);
+void mods_merge_start(const char *exe_dir);        // merge worker, defined below (public: mods.h)
 static int mod_enabled(const char *name) {
     const char *mods = cfg_get("MKW_MODS");
     if (!mods || !*mods) return 0;
@@ -154,6 +170,7 @@ void mods_refresh(const char *exe_dir) {
                 G.mods[j] = t;
             }
     for (int i = 0; i < G.n; i++) G.mods[i].enabled = mod_enabled(G.mods[i].name);
+    conflicts_load(exe_dir);
 }
 
 // Every scanned mod's switches off, then the enabled mods' on, in MODS order (later mods win shared keys).
@@ -194,12 +211,52 @@ static void set_enabled(const char *name, int on) {
         if (i) strcat(out, ",");
         strcat(out, keep[i]);
     }
+    if (!on) rewrite_choices(nullptr, nullptr, nullptr, name);   // a disabled mod's picks go with it
     cfg_set("MKW_MODS", out);
     mods_refresh(G.exe_dir);
     mods_apply();   // saves too
+    mods_merge_start(G.exe_dir);   // re-merges the enabled mods' shared archives
 }
 
-void mods_toggle(const char *name, int on) { set_enabled(name, on); }
+// the loose RomFS a manifest's original hashes come from: the game's own (set at start), else link mode's
+// path, else the copied one
+static char g_romfs_override[PLAT_PATH_MAX * 2];
+static char g_exefs_override[PLAT_PATH_MAX * 2];
+
+void mods_set_romfs(const char *path) {
+    snprintf(g_romfs_override, sizeof g_romfs_override, "%s", path ? path : "");
+}
+
+void mods_set_exefs(const char *path) {
+    snprintf(g_exefs_override, sizeof g_exefs_override, "%s", path ? path : "");
+}
+
+// the game's exefs, for the build id an import checks (the same resolution the game itself uses)
+static void exefs_root(const char *exe_dir, char *out, size_t cap) {
+    if (g_exefs_override[0]) {
+        snprintf(out, cap, "%s", g_exefs_override);
+        return;
+    }
+    const char *e = cfg_get("MKW_EXEFS");
+    if (e && *e)
+        snprintf(out, cap, "%s", e);
+    else
+        snprintf(out, cap, "%s/exefs", exe_dir);
+}
+
+static void romfs_root(const char *exe_dir, char *out, size_t cap) {
+    if (g_romfs_override[0]) {
+        snprintf(out, cap, "%s", g_romfs_override);
+        return;
+    }
+    const char *linked = cfg_get("MKW_ROMFS");
+    if (linked && *linked)
+        snprintf(out, cap, "%s", linked);
+    else
+        snprintf(out, cap, "%s/romfs", exe_dir);
+}
+
+void mods_toggle(const char *name, int on) { set_enabled(name, on); mods_merge_start(G.exe_dir); }
 
 int mods_is_enabled(const char *name) {
     for (int i = 0; i < G.n; i++)
@@ -208,9 +265,15 @@ int mods_is_enabled(const char *name) {
 }
 
 void mods_delete(const char *name) {
+    if (!name || !*name || strchr(name, '/') || strchr(name, '\\')) {
+        rt_log("mods: refusing to delete '%s' (not a mod folder name)", name ? name : "(null)");
+        return;
+    }
     char path[PLAT_PATH_MAX * 2];
     snprintf(path, sizeof path, "%s/mods/%s", G.exe_dir, name);
+    rt_log("mods: delete %s", path);
     remove_tree(path);
+    rewrite_choices(nullptr, nullptr, nullptr, name);
     set_enabled(name, 0);   // drops it from MODS when present; re-applies switches and rescans either way
 }
 
@@ -233,12 +296,34 @@ static int rm_cb(const char *name, int kind, uint64_t, void *ctx) {
     return 1;
 }
 
-// Our own imports only, under <exe>/mods: depth-first, then the mod folder itself.
+// Our own imports only, under <exe>/mods: depth-first, then the mod folder itself. Bounded on
+// purpose: a bad path here once emptied every mod, so it now refuses anything but one folder
+// directly inside mods/ (and logs every refusal).
 static void remove_tree(const char *path) {
+    char root[PLAT_PATH_MAX * 2 + 16];
+    snprintf(root, sizeof root, "%s/mods/", G.exe_dir);
+    // only a folder strictly inside <exe>/mods: never the mods dir itself, never the exe dir, whatever we were handed
+    if (!path || strncmp(path, root, strlen(root)) != 0) {
+        rt_log("mods: refusing to delete %s (outside %s)", path ? path : "(null)", root);
+        return;
+    }
+    const char *leaf = path + strlen(root);
+    if (!*leaf || strchr(leaf, '/')) {
+        rt_log("mods: refusing to delete %s (not one folder of %s)", path, root);
+        return;
+    }
+#ifndef _WIN32
+    struct stat st;
+    if (lstat(path, &st) || !S_ISDIR(st.st_mode)) {
+        rt_log("mods: refusing to delete %s (not a folder)", path);
+        return;
+    }
+#endif
     RmCtx c;
     snprintf(c.path, sizeof c.path, "%s", path);
     plat_fs_list(path, rm_cb, &c);
     plat_fs_rmdir(path);
+    rt_log("mods: deleted %s", path);
 }
 
 // The wrapper scan for the rename prefill: the single non-hidden subfolder's name, and how many there are.
@@ -363,7 +448,8 @@ static int SDLCALL reader(void *) {
     if (ok) {
         char exe[PLAT_PATH_MAX];
         snprintf(exe, sizeof exe, "%s", G.exe_dir);
-        mods_refresh(exe);   // the new mod is on disk now
+        mods_refresh(exe);              // the new mod is on disk now
+        set_enabled(s.done, 1);         // imported means enabled: its switches apply and it merges
     }
     if (!ok && !s.code[0]) set_finished(-1, "stopped", "");
     else set_finished(ok ? 1 : -1, nullptr, nullptr);
@@ -386,15 +472,13 @@ void mods_import_start(const char *exe_dir) {
     }
     // the loose RomFS the manifest's original hashes come from: link mode's path, else the copied one
     char romfs[PLAT_PATH_MAX * 2];
-    const char *linked = cfg_get("MKW_ROMFS");
-    if (linked && *linked)
-        snprintf(romfs, sizeof romfs, "%s", linked);
-    else
-        snprintf(romfs, sizeof romfs, "%s/romfs", exe_dir);
+    romfs_root(exe_dir, romfs, sizeof romfs);
+    char exefs[PLAT_PATH_MAX * 2];
+    exefs_root(exe_dir, exefs, sizeof exefs);
     const char *kind = G.pick_is_zip ? "--zip" : "--folder";
-    const char *args[] = {python, "-I", script, "--game", exe_dir, "--romfs", romfs,
+    const char *args[] = {python, "-I", script, "--game", exe_dir, "--romfs", romfs, "--exefs", exefs,
                           kind,      G.pick,   "--name", G.name, nullptr};
-    if (!G.name[0]) args[9] = nullptr;
+    if (!G.name[0]) args[11] = nullptr;
     rt_log("mods: %s %s --game %s %s %s%s%s", python, script, exe_dir, kind, G.pick,
            G.name[0] ? " --name " : "", G.name[0] ? G.name : "");
     G.proc = SDL_CreateProcess(args, true);
@@ -403,4 +487,284 @@ void mods_import_start(const char *exe_dir) {
         return;
     }
     SDL_DetachThread(SDL_CreateThread(reader, "mods-import", nullptr));
+}
+
+// ---- archive merge (tools/mod/merge.py): enabled mods sharing one game archive get a merged copy
+
+static void merge_finished(int how, const char *code, const char *why) {
+    SDL_LockMutex(G.lock);
+    G.mrunning = 0;
+    G.mfinished = how;
+    if (code) snprintf(G.mcode, sizeof G.mcode, "%s", code);
+    if (why) snprintf(G.merror, sizeof G.merror, "%s", why);
+    SDL_UnlockMutex(G.lock);
+}
+
+// merge.py's event lines: "conflict ..." picks go to conflicts.json (read below); the rest is progress
+static void merge_line(char *line) {
+    SDL_LockMutex(G.lock);
+    char *arg = strchr(line, ' ');
+    if (arg) *arg++ = 0;
+    if (!strcmp(line, "done") || !strcmp(line, "fresh")) {
+        // the merged tree (and conflicts.json) is on disk now
+    } else if (!strcmp(line, "error") && arg) {
+        char *why = strchr(arg, ' ');
+        if (why) *why++ = 0;
+        snprintf(G.mcode, sizeof G.mcode, "%s", arg);
+        snprintf(G.merror, sizeof G.merror, "%s", why ? why : "");
+    }
+    SDL_UnlockMutex(G.lock);
+}
+
+static int SDLCALL merge_reader(void *) {
+    SDL_IOStream *out = SDL_GetProcessOutput(G.mproc);
+    char line[2048];
+    size_t n = 0;
+    char c;
+    for (;;) {
+        if (SDL_ReadIO(out, &c, 1) != 1) {
+            if (SDL_GetIOStatus(out) != SDL_IO_STATUS_NOT_READY) break;
+            SDL_Delay(20);
+            continue;
+        }
+        if (c == '\r') continue;
+        if (c != '\n') {
+            if (n + 1 < sizeof line) line[n++] = c;
+            continue;
+        }
+        line[n] = 0;
+        n = 0;
+        merge_line(line);
+    }
+    int code = -1;
+    SDL_WaitProcess(G.mproc, true, &code);
+    SDL_DestroyProcess(G.mproc);
+    G.mproc = nullptr;
+    int ok = code == 0;
+    if (ok) {
+        char exe[PLAT_PATH_MAX];
+        snprintf(exe, sizeof exe, "%s", G.exe_dir);
+        mods_refresh(exe);   // conflicts.json changed; the list shows the same mods
+    }
+    SDL_LockMutex(G.lock);
+    int had_code = G.mcode[0] != 0;
+    SDL_UnlockMutex(G.lock);
+    if (!ok && !had_code) merge_finished(-1, "stopped", "");
+    else merge_finished(ok ? 1 : -1, nullptr, nullptr);
+    rt_log("mods: merge ended with code %d", code);
+    return 0;
+}
+
+void mods_merge_start(const char *exe_dir) {
+    if (!G.lock) G.lock = SDL_CreateMutex();
+    if (G.mrunning) return;
+    char python[1200], script[1200];
+    SDL_LockMutex(G.lock);
+    G.mrunning = 1;
+    G.mfinished = 0;
+    G.mcode[0] = G.merror[0] = 0;
+    SDL_UnlockMutex(G.lock);
+    if (!setup_tool(exe_dir, "mod/merge.py", python, script, sizeof python)) {
+        merge_finished(-1, "no_setup", "");
+        return;
+    }
+    char romfs[PLAT_PATH_MAX * 2], mods[4096], choices[PLAT_PATH_MAX * 2];
+    romfs_root(exe_dir, romfs, sizeof romfs);
+    const char *list = cfg_get("MKW_MODS");
+    snprintf(mods, sizeof mods, "%s", list ? list : "");
+    snprintf(choices, sizeof choices, "%s/mods/choices.json", exe_dir);
+    const char *args[] = {python, "-I", script, "--game", exe_dir, "--romfs", romfs,
+                          "--enable", mods, "--choices", choices, nullptr};
+    rt_log("mods: merge %s", mods);
+    G.mproc = SDL_CreateProcess(args, true);
+    if (!G.mproc) {
+        merge_finished(-1, "", SDL_GetError());
+        return;
+    }
+    SDL_DetachThread(SDL_CreateThread(merge_reader, "mods-merge", nullptr));
+}
+
+int mods_merge_running(void) {
+    int r = 0;
+    if (G.lock) SDL_LockMutex(G.lock);
+    r = G.mrunning;
+    if (G.lock) SDL_UnlockMutex(G.lock);
+    return r;
+}
+
+void mods_merge_cancel(void) {
+    if (!G.lock) return;
+    SDL_LockMutex(G.lock);
+    if (G.mproc) SDL_KillProcess(G.mproc, true);
+    SDL_UnlockMutex(G.lock);
+}
+
+// conflicts.json is merge.py's machine output; the page reads it for the picker rows. Values never hold
+// quotes (paths and mod-folder names), so a small scanner does instead of a JSON library.
+static int json_string(const char **pp, const char *key, char *out, size_t cap) {
+    char want[64];
+    snprintf(want, sizeof want, "\"%s\"", key);
+    const char *p = strstr(*pp, want);
+    if (!p) return 0;
+    p = strchr(p + strlen(want), ':');
+    if (!p) return 0;
+    p = strchr(p, '"');
+    if (!p) return 0;
+    p++;
+    size_t n = 0;
+    while (*p && *p != '"' && n + 1 < cap) out[n++] = *p++;
+    out[n] = 0;
+    *pp = p;
+    return n > 0;
+}
+
+static void conflicts_load(const char *exe_dir) {
+    G.nconflicts = 0;
+    char path[PLAT_PATH_MAX * 2], json[65536];
+    snprintf(path, sizeof path, "%s/mods/.merged/conflicts.json", exe_dir);
+    PlatFile *f = plat_fs_open(path, 0, NULL);
+    if (!f) return;
+    int64_t n = plat_file_pread(f, json, sizeof json - 1, 0);
+    plat_file_close(f);
+    if (n <= 0) return;
+    json[n] = 0;
+    const char *p = json;
+    while (G.nconflicts < 64) {
+        ModConflict *c = &G.conflicts[G.nconflicts];
+        memset(c, 0, sizeof *c);
+        const char *q = p;
+        if (!json_string(&q, "archive", c->archive, sizeof c->archive)) break;
+        if (!json_string(&q, "inner", c->inner, sizeof c->inner)) break;
+        if (!json_string(&q, "winner", c->winner, sizeof c->winner)) break;
+        c->resolved = strstr(q, "\"resolved\": true") != NULL;
+        // the mods array of this object: names until the closing bracket
+        const char *m = strstr(p, "\"mods\"");
+        if (!m) break;
+        m = strchr(m, '[');
+        if (!m) break;
+        m++;
+        char name[MOD_NAME_MAX];
+        while (c->nmods < 8) {
+            while (*m == ' ' || *m == '\t' || *m == '\n' || *m == ',') m++;
+            if (*m == ']') break;
+            if (*m != '"') break;
+            m++;
+            size_t k = 0;
+            while (*m && *m != '"' && k + 1 < sizeof name) name[k++] = *m++;
+            name[k] = 0;
+            if (*m == '"') m++;
+            if (k) snprintf(c->mods[c->nmods++], sizeof c->mods[0], "%s", name);
+            else break;
+        }
+        G.nconflicts++;
+        p = q;
+    }
+    rt_log("mods: conflicts file %s (%d bytes)", path, (int)n);
+}
+
+int mods_conflict_count(void) { return G.nconflicts; }
+
+int mods_conflict_unresolved(void) {
+    int n = 0;
+    for (int i = 0; i < G.nconflicts; i++) n += !G.conflicts[i].resolved;
+    return n;
+}
+const ModConflict *mods_conflict_at(int i) { return i >= 0 && i < G.nconflicts ? &G.conflicts[i] : NULL; }
+
+
+
+// Winner picker: mods/choices.json is a flat list of picks
+// ([{archive, inner, winner, mods}]) so one mod's entries can be dropped when it is deleted. A pick
+// keeps the names of the mods it was made between: if the set changes, the conflict asks again.
+// Rewritten from the conflicts list with one change, then re-merged.
+static void rewrite_choices(const char *archive, const char *inner, const char *winner, const char *drop_mod) {
+    char cpath[PLAT_PATH_MAX * 2], out[8192];
+    snprintf(cpath, sizeof cpath, "%s/mods/choices.json", G.exe_dir);
+    int n = snprintf(out, sizeof out, "[\n");
+    int first = 1;
+    for (int i = 0; i < G.nconflicts && n < (int)sizeof out - 192; i++) {
+        const ModConflict *c = &G.conflicts[i];
+        const char *win = c->winner;
+        if (archive && !strcmp(c->archive, archive) && !strcmp(c->inner, inner)) win = winner;
+        if (drop_mod) {   // the deleted mod's picks go with it, so re-adding it asks again
+            int mine = !strcmp(win, drop_mod);
+            for (int k = 0; k < c->nmods && !mine; k++) mine = !strcmp(c->mods[k], drop_mod);
+            if (mine) continue;
+        }
+        n += snprintf(out + n, sizeof out - (size_t)n, "%s  {\"archive\": \"%s\", \"inner\": \"%s\", \"winner\": \"%s\", \"mods\": [",
+                      first ? "" : ",\n", c->archive, c->inner, win);
+        for (int k = 0; k < c->nmods && n < (int)sizeof out - 64; k++)
+            n += snprintf(out + n, sizeof out - (size_t)n, "%s\"%s\"", k ? ", " : "", c->mods[k]);
+        n += snprintf(out + n, sizeof out - (size_t)n, "]}");
+        first = 0;
+    }
+    n += snprintf(out + n, sizeof out - (size_t)n, "\n]\n");
+    int err = 0;
+    // plat_fs_open is O_RDWR without O_CREAT: the first pick would be dropped while choices.json
+    // does not exist yet, and the re-merge would put the default winner back
+    PlatFile *f = plat_fs_open(cpath, 1, &err);
+    if (!f && err == PLAT_FS_NOT_FOUND) f = plat_fs_create(cpath, &err);
+    if (!f) rt_log("mods: cannot write %s (%d)", cpath, err);
+    if (f) {
+        if (plat_file_set_size(f, 0) == PLAT_FS_OK)
+            plat_file_pwrite(f, out, (uint32_t)strlen(out), 0);
+        plat_file_fsync(f);
+        plat_file_close(f);
+    }
+}
+
+void mods_conflict_pick(const char *archive, const char *inner) {
+    for (int i = 0; i < G.nconflicts; i++) {
+        const ModConflict *c = &G.conflicts[i];
+        if (strcmp(c->archive, archive) || strcmp(c->inner, inner)) continue;
+        int k = 0;   // cycle: mods in order, then vanilla, then back to the first (test hook path)
+        while (k < c->nmods && strcmp(c->mods[k], c->winner)) k++;
+        const char *win;
+        if (k < c->nmods - 1) win = c->mods[k + 1];
+        else if (k == c->nmods - 1) win = "vanilla";
+        else win = c->nmods ? c->mods[0] : "vanilla";
+        rewrite_choices(archive, inner, win, nullptr);
+        mods_merge_start(G.exe_dir);
+        return;
+    }
+}
+
+// OK in the modal: save what the rows show, so the default winner becomes an explicit pick too.
+void mods_conflict_commit(void) {
+    rewrite_choices(nullptr, nullptr, nullptr, nullptr);
+    mods_merge_start(G.exe_dir);
+}
+
+void mods_conflict_set(const char *archive, const char *inner, const char *winner) {
+    rewrite_choices(archive, inner, winner, nullptr);
+    mods_merge_start(G.exe_dir);
+}
+
+// Blocking merge for the Play button: waits out a running merge, then merges when stale (a no-op
+// when fresh, so Play usually waits only for the Python startup). A failed merge still plays.
+void mods_merge_sync(const char *exe_dir) {
+    while (mods_merge_running()) SDL_Delay(50);
+    char python[1200], script[1200];
+    if (!setup_tool(exe_dir, "mod/merge.py", python, script, sizeof python)) {
+        rt_log("mods: merge skipped (no setup tools)");
+        return;
+    }
+    char romfs[PLAT_PATH_MAX * 2], mods[4096], choices[PLAT_PATH_MAX * 2];
+    romfs_root(exe_dir, romfs, sizeof romfs);
+    const char *list = cfg_get("MKW_MODS");
+    snprintf(mods, sizeof mods, "%s", list ? list : "");
+    snprintf(choices, sizeof choices, "%s/mods/choices.json", exe_dir);
+    const char *args[] = {python, "-I", script, "--game", exe_dir, "--romfs", romfs,
+                          "--enable", mods, "--choices", choices, nullptr};
+    rt_log("mods: merge at Play %s", mods);
+    SDL_Process *proc = SDL_CreateProcess(args, false);   // output inherits ours: the log shows it
+    if (!proc) {
+        rt_log("mods: merge at Play failed to start: %s", SDL_GetError());
+        return;
+    }
+    int code = -1;
+    SDL_WaitProcess(proc, true, &code);
+    SDL_DestroyProcess(proc);
+    rt_log("mods: merge at Play ended with code %d", code);
+    mods_refresh(exe_dir);
 }

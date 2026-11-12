@@ -14,7 +14,11 @@
 // launcher.png) and quits; page main, settings (tab 0..5), files or mods. The user's input is ignored while it runs.
 // MKW_LAUNCHER_SETUP=<folder>[:link] starts the setup from that folder at once, on the game files page.
 // MKW_LAUNCHER_MODS_PICK=<zip|folder> picks it on the Mods page, as its dialogs do; MKW_LAUNCHER_MODS_TOGGLE=<mod>
-// toggles that mod once, as its checkbox does (both for shots without a display server).
+// toggles that mod once, as its checkbox does; MKW_LAUNCHER_MODS_PICKWINNER=<archive> cycles the first conflict of
+// that archive once, as its winner button does; MKW_LAUNCHER_MODS_DELETE=<mod> deletes it once, as its confirmed
+// modal does; MKW_LAUNCHER_MODS_CONFLICT_OK=1 presses the picker's OK, MKW_LAUNCHER_MODS_MODAL=1 opens it;
+// MKW_LAUNCHER_MODS_IMPORT=1 runs the import of the picked zip or folder; MKW_LAUNCHER_NO_MERGE=1
+// skips the page-entry merge (pre-merged shots).
 // MKW_LAUNCHER_SHORTCUT=1 makes the desktop shortcut at start, as its button does.
 // MKW_LAUNCHER_EXIT_AFTER_SETUP=1 quits when that setup ends, after saving the page as <shot out>-end.png (its result
 // is in the log); MKW_LAUNCHER_SHOT then takes its shot without quitting. During a shot the update check runs only
@@ -295,7 +299,10 @@ static void page_main(float w, float h) {
         L.focus_main = 0;
     }
     v0 = dl->VtxBuffer.Size;
-    if (play_button(menu_text(UI_LAUNCH_PLAY), ImVec2(cw, play_h), ready)) L.result = LAUNCHER_PLAY;
+    if (play_button(menu_text(UI_LAUNCH_PLAY), ImVec2(cw, play_h), ready)) {
+        mods_merge_sync(L.exe_dir);   // a stale .merged must not boot: usually a no-op fresh-check
+        L.result = LAUNCHER_PLAY;
+    }
     intro_apply(dl, v0, intro(1));
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
     ImGui::Dummy(ImVec2(0, gap));
@@ -587,16 +594,50 @@ static void mods_error_text(const ModsState &st, char *out, size_t cap) {
         const char *code;
         UiTextId text;
     } kWhy[] = {{"layout", UI_MOD_ERR_LAYOUT}, {"name", UI_MOD_ERR_NAME}, {"io", UI_MOD_ERR_IO},
-                {"nogame", UI_SETUP_ERR_NOGAME}, {"no_setup", UI_SETUP_ERR_NO_SETUP}};
+                {"notported", UI_MOD_ERR_NOPORT}, {"nogame", UI_MOD_ERR_NOGAME},
+                {"no_setup", UI_SETUP_ERR_NO_SETUP}};
     char why[600];
     snprintf(why, sizeof why, "%s", st.error);
     for (const auto &w : kWhy)
         if (!strcmp(st.code, w.code)) {
-            // the name clash is the player's doing: the detail names the mod
-            snprintf(why, sizeof why, "%s", menu_text(w.text));
-            if (st.error[0]) snprintf(why + strlen(why), sizeof why - strlen(why), ": %s", st.error);
+            const char *text = menu_text(w.text);
+            // a text with %s takes the detail as its argument (never printed raw); otherwise the detail
+            // is appended after a colon, so an untranslated format can never reach the player verbatim
+            if (strstr(text, "%s"))
+                snprintf(why, sizeof why, text, st.error);
+            else if (st.error[0])
+                snprintf(why, sizeof why, "%s: %s", text, st.error);
+            else
+                snprintf(why, sizeof why, "%s", text);
         }
     snprintf(out, cap, "%s", why);
+}
+
+// One modal OK/Cancel confirmation shared by the page's destructive buttons (delete for now):
+// the caller fills `subject`, opens it with ImGui::OpenPopup(id), and this runs the dialog.
+// Returns true once, on OK. The subject is left for the caller to read (it names what to act on)
+// and cleared here on Cancel; the caller clears it after acting.
+static bool confirm_modal(const char *id, char *subject, size_t cap, UiTextId ask, UiTextId ok) {
+    (void)cap;
+    bool done = false;
+    if (ImGui::BeginPopupModal(id, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        char text[MOD_NAME_MAX + 32];
+        snprintf(text, sizeof text, menu_text(ask), subject);
+        ImGui::TextWrapped("%s", text);
+        if (ImGui::Button(menu_text(ok))) {
+            done = true;   // the subject still names the item: the caller needs it
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(menu_text(UI_LAUNCH_BACK))) {
+            subject[0] = 0;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    } else if (subject[0] && !ImGui::IsPopupOpen(id)) {
+        subject[0] = 0;   // the popup never opened (modal already open): drop a stale subject
+    }
+    return done;
 }
 
 static void page_mods(float w, float h) {
@@ -607,6 +648,7 @@ static void page_mods(float w, float h) {
     if (strcmp(shown, L.exe_dir)) {   // entered (buttons and the shot hook both land here)
         mods_refresh(L.exe_dir);
         snprintf(shown, sizeof shown, "%s", L.exe_dir);
+        if (!getenv("MKW_LAUNCHER_NO_MERGE")) mods_merge_start(L.exe_dir);   // (test) skip: pre-merged shots
     }
     if (const char *t = getenv("MKW_LAUNCHER_MODS_PICK")) {   // (test) the picked zip or folder, as its dialog does
         if (!mods_has_pick()) {
@@ -621,44 +663,83 @@ static void page_mods(float w, float h) {
             mods_toggle(t, !mods_is_enabled(t));
         }
     }
-    static char confirm[MOD_NAME_MAX] = "";
+    static int picked_winner = 0;   // (test) cycle the first conflict of an archive once, as its button does
+    if (!picked_winner) {
+        if (const char *t = getenv("MKW_LAUNCHER_MODS_PICKWINNER")) {
+            for (int i = 0; i < mods_conflict_count(); i++) {
+                const ModConflict *c = mods_conflict_at(i);
+            if (c->resolved) continue;   // picked: it leaves the list until the mods around it change
+                if (!strcmp(c->archive, t)) {
+                    picked_winner = 1;
+                    mods_conflict_pick(c->archive, c->inner);
+                    break;
+                }
+            }
+        }
+    }
+    static int imported_one = 0;   // (test) run the import once, as its Import button does
+    if (!imported_one && getenv("MKW_LAUNCHER_MODS_IMPORT") && mods_has_pick()) {
+        imported_one = 1;
+        mods_import_start(L.exe_dir);
+    }
+    static int deleted_one = 0;   // (test) delete one mod once, as its confirmed modal does
+    if (!deleted_one) {
+        if (const char *t = getenv("MKW_LAUNCHER_MODS_DELETE")) {
+            deleted_one = 1;
+            mods_delete(t);
+        }
+    }
+    static char confirm_delete[MOD_NAME_MAX] = "";
+    static int delete_cooldown = 0;
+    if (delete_cooldown > 0) delete_cooldown--;   // no re-arm on the same double-click: rows shift up under a fast cursor
     if (mods_count() == 0) {
         ImGui::TextDisabled("%s", menu_text(UI_LAUNCH_MODS_EMPTY));
     }
     for (int i = 0; i < mods_count(); i++) {
         const Mod *m = mods_at(i);
+        ImGui::PushID(i);   // same labels every row (checkbox title can repeat too): unique IDs per row
         bool on = m->enabled;
         if (ImGui::Checkbox(m->title, &on)) mods_toggle(m->name, on);
         ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(menu_text(UI_MOD_DELETE)).x -
                         ImGui::GetStyle().FramePadding.x * 2);
-        if (strcmp(confirm, m->name)) {
-            if (ImGui::Button(menu_text(UI_MOD_DELETE))) snprintf(confirm, sizeof confirm, "%s", m->name);
-        } else {
-            char ask[MOD_NAME_MAX + 32];
-            snprintf(ask, sizeof ask, menu_text(UI_MOD_CONFIRM), m->name);
-            if (ImGui::Button(ask)) {
-                mods_delete(m->name);
-                confirm[0] = 0;
+        bool can_delete = !delete_cooldown;
+        if (!can_delete) ImGui::BeginDisabled();
+        if (ImGui::Button(menu_text(UI_MOD_DELETE)))
+            snprintf(confirm_delete, sizeof confirm_delete, "%s", m->name);
+        if (!can_delete) ImGui::EndDisabled();
+        // what the mod ships: romfs files, exefs code sets, or both; a line only for what it has
+        char detail[192] = "";
+        size_t n = 0;
+        if (m->has_romfs && m->romfs_files == 1)
+            n += snprintf(detail + n, sizeof detail - n, "%s", menu_text(UI_MOD_ROMFS_1));
+        else if (m->has_romfs)
+            n += snprintf(detail + n, sizeof detail - n, menu_text(UI_MOD_ROMFS), m->romfs_files);
+        if (m->has_exefs) {
+            if (n) n += snprintf(detail + n, sizeof detail - n, "  -  ");
+            char codebuf[96];
+            const char *code;
+            if (m->nswitches == 1) code = menu_text(UI_MOD_CODE_SWITCH_1);
+            else if (m->nswitches > 1) {
+                snprintf(codebuf, sizeof codebuf, menu_text(UI_MOD_CODE_SWITCHES), m->nswitches);
+                code = codebuf;
+            } else if (m->exefs_match) code = menu_text(UI_MOD_CODE_PORT);
+            else {
+                snprintf(codebuf, sizeof codebuf, menu_text(UI_MOD_CODE_BUILD), m->exefs_build);
+                code = codebuf;
             }
+            snprintf(detail + n, sizeof detail - n, "%s", code);
         }
-        // what the mod replaces: the romfs file count, then the code part's state
-        char detail[160] = "";
-        if (m->has_romfs && m->romfs_files == 1) snprintf(detail, sizeof detail, "%s", menu_text(UI_MOD_ROMFS_1));
-        else if (m->has_romfs) snprintf(detail, sizeof detail, menu_text(UI_MOD_ROMFS), m->romfs_files);
-        const char *code = nullptr;
-        char codebuf[96];
-        if (!m->has_exefs) code = menu_text(UI_MOD_CODE_NONE);
-        else if (m->nswitches == 1) code = menu_text(UI_MOD_CODE_SWITCH_1);
-        else if (m->nswitches > 1) {
-            snprintf(codebuf, sizeof codebuf, menu_text(UI_MOD_CODE_SWITCHES), m->nswitches);
-            code = codebuf;
-        } else if (m->exefs_match) code = menu_text(UI_MOD_CODE_PORT);
-        else {
-            snprintf(codebuf, sizeof codebuf, menu_text(UI_MOD_CODE_BUILD), m->exefs_build);
-            code = codebuf;
-        }
-        ImGui::TextDisabled("%s  -  %s", detail[0] ? detail : "-", code);
+        if (n) ImGui::TextDisabled("%s", detail);
         ImGui::Separator();
+        ImGui::PopID();
+    }
+    // opened outside any PushID row, like the modal itself: opening it inside the row's PushID(i)
+    // registers a different popup id than BeginPopupModal looks up, so the dialog never appears
+    if (confirm_delete[0]) ImGui::OpenPopup("##delete_mod");
+    if (confirm_modal("##delete_mod", confirm_delete, sizeof confirm_delete, UI_MOD_CONFIRM, UI_MOD_DELETE)) {
+        mods_delete(confirm_delete);
+        confirm_delete[0] = 0;
+        delete_cooldown = 45;
     }
     ImGui::Spacing();
     ModsState ms = mods_state();
@@ -678,7 +759,7 @@ static void page_mods(float w, float h) {
     } else if (ms.finished) {
         if (ms.finished > 0) {
             char done[128];
-            snprintf(done, sizeof done, "%s: %s", menu_text(UI_LAUNCH_SETUP_DONE), ms.done);
+            snprintf(done, sizeof done, menu_text(UI_MOD_IMPORTED), ms.done);
             ImGui::TextColored(ImVec4(0.55f, 0.85f, 0.6f, 1), "%s", done);
         } else {
             char msg[700];
@@ -697,10 +778,83 @@ static void page_mods(float w, float h) {
         ImGui::SameLine();
         if (ImGui::Button(menu_text(UI_LAUNCH_BACK))) mods_clear_pick();
     }
+    // The picker lives in a modal (its own button, so it is not a permanent block on the page). One
+    // heading per archive, then its inner files: the archive is the file the mods ship, the inner file
+    // is what actually clashes.
+    static int ok_forced = 0;   // (test) press the modal's OK once conflicts exist
+    if (!ok_forced && getenv("MKW_LAUNCHER_MODS_CONFLICT_OK") && mods_conflict_unresolved() > 0) {
+        ok_forced = 1;
+        mods_conflict_commit();
+    }
+    static int modal_forced = 0;   // (test) open the picker once conflicts exist, as its button does
+    if (!modal_forced && getenv("MKW_LAUNCHER_MODS_MODAL") && mods_conflict_unresolved() > 0) {
+        modal_forced = 1;
+        ImGui::OpenPopup("##conflicts");
+    }
+    if (mods_conflict_unresolved() > 0) {
+        ImGui::Separator();
+        char label[128];
+        snprintf(label, sizeof label, "%s (%d)", menu_text(UI_MOD_RESOLVE), mods_conflict_unresolved());
+        if (ImGui::Button(label)) ImGui::OpenPopup("##conflicts");
+        ImGui::Separator();
+    }
+    // centred like the page's panels, not wherever the last item left the cursor
+    ImVec2 vp = ImGui::GetMainViewport()->Pos, vs = ImGui::GetMainViewport()->Size;
+    ImGui::SetNextWindowPos(ImVec2(vp.x + vs.x * 0.5f, vp.y + vs.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    if (ImGui::BeginPopupModal("##conflicts", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::TextDisabled("%s", menu_text(UI_MOD_CONFLICTS));
+        ImGui::BeginChild("##conflict_list", ImVec2(760 * L.scale, 380 * L.scale), ImGuiChildFlags_Borders);
+        const char *shown_archive = nullptr;
+        for (int i = 0; i < mods_conflict_count(); i++) {
+            const ModConflict *c = mods_conflict_at(i);
+            if (!shown_archive || strcmp(shown_archive, c->archive)) {
+                if (shown_archive) ImGui::Spacing();
+                ImGui::TextColored(col4(LOOK_HEADING), "%s", c->archive);
+                shown_archive = c->archive;
+            }
+            ImGui::PushID(1000 + i);   // winners repeat across conflicts: unique IDs per row
+            ImGui::Indent(16.0f);
+            // the path is long: wrapped on its own line, or the radios are pushed out of the panel
+            ImGui::PushTextWrapPos(0.0f);
+            ImGui::TextUnformatted(c->inner);
+            ImGui::PopTextWrapPos();
+            ImGui::Indent(16.0f);
+            for (int k = 0; k <= c->nmods; k++) {
+                const char *name = k < c->nmods ? c->mods[k] : "vanilla";
+                if (k) ImGui::SameLine();
+                bool sel = !strcmp(c->winner, name);
+                if (ImGui::RadioButton(k < c->nmods ? name : menu_text(UI_MOD_VANILLA), sel)) {
+                    mods_conflict_set(c->archive, c->inner, name);
+                    ImGui::CloseCurrentPopup();   // the pick is made: back to the page, not left hanging
+                    break;
+                }
+            }
+            ImGui::Unindent(32.0f);
+            ImGui::Spacing();
+            ImGui::PopID();
+        }
+        ImGui::EndChild();
+        if (ImGui::Button(menu_text(UI_MOD_OK))) {   // keeps what the rows show, defaults included
+            mods_conflict_commit();
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(menu_text(UI_LAUNCH_BACK))) ImGui::CloseCurrentPopup();   // cancel: nothing written
+        ImGui::EndPopup();
+    }
+    // last, so its appearing never pushes the list, the picker button or the import buttons around
+    if (mods_merge_running()) {
+        ImGui::Spacing();
+        ImGui::ProgressBar(-1.0f * (float)ImGui::GetTime(), ImVec2(-1, 0), "");
+        ImGui::SameLine();
+        ImGui::TextDisabled("%s", menu_text(UI_MOD_MERGING));
+    }
     ImGui::EndChild();
     bool leave = panel_back_row() || back_pressed();
     ImGui::End();
-    if (leave) go_main();
+    if (!leave) return;
+    if (mods_merge_running()) mods_merge_cancel();
+    go_main();
 }
 
 // ---- the window
@@ -742,6 +896,9 @@ static void save_shot(const char *suffix) {
     rt_log("launcher: shot %s %s", out, ok ? "saved" : SDL_GetError());
     SDL_DestroySurface(s);
 }
+
+extern "C" void launcher_set_romfs(const char *romfs) { mods_set_romfs(romfs); }
+extern "C" void launcher_set_exefs(const char *exefs) { mods_set_exefs(exefs); }
 
 extern "C" int launcher_run(void) {
     L.result = -1;

@@ -1885,79 +1885,107 @@ msgstr "No s'ha pogut crear l'accés directe"
 
 msgctxt "UI_LAUNCH_MODS"
 msgid "Mods"
-msgstr ""
+msgstr "Mods"
 
 msgctxt "UI_LAUNCH_MODS_EMPTY"
 msgid "No mods yet: import a zip or a folder below"
-msgstr ""
+msgstr "Encara no hi ha mods: importa un zip o una carpeta a sota"
 
 msgctxt "UI_MOD_IMPORT_ZIP"
 msgid "Import zip..."
-msgstr ""
+msgstr "Importa el zip..."
 
 msgctxt "UI_MOD_IMPORT_FOLDER"
 msgid "Import folder..."
-msgstr ""
+msgstr "Importa la carpeta..."
 
 msgctxt "UI_MOD_NAME"
 msgid "Name"
-msgstr ""
+msgstr "Nom"
 
 msgctxt "UI_MOD_IMPORT"
 msgid "Import"
-msgstr ""
+msgstr "Importa"
 
 msgctxt "UI_MOD_DELETE"
 msgid "Delete"
-msgstr ""
+msgstr "Suprimeix"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_MOD_CONFIRM"
 msgid "Delete %s?"
-msgstr ""
+msgstr "Suprimir %s?"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_MOD_ROMFS"
 msgid "%d files"
-msgstr ""
+msgstr "%d fitxers"
 
 msgctxt "UI_MOD_ROMFS_1"
 msgid "1 file"
-msgstr ""
-
-msgctxt "UI_MOD_CODE_NONE"
-msgid "code: none"
-msgstr ""
+msgstr "1 fitxer"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_MOD_CODE_BUILD"
 msgid "code: built for %s"
-msgstr ""
+msgstr "codi: creat per a %s"
 
 msgctxt "UI_MOD_CODE_PORT"
 msgid "code: needs a ported build"
-msgstr ""
+msgstr "codi: cal portar-lo"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_MOD_CODE_SWITCHES"
 msgid "code: %d switches"
-msgstr ""
+msgstr "codi: %d commutadors"
 
 msgctxt "UI_MOD_CODE_SWITCH_1"
 msgid "code: 1 switch"
+msgstr "codi: 1 commutador"
+
+msgctxt "UI_MOD_MERGING"
+msgid "Merging mods..."
+msgstr "Combinent mods..."
+
+msgctxt "UI_MOD_CONFLICTS"
+msgid "Conflicts: click the winner to change it"
+msgstr "Conflictes: fes clic al guanyador per canviar-lo"
+
+msgctxt "UI_MOD_VANILLA"
+msgid "Vanilla"
 msgstr ""
+
+msgctxt "UI_MOD_IMPORTED"
+msgid "Imported %s"
+msgstr "%s importat"
+
+msgctxt "UI_MOD_RESOLVE"
+msgid "Resolve conflicts"
+msgstr "Resol els conflictes"
+
+msgctxt "UI_MOD_OK"
+msgid "OK"
+msgstr "D'acord"
 
 msgctxt "UI_MOD_ERR_LAYOUT"
 msgid "Not a mod: no romfs/ or exefs/ inside"
-msgstr ""
+msgstr "No és un mod: no conté romfs/ ni exefs/"
 
 msgctxt "UI_MOD_ERR_NAME"
 msgid "That name is taken or empty"
-msgstr ""
+msgstr "Aquest nom està ocupat o buit"
 
 msgctxt "UI_MOD_ERR_IO"
 msgid "Could not copy the files"
-msgstr ""
+msgstr "No s'han pogut copiar els fitxers"
+
+msgctxt "UI_MOD_ERR_NOPORT"
+msgid "Not ported yet: no code patches for this game"
+msgstr "Encara no portat: cap patch de codi per a aquest joc"
+
+msgctxt "UI_MOD_ERR_NOGAME"
+msgid "Game files not set up: do that on the Files page first"
+msgstr "Falten els fitxers del joc: configura'ls abans a la pàgina Fitxers"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_UPDATE"

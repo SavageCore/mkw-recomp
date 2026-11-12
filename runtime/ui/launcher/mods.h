@@ -41,6 +41,8 @@ const Mod *mods_at(int i);
 void mods_pick(const char *path, int is_zip);
 int mods_has_pick(void);
 int mods_pick_is_zip(void);
+void mods_set_romfs(const char *path);
+void mods_set_exefs(const char *path);
 const char *mods_pick_path(void);
 // The rename field's buffer for the page's InputText (MOD_NAME_MAX); empty means the mod's own name.
 char *mods_name_buf(void);
@@ -57,6 +59,32 @@ void mods_toggle(const char *name, int on);
 int mods_is_enabled(const char *name);
 // Recursive delete of our own import, then the MODS fix-up and switch re-apply of a toggle-off.
 void mods_delete(const char *name);
+// Runs merge.py on the enabled mods (skips when already merged); the merged tree lands in
+// <exe>/mods/.merged/romfs, which the game reads as one more overlay, last.
+void mods_merge_start(const char *exe_dir);
+int mods_merge_running(void);
+// Blocking merge for the Play button: waits out a running merge, then merges when stale (no-op when
+// fresh, so Play usually waits only for the Python startup). A failed merge still plays: the per-mod
+// overlays apply and the last enabled mod wins shared files, as without merging.
+void mods_merge_sync(const char *exe_dir);
+void mods_merge_cancel(void);
+// Conflicts the last merge found (inner files changed by several enabled mods): the Mods page lists
+// them with a winner picker. Cycles mod, ..., vanilla.
+typedef struct {
+    char archive[256], inner[256];
+    char mods[8][MOD_NAME_MAX];
+    int nmods;
+    char winner[MOD_NAME_MAX];
+    int resolved;   // a pick that still matches the mods in the conflict
+} ModConflict;
+int mods_conflict_count(void);
+const ModConflict *mods_conflict_at(int i);
+int mods_conflict_unresolved(void);   // how many still wait for a pick (the page's button count)
+void mods_conflict_pick(const char *archive, const char *inner);
+// A pick applies to this session only: nothing is written that a later run would take as settled,
+// so the picker always shows the conflicts and re-adding a mod asks again.
+void mods_conflict_set(const char *archive, const char *inner, const char *winner);
+void mods_conflict_commit(void);   // the modal's OK: keep every row's current winner as a pick
 
 #ifdef __cplusplus
 }

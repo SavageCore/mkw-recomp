@@ -356,6 +356,18 @@ static void overlay_init(void) {
         load_seq++;
         overlay_load(lang);
     }
+    // the Mods page's merge of the enabled mods' shared archives (tools/mod/merge.py); missing when
+    // nothing is shared, and then this is a no-op log line like a missing legacy dir. Gated on MODS so a
+    // stale .merged from an earlier enablement never applies after the last mod is toggled off.
+    const char *mods_on = cfg_get("MKW_MODS");
+    if (mods_on && *mods_on && plat_exe_path(exe, sizeof exe - 64)) {
+        char *cut = plat_last_sep(exe);
+        if (cut) *cut = 0;
+        char merged[PLAT_PATH_MAX * 2 + 16];
+        snprintf(merged, sizeof merged, "%s/mods/.merged/romfs", exe);
+        load_seq++;
+        overlay_load(merged);
+    }
     added_init();
     if (noverlay) qsort(overlays, noverlay, sizeof *overlays, overlay_order);
     // two dirs replacing one file: the later dir wins (MODS order); the loser's strings are freed

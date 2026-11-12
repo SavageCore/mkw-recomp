@@ -1831,79 +1831,107 @@ msgstr "바로 가기를 만들 수 없습니다"
 
 msgctxt "UI_LAUNCH_MODS"
 msgid "Mods"
-msgstr ""
+msgstr "모드"
 
 msgctxt "UI_LAUNCH_MODS_EMPTY"
 msgid "No mods yet: import a zip or a folder below"
-msgstr ""
+msgstr "아직 모드가 없습니다. 아래에서 zip이나 폴더를 가져오세요"
 
 msgctxt "UI_MOD_IMPORT_ZIP"
 msgid "Import zip..."
-msgstr ""
+msgstr "zip 가져오기..."
 
 msgctxt "UI_MOD_IMPORT_FOLDER"
 msgid "Import folder..."
-msgstr ""
+msgstr "폴더 가져오기..."
 
 msgctxt "UI_MOD_NAME"
 msgid "Name"
-msgstr ""
+msgstr "이름"
 
 msgctxt "UI_MOD_IMPORT"
 msgid "Import"
-msgstr ""
+msgstr "가져오기"
 
 msgctxt "UI_MOD_DELETE"
 msgid "Delete"
-msgstr ""
+msgstr "삭제"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_MOD_CONFIRM"
 msgid "Delete %s?"
-msgstr ""
+msgstr "%s을(를) 삭제할까요?"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_MOD_ROMFS"
 msgid "%d files"
-msgstr ""
+msgstr "파일 %d개"
 
 msgctxt "UI_MOD_ROMFS_1"
 msgid "1 file"
-msgstr ""
-
-msgctxt "UI_MOD_CODE_NONE"
-msgid "code: none"
-msgstr ""
+msgstr "파일 1개"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_MOD_CODE_BUILD"
 msgid "code: built for %s"
-msgstr ""
+msgstr "코드: %s용"
 
 msgctxt "UI_MOD_CODE_PORT"
 msgid "code: needs a ported build"
-msgstr ""
+msgstr "코드: 포팅이 필요합니다"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_MOD_CODE_SWITCHES"
 msgid "code: %d switches"
-msgstr ""
+msgstr "코드: 스위치 %d개"
 
 msgctxt "UI_MOD_CODE_SWITCH_1"
 msgid "code: 1 switch"
+msgstr "코드: 스위치 1개"
+
+msgctxt "UI_MOD_MERGING"
+msgid "Merging mods..."
+msgstr "모드를 병합하는 중..."
+
+msgctxt "UI_MOD_CONFLICTS"
+msgid "Conflicts: click the winner to change it"
+msgstr "충돌: 승자를 변경하려면 클릭하세요"
+
+msgctxt "UI_MOD_VANILLA"
+msgid "Vanilla"
 msgstr ""
+
+msgctxt "UI_MOD_IMPORTED"
+msgid "Imported %s"
+msgstr "%s을(를) 가져왔습니다"
+
+msgctxt "UI_MOD_RESOLVE"
+msgid "Resolve conflicts"
+msgstr "충돌 해결"
+
+msgctxt "UI_MOD_OK"
+msgid "OK"
+msgstr "확인"
 
 msgctxt "UI_MOD_ERR_LAYOUT"
 msgid "Not a mod: no romfs/ or exefs/ inside"
-msgstr ""
+msgstr "모드가 아닙니다: romfs/나 exefs/가 없습니다"
 
 msgctxt "UI_MOD_ERR_NAME"
 msgid "That name is taken or empty"
-msgstr ""
+msgstr "그 이름은 이미 사용 중이거나 비어 있습니다"
 
 msgctxt "UI_MOD_ERR_IO"
 msgid "Could not copy the files"
-msgstr ""
+msgstr "파일을 복사하지 못했습니다"
+
+msgctxt "UI_MOD_ERR_NOPORT"
+msgid "Not ported yet: no code patches for this game"
+msgstr "아직 포팅되지 않음: 이 게임용 코드 패치가 없습니다"
+
+msgctxt "UI_MOD_ERR_NOGAME"
+msgid "Game files not set up: do that on the Files page first"
+msgstr "게임 파일이 설정되지 않았습니다. 먼저 파일 페이지에서 설정하세요"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_UPDATE"

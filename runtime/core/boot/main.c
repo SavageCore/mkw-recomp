@@ -535,8 +535,37 @@ static int want_launcher(int argc, char **argv) {
     return asked || !rt_game_builtin();
 }
 
-static int run_launcher(void) {
+static int run_launcher(int argc, char **argv) {
     cfg_init();   // mkw.ini: the settings pages read and write it
+    // the Mods page merges against the same romfs the game will boot: argv wins, else MKW_ROMFS / mkw.ini,
+    // else the folder beside the executable, else the baked-in default (nup packages cannot merge: no loose files)
+    const char *romfs = NULL;
+    for (int i = 1; i + 1 < argc; i++)
+        if (!strcmp(argv[i], "--romfs") || !strcmp(argv[i], "--nup")) romfs = argv[i + 1];
+    if (!romfs) {
+        char exe[PLAT_PATH_MAX * 2];
+        int n = plat_exe_path(exe, sizeof exe);
+        char *cut = n && n < (int)sizeof exe ? plat_last_sep(exe) : NULL;
+        if (cut) {
+            *cut = 0;
+            romfs = portable_path(exe, "MKW_ROMFS", "romfs", NULL, pp_romfs, sizeof pp_romfs, rt_default_romfs);
+        }
+    }
+    if (romfs) launcher_set_romfs(romfs);
+    // the same for exefs: an import checks a mod's build id against the game it will run with
+    const char *exefs = NULL;
+    for (int i = 1; i + 1 < argc; i++)
+        if (!strcmp(argv[i], "--exefs")) exefs = argv[i + 1];
+    if (!exefs) {
+        char exe[PLAT_PATH_MAX * 2];
+        int n = plat_exe_path(exe, sizeof exe);
+        char *cut = n && n < (int)sizeof exe ? plat_last_sep(exe) : NULL;
+        if (cut) {
+            *cut = 0;
+            exefs = portable_path(exe, "MKW_EXEFS", "exefs", "main.npdm", pp_exefs, sizeof pp_exefs, rt_default_exefs);
+        }
+    }
+    if (exefs) launcher_set_exefs(exefs);
     if (launcher_run() != LAUNCHER_PLAY) return 0;
     plat_setenv("MKW_LAUNCHED", "1");
     plat_reexec();
@@ -546,7 +575,7 @@ int main(int argc, char **argv) {
     // --unpack PACKAGE DEST [PREFIX...]: a packed dump's files written out (sdk/fs/pack_unpack.c), for the setup; first,
     // as the setup runs it before the game code exists (no address space, launcher or log file needed)
     if (argc >= 2 && !strcmp(argv[1], "--unpack")) return pack_unpack_main(argc - 2, argv + 2);
-    if (want_launcher(argc, argv)) return run_launcher();
+    if (want_launcher(argc, argv)) return run_launcher(argc, argv);
 #ifdef __linux__
     // MKW_ALLOW_PTRACE=1: let a debugger attach (tools/run/stacks.py) under yama ptrace_scope 1, without root.
     const char *pt = getenv("MKW_ALLOW_PTRACE");

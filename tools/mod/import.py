@@ -5,7 +5,7 @@ Why: mods ship as Eglantine/Ryujinx layout (top folder is the mod: romfs/ and/or
 over its romfs/ (runtime/sdk/fs/romfs.c) and a mod.json the Mods page shows. This copies the mod in,
 checks the exefs patches name this game's build id, and writes both files.
 
-Usage: import.py --game EXEDIR --romfs ROMFSDIR [--build-id HEX] (--zip FILE | --folder DIR) [--name NAME]
+Usage: import.py --game EXEDIR --romfs ROMFSDIR [--exefs DIR] [--build-id HEX] (--zip FILE | --folder DIR) [--name NAME]
   --game: the folder of mkw / mkw.exe (mods/ is made inside it)
   --romfs: the loose RomFS the manifest's original hashes come from
   --zip: a mod zip (its top folder is the mod; --name renames it)
@@ -58,16 +58,21 @@ def main():
     ap.add_argument("--zip", dest="zip_path")
     ap.add_argument("--folder", dest="folder")
     ap.add_argument("--name", default="")
+    ap.add_argument("--exefs", default="",
+                    help="the game's exefs folder (default: <game>/exefs); its main names the build id")
     ap.add_argument("--build-id", default="",
-                    help="16 hex chars of exefs/main's build id, instead of reading <game>/exefs/main")
+                    help="16 hex chars of exefs/main's build id, instead of reading it from the exefs")
     args = ap.parse_args()
     if bool(args.zip_path) == bool(args.folder):
         print("error usage: one of --zip or --folder", flush=True)
         return 2
     mods_dir = os.path.join(args.game, "mods")
     loose = args.romfs
+    if not os.path.isdir(loose):
+        return fail("romfs", f"{loose} is not a loose romfs folder")
     try:
-        game_id = args.build_id.lower() if args.build_id else game_build_id(os.path.join(args.game, "exefs", "main"))
+        exefs = args.exefs or os.path.join(args.game, "exefs")
+        game_id = args.build_id.lower() if args.build_id else game_build_id(os.path.join(exefs, "main"))
     except OSError as e:
         return fail("nogame", f"{e.filename or args.game}")
     if len(game_id) != 16 or any(c not in "0123456789abcdef" for c in game_id):
@@ -108,6 +113,15 @@ def main():
         name = clean_name(args.name) if args.name else clean_name(default)
         if not name:
             return fail("name", "empty after cleaning")
+        shipped_patches = {}
+        try:
+            with open(os.path.join(src, "mod.json"), encoding="utf-8") as _m:
+                shipped_patches = json.load(_m).get("patches", {}) or {}
+        except (OSError, ValueError):
+            pass
+        usable = [p for p in shipped_patches.get("spans", []) + shipped_patches.get("sites", []) if isinstance(p, dict)]
+        if has_exefs and not usable:
+            return fail("notported", f"{default}: code not ported (mod.json has no patches for this game)")
         dest = os.path.join(mods_dir, name)
         if os.path.lexists(dest):
             return fail("name", f"{name} already imported")
@@ -146,7 +160,10 @@ def main():
                 switches = shipped.get("switches", {}) or {}
         except (OSError, ValueError):
             pass
-        meta = {"name": name, "title": shipped.get("title") or name, "has_romfs": has_romfs,
+        # the name the player typed (or a renamed folder) is what the row shows; the shipped title only
+        # stands in when the mod keeps its own folder name
+        title = name if (args.name or default != name) else (shipped.get("title") or name)
+        meta = {"name": name, "title": title, "has_romfs": has_romfs,
                 "romfs_files": n_romfs, "has_exefs": has_exefs, "exefs_builds": builds,
                 "exefs_match": matching if has_exefs else True, "switches": switches}
         if shipped.get("patches"):
@@ -154,7 +171,10 @@ def main():
         with open(os.path.join(dest, "mod.json"), "w", encoding="utf-8", newline="\n") as m:
             json.dump(meta, m, indent=2)
             m.write("\n")
-    print(f"done {name} romfs={n_romfs} exefs={','.join(builds) if builds else '-'}", flush=True)
+    try:
+        print(f"done {name} romfs={n_romfs} exefs={','.join(builds) if builds else '-'}", flush=True)
+    except BrokenPipeError:
+        os._exit(0)   # the mod is written; the menu went away mid-print
     return 0
 
 

@@ -621,6 +621,9 @@ def main():
     ap.add_argument('--big-fn', type=int, default=300000, help='estimated bytes of C from which a function gets '
                                                                'its own chunk')
     ap.add_argument('--patches', type=Path, help='code patch table (recomp/patches.py)')
+    ap.add_argument('--mods', type=Path,
+                    help='mods with code patches (<mod>/mod.json "patches", merged into the table; default: '
+                         'the mods/ beside --exefs when there is one)')
     ap.add_argument('--reg-locals', type=int, default=regs.LOCALS,
                     help=f'guest registers per function kept in C locals (recomp/regs.py; default {regs.LOCALS}, 0: none)')
     ap.add_argument('--no-callee-saved-trust', action='store_true',
@@ -633,6 +636,11 @@ def main():
     mods = layout(args.exefs)
     write_layout(mods, args.out)
     table = patches.load(args.patches, mods) if args.patches else patches.Table()
+    bases = {n: b for n, b, _ in mods}
+    if args.mods is not None:
+        patches.load_mods(table, args.mods, bases)
+    elif (args.exefs.parent / 'mods').is_dir():
+        patches.load_mods(table, args.exefs.parent / 'mods', bases)
     write_if_changed(args.out / 'patches.h', patches.header_text(table, GENERATED_MARKER))
     want = args.modules.split(',') if args.modules else [n for n, _, _ in mods]
     unknown = set(want) - {n for n, _, _ in mods}
