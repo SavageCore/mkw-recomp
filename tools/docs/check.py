@@ -11,6 +11,8 @@ described the state of five days before. Checks, on the files git tracks (index)
      present, build/spirv/failed.tsv is no older than any program result (translate.py rewrites it; retry_shas.py does
      not) and tools/docs/progress.json counts the programs translated now (06/11/2026: 20 more programs went in with
      the README still at 11 511).
+  6. A note, not a refusal, when a translation of the README (docs/i18n/README.<lang>.md) was made from an older
+     README.md than the one committed (tools/docs/i18n_readme.py --check; Adrià 13/11/2026: it warns).
 
 Usage: uv run tools/docs/check.py          (tools/git/pre-commit and the CI run it; exit 1 lists every problem)
 """
@@ -83,7 +85,8 @@ def check_folders(children: dict[str, set[str]]) -> list[str]:
 def check_links(files: list[str]) -> list[str]:
     errors = []
     for md in files:
-        if not md.endswith(".md"):
+        # the README's translated bodies link as from the root: their links are checked in the built README.<lang>.md
+        if not md.endswith(".md") or md.startswith("docs/i18n/body/"):
             continue
         for target in LINK.findall((ROOT / md).read_text()):
             if re.match(r"[a-z]+:|#", target):
@@ -124,12 +127,22 @@ def check_progress(staged: set[str]) -> list[str]:
     return []
 
 
+def note_translations() -> None:
+    sys.path.insert(0, str(ROOT / "tools/docs"))
+    import i18n_readme
+
+    for p in i18n_readme.stale():
+        print(f"docs: note: {p} was translated from an older README.md: update docs/i18n/body/ and run "
+              "tools/docs/i18n_readme.py", file=sys.stderr)  # fmt: skip
+
+
 def main() -> int:
     files = git("ls-files", "-z")
     staged = set(git("diff", "--cached", "--name-only", "--diff-filter=AM"))
     errors = check_folders(tree(files)) + check_links(files) + check_progress(staged) + check_readme()
     for e in errors:
         print(f"docs: {e}", file=sys.stderr)
+    note_translations()
     return 1 if errors else 0
 
 

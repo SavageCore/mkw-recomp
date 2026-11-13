@@ -1,6 +1,39 @@
 <p align="center"><img src="docs/logo.svg" width="128" alt="mkw-recomp logo"></p>
 
-# mkw-recomp
+<h1 align="center">mkw-recomp</h1>
+
+<p align="center">
+  <b>Mario Kart World (Nintendo Switch 2) recompiled to run natively on Linux and Windows.</b>
+</p>
+
+<p align="center">
+  <a href="https://github.com/adriadam10/mkw-recomp/releases/latest"><img src="https://img.shields.io/badge/%E2%AC%87_Download-latest_for_Windows-0078d6?style=for-the-badge&labelColor=1b2740" alt="Download the latest release for Windows"></a>
+  <a href="https://github.com/adriadam10/mkw-recomp/releases/latest"><img src="https://img.shields.io/badge/%E2%AC%87_Download-latest_for_Linux_(AppImage)-e95420?style=for-the-badge&labelColor=1b2740" alt="Download the latest release for Linux (AppImage)"></a>
+  <a href="https://github.com/adriadam10/mkw-recomp/releases/latest"><img src="https://img.shields.io/badge/%E2%AC%87_Download-latest_for_Linux_ARM-8957e5?style=for-the-badge&labelColor=1b2740" alt="Download the latest release for Linux on ARM (AppImage)"></a>
+</p>
+
+<p align="center">
+  <b><a href="https://github.com/adriadam10/mkw-recomp/releases">Releases</a></b> ·
+  <a href="CHANGELOG.md">Changelog</a> ·
+  <a href="CONTRIBUTING.md">Contributing</a> ·
+  <a href="docs/research.md#sources">Sources</a> ·
+  <a href="docs/roadmap.md">Roadmap</a> ·
+  <a href="docs/performance.md">Performance</a> ·
+  <a href="https://github.com/adriadam10/mkw-recomp/issues">Issues</a> ·
+  <a href="https://github.com/adriadam10/mkw-recomp/discussions">Discussions</a>
+</p>
+
+<!-- i18n-bar:start -->
+<p align="center">
+  <b>English</b> ·
+  <a href="docs/i18n/README.zh-CN.md">简体中文</a> ·
+  <a href="docs/i18n/README.es.md">Español</a> ·
+  <a href="docs/i18n/README.ar.md">العربية</a> ·
+  <a href="docs/i18n/README.hi.md">हिन्दी</a> ·
+  <a href="docs/i18n/README.pt-BR.md">Português (Brasil)</a> ·
+  <a href="docs/i18n/README.pt-PT.md">Português (Portugal)</a>
+</p>
+<!-- i18n-bar:end -->
 
 A static recompilation of *Mario Kart World* (Nintendo Switch 2, versions 1.0.0 and 1.8.0) into a native PC program for Linux and
 Windows. It needs your own copy of the game, dumped from your own console: nothing of the game is in this repository
