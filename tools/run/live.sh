@@ -8,13 +8,16 @@
 # LIVE_WRAP: a command build/mkw runs under, e.g. an HDR display for a machine without one:
 #   LIVE_WRAP="gamescope --backend headless -W 1280 -H 720 --hdr-enabled --hdr-debug-force-support --" (gamescope's
 #   Vulkan layer on with ENABLE_GAMESCOPE_WSI=1, exported before live.sh).
+# LIVE_BIN: another runtime than build/mkw, e.g. a prepared player folder of another game version
+#   (LIVE_BIN=scratchpad/prep-linux-180/mkw: 1.8.0, whose game code build/mkw does not carry).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 n=${1:?usage: live.sh NAME [SECONDS]}; secs=${2:-900}
 . tools/run/why.sh "$n"
 # Refuse a stale build/mkw: a runtime source newer than it means the last build did not run or failed (01/11/2026:
 # three runs measured the previous binary after a commit hook stopped the build and a compile error went unseen).
-if [ -n "$(find runtime -newer build/mkw \( -name '*.c' -o -name '*.h' -o -name '*.cpp' \) -print -quit)" ]; then
+bin=${LIVE_BIN:-build/mkw}
+if [ -z "${LIVE_BIN:-}" ] && [ -n "$(find runtime -newer build/mkw \( -name '*.c' -o -name '*.h' -o -name '*.cpp' \) -print -quit)" ]; then
   echo "${0##*/}: runtime/ is newer than build/mkw: build first (tools/build/build.py)" >&2; exit 1
 fi
 if pgrep -x mkw >/dev/null; then echo "live: a build/mkw is already running (one run at a time)" >&2; exit 1; fi
@@ -42,5 +45,5 @@ export MKW_BACKGROUND_WINDOW=${MKW_BACKGROUND_WINDOW:-1} MKW_ASSUME_FOCUS=${MKW_
 tools/run/kwin-rule.sh --ensure >/dev/null   # the rule that keeps that window minimized and without focus
 # job start runs a systemd service, which does not inherit this shell's environment: the MKW_* go by env.
 mapfile -t vars < <(env | grep -E '^(MKW_|ENABLE_GAMESCOPE_WSI=)')
-JOB_MEM=${JOB_MEM:-7G} tools/run/job.sh start "$n" env "${vars[@]}" bash -c "timeout -s KILL $secs ${LIVE_WRAP:-} build/mkw > build/run/$n.log 2>&1"
+JOB_MEM=${JOB_MEM:-7G} tools/run/job.sh start "$n" env "${vars[@]}" bash -c "timeout -s KILL $secs ${LIVE_WRAP:-} $bin > build/run/$n.log 2>&1"
 echo "live: $n up; commands: tools/run/ctl.sh $n frame|shot PATH|dump DIR [ubo]|flight|press <ticks> <button> [hold]|stop"
