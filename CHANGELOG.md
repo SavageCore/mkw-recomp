@@ -53,6 +53,11 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
   tiles came from memory shared with a buffer used to clear them, and on that card no memory type serves both, so not
   one tile could be made and the driver then lost the device at the loading screen. Those tiles now take the
   texture's own memory type, without the clearing buffer. Checked on our cards by forcing that path (same images).
+- **The picture fills the window when the driver's surface is larger** (#140, ROG Ally with Windows at 1280x720): the
+  driver gave a 1920x1080 surface for the 1280x720 window, the picture was fitted to 1920x1080 and Windows showed its
+  top-left part, off-centre and cut. The picture now goes in the part the window shows.
+- **The HDR setting is kept** (#168): Settings > Screen > HDR was written to `mkw.ini` but dropped at the next start
+  ("unknown key 'HDR'" in the log).
 
 ## 0.1.10
 

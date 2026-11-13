@@ -102,6 +102,10 @@ static VkSwapchainKHR g_sc;
 static VkFormat g_sc_fmt;
 static int g_sc_hdr;   // HDR10 (gfx_hdr.c): the game's PQ picture; the menu, captures and thumbnails convert
 static VkExtent2D g_sc_ext;
+// The part of the swapchain image the window shows: all of it, except when the driver's surface is larger than the
+// window (#140, ROG Ally on Windows at 1280x720 with a 1920x1080 panel: AMD's driver gave a 1920x1080 surface for the
+// 1280x720 window and Windows showed its top-left 1280x720, so the picture fitted to 1920x1080 was cut off).
+static VkExtent2D g_sc_vis;
 static int g_scaler;                        // the last present: 0 the game image 1:1, 1 scaled by the blit, 2 by FSR
 static uint32_t g_sc_n;
 static VkImage g_sc_img[MAX_IMAGES];
@@ -360,7 +364,15 @@ static int create_swapchain(void) {
     gfx_hdr_metadata(g_sc);
     g_sc_fmt = sf.format;
     g_sc_hdr = sf.colorSpace == VK_COLOR_SPACE_HDR10_ST2084_EXT;
-    g_sc_ext = ext;
+    g_sc_ext = g_sc_vis = ext;
+    if (cw > 0 && ch > 0 && ((uint32_t)cw < ext.width || (uint32_t)ch < ext.height)) {
+        g_sc_vis = (VkExtent2D){(uint32_t)cw < ext.width ? (uint32_t)cw : ext.width,
+                                (uint32_t)ch < ext.height ? (uint32_t)ch : ext.height};
+        static int logged;
+        if (!logged++)
+            rt_log("gfx: the driver's surface is %ux%u for a %dx%d window: the picture goes in the window's part", ext.width,
+                   ext.height, cw, ch);
+    }
     g_sc_n = MAX_IMAGES;
     vkGetSwapchainImagesKHR(c->device, g_sc, &g_sc_n, g_sc_img);
     VkSemaphoreCreateInfo semi = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
@@ -657,7 +669,7 @@ static void present_image(VkImage src, VkImageLayout layout, VkFormat fmt, int w
                  VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT);
     const int rect[4] = {cx, cy, cw, ch};
     int to[4];   // where the picture goes in the swapchain image: {x, y, w, h}
-    gfx_fit_rect(cw, ch, (int)g_sc_ext.width, (int)g_sc_ext.height, to);
+    gfx_fit_rect(cw, ch, (int)g_sc_vis.width, (int)g_sc_vis.height, to);
     if (!src || to[2] != (int)g_sc_ext.width || to[3] != (int)g_sc_ext.height) {   // black bars, or all black
         VkClearColorValue black = {.float32 = {0, 0, 0, 1}};
         VkImageSubresourceRange all = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
