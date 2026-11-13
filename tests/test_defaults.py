@@ -21,6 +21,7 @@ GPUS = [
     ("integrated, 32 GB", 0, 2048, 31000),
     ("integrated, 8 GB", 0, 512, 7600),
     ("Iris Xe, 16 GB (#174)", 0, 7765, 15531),
+    ("GTX 750 Ti 2 GB (#215)", 1, 1999, 8000),
     ("GTX 1050 Ti 4 GB (our Windows PC)", 1, 4035, 16300),
     ("RTX 2070 SUPER 8 GB (#28)", 1, 7989, 40922),
     ("RTX 4070 SUPER 12 GB (#31)", 1, 12011, 32000),
@@ -63,7 +64,9 @@ def caps(exe: Path, discrete: int, vram: int, ram: int, carveout: int = 0) -> tu
 @pytest.mark.parametrize(("name", "discrete", "vram", "ram"), GPUS)
 def test_caps_follow_the_gpu(defaults: Path, name: str, discrete: int, vram: int, ram: int) -> None:
     sparse, limit, pool = caps(defaults, discrete, vram, ram)
-    assert sparse >= 768, name  # the 660M's figure is the floor, measured with the arrays' coarse levels resident
+    # the 660M's figure is the floor, measured with the arrays' coarse levels resident; below 3 GB of VRAM it took most
+    # of the budget and the device was lost (#215), so a quarter there
+    assert sparse >= (768 if not discrete or vram >= 3072 else 256), name
     assert limit >= 4096, name  # 3072 makes the race black (sp-v0)
     if discrete:
         assert sparse <= max(768, vram // 4), name  # the rest of the VRAM holds render targets and mirrors

@@ -5,11 +5,13 @@
 
 // Tile slots of the sparse textures (vk_sparse.c). Integrated: 768, the 660M's (1024 hung it with MKW_ASTC_BC1,
 // run-race41). Discrete: a quarter of the VRAM in 256 MiB steps, 768 to 3072; the title binds 1 472 MiB uncapped
-// (run-sp3), so 8 GB and up hold all of it and a 4 GB card keeps the 660M's figure.
+// (run-sp3), so 8 GB and up hold all of it and a 4 GB card keeps the 660M's figure. Below 3 GB the 768 floor took most
+// of the budget (a 2 GB GTX 750 Ti, budget 1399 MiB: 9961 slots live when a block of 16 MiB failed and the device was
+// lost, #215): there a quarter of the VRAM, 256 at least; flatter ground in the distance, not a lost device.
 uint64_t vk_default_sparse_mib(int discrete, uint64_t vram_mib) {
     if (!discrete) return 768;
-    uint64_t mib = vram_mib / 4 / 256 * 256;
-    return mib < 768 ? 768 : mib > 3072 ? 3072 : mib;
+    uint64_t mib = vram_mib / 4 / 256 * 256, floor = vram_mib < 3072 ? 256 : 768;
+    return mib < floor ? floor : mib > 3072 ? 3072 : mib;
 }
 
 // What VMA may allocate on an integrated GPU (vk_device.c), system RAM outside the process's cgroup: 4096 at least
