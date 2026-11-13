@@ -86,6 +86,10 @@ def test_log_wanted_only_from_bug_reports():
     assert classify.wants_log("black screen", FORM.format(ver="v0.1.7", log="There are no logs"), {"bug"})
     assert not classify.wants_log("perf: stutter", "slow", set())
     assert not classify.wants_log("ultrawide", "please", {"enhancement"})
+    # #257: a request without the form and without a failure in it
+    assert not classify.wants_log("A community space outside GitHub", "Could you open a Matrix room?", set())
+    assert classify.wants_log("Mkw.exe doesnt open", "I double click and nothing happens", set())
+    assert classify.wants_log("x", "error code 71 when warming up shaders", set())
 
 
 def test_known_errors_and_regressions():

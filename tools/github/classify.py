@@ -22,6 +22,14 @@ LAUNCHER_VERSION = re.compile(r"Game:\s*MKW Recomp v?(\d+\.\d+\.\d+)", re.I)
 PIRACY = re.compile(r"\b(xci|nsp|nsz|prod\.keys|title\.keys)\b|\b(rom download|download (the |a )?rom)\b", re.I)
 # Form answers that carry no information of their own
 FORM_FILLER = re.compile(r"^###.*$|_No response_", re.M)
+# Without the bug form, only text that describes a failure asks for a log (#257, a request for a Discord, got "please
+# attach mkw.log"): "doesn't open" and "code 71" count, "could you open a Matrix room" does not.
+BUG_FORM = re.compile(r"^### What happens\s*$", re.M)
+FAILURE = re.compile(
+    r"\b(crash\w*|error|fail\w*|freez\w*|hang\w*|stuck|glitch\w*|artifact\w*|black screen|bug|broken|closes?|"
+    r"code \d+|does nothing|nothing happens|(?:doesn'?t|does not|won'?t|can'?t|cannot|not) (?:open|work|start|launch|load|run))\b",
+    re.I,
+)
 
 GPU_PATTERNS = {
     "gpu-nvidia": re.compile(r"\b(nvidia|geforce|rtx\s?\d|gtx\s?\d)", re.I),
@@ -95,6 +103,8 @@ def has_log(body: str) -> bool:
 def wants_log(title: str, body: str, labels: set[str]) -> bool:
     """A bug report needs its log; a performance report or a feature request does not."""
     if labels & {"performance", "enhancement"} or title.lower().startswith(("perf:", "[feature")):
+        return False
+    if not BUG_FORM.search(body) and not FAILURE.search(f"{title}\n{FENCE.sub('', body)}"):
         return False
     return not has_log(body)
 
