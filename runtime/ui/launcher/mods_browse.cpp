@@ -520,7 +520,12 @@ int mods_browse_draw(const char *exe_dir, SDL_Renderer *ren) {
                 char ask[400];
                 snprintf(ask, sizeof ask, menu_text(UI_GB_CONFIRM), c.name, info.author);
                 ImGui::TextUnformatted(ask);
-                if (ImGui::Button(menu_text(UI_MOD_OK))) {
+                ImGui::Spacing();
+                int may = mods_risk_draw();
+                ImGui::BeginDisabled(!may);
+                bool ok = ImGui::Button(menu_text(UI_MOD_OK));
+                ImGui::EndDisabled();
+                if (ok) {
                     char mid[16], fid[16], dest[PLAT_PATH_MAX];
                     snprintf(mid, sizeof mid, "%d", info.id);
                     snprintf(fid, sizeof fid, "%d", c.id);

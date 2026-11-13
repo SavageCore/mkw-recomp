@@ -141,6 +141,16 @@ def modified_build(log: str) -> str | None:
     return m.group(1) if m and m.group(1).endswith("-dirty") else None
 
 
+MODS_ON = re.compile(r"\[host\] mods: enabled (.+)")
+
+
+def mods_enabled(log: str) -> str | None:
+    """The mods a log's run had on (the runtime's "mods: enabled A, B" line, from 0.1.10), else None: a mod's bug
+    is its author's, so the bot asks for a run without them first."""
+    m = MODS_ON.search(log or "")
+    return m.group(1).strip() if m else None
+
+
 def still_happens(body: str, by_author: bool) -> bool:
     """A comment on a closed issue saying the fix did not work: from its author, or from anyone with a new log."""
     return bool(STILL.search(body or "")) and (by_author or has_log(body))

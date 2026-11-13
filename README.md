@@ -98,6 +98,26 @@ Beyond the console, all optional and off (or at the console's value) by default:
 - **Game files**: a dump as folders or as one `.nup` or `.nx` file, used where it is; updates from the start screen.
 - **Performance overlay** (FPS, or CPU, GPU and memory in full) and a one-click system info for bug reports.
 
+## Mods
+
+The start screen's **Mods** page installs mods as they are published for the game, and lists them in two tabs:
+
+- **Find on GameBanana**: Mario Kart World's mods on [GameBanana](https://gamebanana.com/games/22152), listed or
+  searched, with each mod's author, license, screenshots and description. **Install** downloads the file from
+  GameBanana, only when you ask for it.
+- **Installed**: your mods, each with an on/off switch; **Import zip / Import folder** takes a mod you already have
+  (`.zip`, `.rar` or `.7z`, with `romfs/` and/or `exefs/` anywhere inside, including the `atmosphere/contents/` layout).
+
+Mods that replace game files (`romfs/`: skins, textures, texts, courses) take effect at the next start. Mods that change
+the game's code (`exefs/` `.ips` or `.pchtxt` patches, such as 200cc or 30 FPS) are built into the game code: turning
+one on or off rebuilds it before you play (a few minutes). Two mods that change the same archive are merged file by
+file, and the page asks which one wins where both change the same file. The page warns about mods that replace the
+game's graphics settings or shaders, which the port handles its own way.
+
+Mods are made by other people and are not tested by this project: one can crash the game or damage your save. Read a
+mod's page before installing it, keep a copy of your save, and report a mod's problems to its author; when you report
+a bug here, say which mods were on (the log lists them), or try again without them first.
+
 ## Building from source
 
 Linux, with `uv`, `clang`, `lld`, `ninja`, SDL3, Opus, libvpx, zstd, xxHash, the Vulkan headers and VMA 3.4.0 (details in
@@ -168,11 +188,15 @@ reviewed, measured or tested before it went in. It was not one prompt and done. 
 This project is under the [MIT License](LICENSE). Code taken from other projects keeps its own license, next to it
 (`LICENSE.*` files in [recomp/](recomp/), [runtime/](runtime/), [sm86/decode/](sm86/decode/) and
 [runtime/third_party/](runtime/third_party/README.md)): totk-pc-recomp, nvsass-disassembler, Dear ImGui, bc7enc,
-AMD FidelityFX FSR 1 and Roboto. Every source used, with its license and what was taken from it (code from MIT
+stb_image, AMD FidelityFX FSR 1 and Roboto. Every source used, with its license and what was taken from it (code from MIT
 projects only; from GPL projects, ideas only), is listed in [docs/research.md](docs/research.md#sources).
 
 Mario Kart World is © Nintendo. This project is not affiliated with or endorsed by Nintendo, contains no game code
 or assets, and does not help to obtain them.
+
+Mods belong to their authors and come under their own licenses. This project is not affiliated with or endorsed by
+GameBanana or any mod's author, does not host, review or distribute mods, and is not responsible for what a mod does:
+the start screen only shows GameBanana's public listing and downloads a mod from GameBanana when you ask it to.
 
 ## Contributing
 

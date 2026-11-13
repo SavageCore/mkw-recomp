@@ -62,6 +62,96 @@ static void mark_rebuild(const char *name) {
         }
 }
 
+// The risk of installing a mod, above every install and import: the "I understand" box until the player ticks it once
+// (MODS_ACK). True when the install may go on.
+int mods_risk_draw(void) {
+    ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + ImGui::GetFontSize() * 30);
+    ImGui::TextColored(ImVec4(0.95f, 0.75f, 0.35f, 1), "%s", menu_text(UI_MOD_RISK));
+    ImGui::PopTextWrapPos();
+    const char *ack = cfg_get("MKW_MODS_ACK");
+    if (ack && !strcmp(ack, "1")) return 1;
+    bool tick = false;
+    if (ImGui::Checkbox(menu_text(UI_MOD_RISK_ACK), &tick) && tick) {
+        cfg_set("MKW_MODS_ACK", "1");
+        cfg_save();
+    }
+    return tick;
+}
+
+// ---- the save, before the first start with a new set of mods: <profile>/save copied to
+// <profile>/save-before-mods/<time>/, which the save's own rotation (save-backup, fs_host.c) never touches; the newest
+// KEEP_BEFORE_MODS stay
+#define KEEP_BEFORE_MODS 10
+static void remove_tree(const char *path);
+
+struct CopyCtx {
+    char src[PLAT_PATH_MAX], dst[PLAT_PATH_MAX];
+    int files, failed;
+};
+
+static int copy_cb(const char *name, int kind, uint64_t, void *ctx) {
+    CopyCtx *c = (CopyCtx *)ctx, sub = *c;
+    snprintf(sub.src, sizeof sub.src, "%s/%s", c->src, name);
+    snprintf(sub.dst, sizeof sub.dst, "%s/%s", c->dst, name);
+    sub.files = sub.failed = 0;
+    if (kind == PLAT_FS_DIR) {
+        plat_file_mkdir_p(sub.dst);
+        plat_fs_list(sub.src, copy_cb, &sub);
+    } else {
+        uint64_t n = 0;
+        uint8_t *data = plat_file_read(sub.src, &n);
+        if (data && plat_file_write_atomic(sub.dst, data, n)) sub.files++;
+        else sub.failed++;
+        free(data);
+    }
+    c->files += sub.files, c->failed += sub.failed;
+    return 1;
+}
+
+static char g_oldest[64];
+static int g_nbackups;
+static int oldest_cb(const char *name, int kind, uint64_t, void *) {
+    if (kind != PLAT_FS_DIR) return 1;
+    g_nbackups++;
+    if (!g_oldest[0] || strcmp(name, g_oldest) < 0) snprintf(g_oldest, sizeof g_oldest, "%s", name);
+    return 1;
+}
+
+void mods_before_play(const char *exe_dir) {
+    const char *on = cfg_get("MKW_MODS"), *played = cfg_get("MKW_MODS_PLAYED");
+    if (!strcmp(on ? on : "", played ? played : "")) return;
+    if (on && *on) {
+        const char *prof = cfg_get("MKW_PROFILE_DIR");
+        CopyCtx c = {};
+        if (prof && *prof) snprintf(c.src, sizeof c.src, "%s/save", prof);
+        else snprintf(c.src, sizeof c.src, "%s/profile/save", exe_dir);
+        SDL_Time now;
+        SDL_DateTime t;
+        SDL_GetCurrentTime(&now);
+        SDL_TimeToDateTime(now, &t, true);
+        char root[PLAT_PATH_MAX];
+        snprintf(root, sizeof root, "%.*s/save-before-mods", (int)(strlen(c.src) - 5), c.src);
+        snprintf(c.dst, sizeof c.dst, "%s/%04d%02d%02d-%02d%02d%02d", root, t.year, t.month, t.day, t.hour,
+                 t.minute, t.second);
+        if (plat_dir_exists(c.src)) {
+            plat_file_mkdir_p(c.dst);
+            plat_fs_list(c.src, copy_cb, &c);
+            rt_log("mods: the save before these mods (%s): %d files in %s%s", on, c.files, c.dst,
+                   c.failed ? ", some could not be copied" : "");
+            for (;;) {   // the newest ones stay
+                g_oldest[0] = 0, g_nbackups = 0;
+                plat_fs_list(root, oldest_cb, nullptr);
+                if (g_nbackups <= KEEP_BEFORE_MODS || !g_oldest[0]) break;
+                char old[PLAT_PATH_MAX];
+                snprintf(old, sizeof old, "%s/%s", root, g_oldest);
+                remove_tree(old);
+            }
+        }
+    }
+    cfg_set("MKW_MODS_PLAYED", on ? on : "");
+    cfg_save();
+}
+
 int mods_code_changed(void) {
     char path[PLAT_PATH_MAX];
     rebuild_path(path, sizeof path);

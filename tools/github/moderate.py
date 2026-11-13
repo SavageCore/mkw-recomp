@@ -15,6 +15,7 @@ Rules (the bot never comments where a maintainer already did):
 - a maintainer's reply with "Fixed in vX": closed if vX is out, else `fixed-next-release`; with "same as #N": duplicate
 - a closed issue is reopened when its author, or anyone attaching a log, says it still happens
 - a published release closes the `fixed-next-release` issues with a link to it
+- a log from a run with mods on: a note asking for the same run without them (mods are their authors')
 
 Usage: uv run tools/github/moderate.py issue N | comment N COMMENT_ID | sweep | release TAG | backlog [--apply]
 """
@@ -57,6 +58,9 @@ TEXT = {
     "modified": "Note: this log is from a build with local changes (`MKW Recomp {ver}`). Please check whether it "
     "happens with a [release package]({repo_url}/releases/latest) or a clean build of `main`: a change outside the "
     "repository can cause it, and we cannot see it.",
+    "mods": "Note: this run had mods on ({mods}). Mods are made by other people and can cause crashes and glitches "
+    "the game does not have: please try again with them off (Mods page, Installed) and attach that `logs/mkw.log`. "
+    "If it only happens with a mod, please report it to the mod's author.",
     "release": "Fixed in [{tag}]({url}). If it still happens there, open a new issue with `logs/mkw.log` attached.",
 }
 
@@ -171,6 +175,8 @@ class Moderator:
         logs = attached_logs(reported)
         if (mod := classify.modified_build(logs)) and MARK.format("modified") not in said:
             self.gh.comment(n, "modified", TEXT["modified"].format(ver=mod, repo_url=self.repo_url))
+        if (on := classify.mods_enabled(logs)) and MARK.format("mods") not in said:
+            self.gh.comment(n, "mods", TEXT["mods"].format(mods=on))
         sig = classify.known_error(n, f"{title}\n{body}\n{logs}", ver, self.sigs)
         if sig and MARK.format("dup") not in said:
             key = "dup_old" if sig.fixed else "dup"

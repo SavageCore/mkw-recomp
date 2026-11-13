@@ -134,3 +134,9 @@ def test_modified_build_from_the_log_line():
     assert classify.modified_build(log) == "0.1.8-3-gabc1234-dirty"
     assert classify.modified_build(log.replace("-dirty", "")) is None
     assert classify.modified_build("[host] log: C:/mkw/logs/mkw.log\n") is None   # up to 0.1.8: no version
+
+
+def test_mods_from_the_log_line():
+    log = "[host] cfg: read mkw.ini\n[host] mods: enabled ClassicGP, 30 FPS Lock\n[host] vk: gpu 0\n"
+    assert classify.mods_enabled(log) == "ClassicGP, 30 FPS Lock"
+    assert classify.mods_enabled("[host] cfg: read mkw.ini\n") is None

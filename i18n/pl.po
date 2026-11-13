@@ -2009,8 +2009,9 @@ msgstr ""
 #. Shown above the GameBanana list: the project hosts no mods.
 msgctxt "UI_GB_NOTE"
 msgid ""
-"Mods are made by their authors and downloaded from GameBanana when you install them; this project "
-"does not host or endorse them. Each mod has its own license."
+"Mods are made by their authors and downloaded from GameBanana when you install them. This project "
+"is not affiliated with GameBanana or the mods' authors, and does not host, review or endorse "
+"mods. Each mod has its own license."
 msgstr ""
 
 msgctxt "UI_GB_SEARCH"
@@ -2080,6 +2081,18 @@ msgctxt "UI_MOD_WARN_GRAPHICS"
 msgid ""
 "Changes the game's graphics settings: the port's own settings (resolution, quality) go on top, so "
 "this mod may do less than on a console, look worse or misbehave"
+msgstr ""
+
+#. Above every mod install and import.
+msgctxt "UI_MOD_RISK"
+msgid ""
+"Mods are made by other people and are not tested by this project. A mod can crash the game or "
+"damage your save: read its page first, keep a copy of your save, and report a mod's problems to "
+"its author."
+msgstr ""
+
+msgctxt "UI_MOD_RISK_ACK"
+msgid "I understand"
 msgstr ""
 
 #. Under a mod that changes the game's code (its .ips): the game code is built with it.

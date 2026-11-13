@@ -311,6 +311,7 @@ static void page_main(float w, float h) {
             setup_start(L.exe_dir, nullptr, 0);
         } else {
             mods_merge_sync(L.exe_dir);   // a stale .merged must not boot: usually a no-op fresh-check
+            mods_before_play(L.exe_dir);
             L.result = LAUNCHER_PLAY;
         }
     }
@@ -821,7 +822,10 @@ static void page_mods(float w, float h) {
         ImGui::TextUnformatted(menu_text(UI_MOD_NAME));
         ImGui::SameLine();
         ImGui::InputText("##modname", mods_name_buf(), MOD_NAME_MAX);
+        int may = mods_risk_draw();
+        ImGui::BeginDisabled(!may);
         if (ImGui::Button(menu_text(UI_MOD_IMPORT))) mods_import_start(L.exe_dir);
+        ImGui::EndDisabled();
         ImGui::SameLine();
         if (ImGui::Button(menu_text(UI_LAUNCH_BACK))) mods_clear_pick();
     }
@@ -1000,6 +1004,7 @@ extern "C" int launcher_run(void) {
             if (setup_state().finished > 0) {
                 mods_code_built();
                 mods_merge_sync(L.exe_dir);
+                mods_before_play(L.exe_dir);
                 L.result = LAUNCHER_PLAY;
                 break;
             }

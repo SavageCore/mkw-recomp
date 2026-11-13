@@ -350,6 +350,8 @@ static void overlay_init(void) {
     char exe[PLAT_PATH_MAX * 2], mods[4096], seen[64][64];
     size_t nseen = 0;
     const char *list = cfg_get("MKW_MODS");
+    // a bug report's log says which mods were on (tools/github/classify.py mods_enabled asks for a run without them)
+    if (list && *list) rt_log("mods: enabled %s", list);
     if (plat_exe_path(exe, sizeof exe - 64) && list && *list) {
         char *cut = plat_last_sep(exe);
         if (cut) *cut = 0;
