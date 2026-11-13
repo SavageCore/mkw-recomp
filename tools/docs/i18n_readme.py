@@ -57,6 +57,8 @@ LINKS = [
     f"{REPO}/issues",
     f"{REPO}/discussions",
 ]  # fmt: skip
+# Scripts whose letters join (Arabic) or stack (Devanagari): their buttons stay in English (13/11/2026, seen on GitHub)
+LATIN_BUTTONS = {"ar", "hi"}
 SOURCE = re.compile(r"<!-- translated from README.md ([0-9a-f]{12}) -->")
 REL_MD = re.compile(r"(\]\()(?!https?:|#|mailto:|\.\./)([^)\s]+)")
 REL_HTML = re.compile(r'((?:href|src)=")(?!https?:|#|mailto:|\.\./)([^"]+)')
@@ -79,6 +81,8 @@ def bar(code: str) -> str:
 
 def build(code: str, rtl: bool) -> str:
     tag, dl, win, lin, arm, names = STRINGS[code]
+    if code in LATIN_BUTTONS:  # shields.io's for-the-badge spaces and capitalises letters one by one: it breaks
+        dl, win, lin, arm = "Download", "latest for Windows", "latest for Linux (AppImage)", "latest for Linux ARM"
     from urllib.parse import quote
 
     def button(what: str, color: str) -> str:

@@ -9,9 +9,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/adriadam10/mkw-recomp/releases/latest"><img src="https://img.shields.io/badge/%E2%AC%87_%D8%AA%D9%86%D8%B2%D9%8A%D9%84-%D8%A3%D8%AD%D8%AF%D8%AB_%D8%A5%D8%B5%D8%AF%D8%A7%D8%B1_%D9%84%D9%80_Windows-0078d6?style=for-the-badge&labelColor=1b2740" alt="تنزيل: أحدث إصدار لـ Windows"></a>
-  <a href="https://github.com/adriadam10/mkw-recomp/releases/latest"><img src="https://img.shields.io/badge/%E2%AC%87_%D8%AA%D9%86%D8%B2%D9%8A%D9%84-%D8%A3%D8%AD%D8%AF%D8%AB_%D8%A5%D8%B5%D8%AF%D8%A7%D8%B1_%D9%84%D9%80_Linux_%28AppImage%29-e95420?style=for-the-badge&labelColor=1b2740" alt="تنزيل: أحدث إصدار لـ Linux (AppImage)"></a>
-  <a href="https://github.com/adriadam10/mkw-recomp/releases/latest"><img src="https://img.shields.io/badge/%E2%AC%87_%D8%AA%D9%86%D8%B2%D9%8A%D9%84-%D8%A3%D8%AD%D8%AF%D8%AB_%D8%A5%D8%B5%D8%AF%D8%A7%D8%B1_%D9%84%D9%80_Linux_ARM-8957e5?style=for-the-badge&labelColor=1b2740" alt="تنزيل: أحدث إصدار لـ Linux ARM"></a>
+  <a href="https://github.com/adriadam10/mkw-recomp/releases/latest"><img src="https://img.shields.io/badge/%E2%AC%87_Download-latest_for_Windows-0078d6?style=for-the-badge&labelColor=1b2740" alt="Download: latest for Windows"></a>
+  <a href="https://github.com/adriadam10/mkw-recomp/releases/latest"><img src="https://img.shields.io/badge/%E2%AC%87_Download-latest_for_Linux_%28AppImage%29-e95420?style=for-the-badge&labelColor=1b2740" alt="Download: latest for Linux (AppImage)"></a>
+  <a href="https://github.com/adriadam10/mkw-recomp/releases/latest"><img src="https://img.shields.io/badge/%E2%AC%87_Download-latest_for_Linux_ARM-8957e5?style=for-the-badge&labelColor=1b2740" alt="Download: latest for Linux ARM"></a>
 </p>
 
 <p align="center">
