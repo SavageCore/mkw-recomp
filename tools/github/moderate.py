@@ -15,7 +15,7 @@ Rules (the bot never comments where a maintainer already did):
 - a maintainer's reply with "Fixed in vX": closed if vX is out, else `fixed-next-release`; with "same as #N": duplicate
 - a closed issue is reopened when its author, or anyone attaching a log, says it still happens
 - a published release closes the `fixed-next-release` issues with a link to it
-- a log from a run with mods on: a note asking for the same run without them (mods are their authors')
+- a log from a run with mods on: a note asking for the same run without them (mods are their authors'); label `mods`
 
 Usage: uv run tools/github/moderate.py issue N | comment N COMMENT_ID | sweep | release TAG | backlog [--apply]
 """
@@ -175,8 +175,11 @@ class Moderator:
         logs = attached_logs(reported)
         if (mod := classify.modified_build(logs)) and MARK.format("modified") not in said:
             self.gh.comment(n, "modified", TEXT["modified"].format(ver=mod, repo_url=self.repo_url))
-        if (on := classify.mods_enabled(logs)) and MARK.format("mods") not in said:
-            self.gh.comment(n, "mods", TEXT["mods"].format(mods=on))
+        if on := classify.mods_enabled(logs):
+            if "mods" not in have:
+                self.gh.label(n, "mods")   # made on GitHub by hand (#274), not in NEW_LABELS: those are swept as stale
+            if MARK.format("mods") not in said:
+                self.gh.comment(n, "mods", TEXT["mods"].format(mods=on))
         sig = classify.known_error(n, f"{title}\n{body}\n{logs}", ver, self.sigs)
         if sig and MARK.format("dup") not in said:
             key = "dup_old" if sig.fixed else "dup"
