@@ -6,8 +6,43 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
 
 ## 0.1.10
 
+Mods in the start screen, from @SavageCore's work, with GameBanana's mods a click away; Unlock everything on 1.8.0 by
+@IgorLomba; @flavio-silva's fix for the slowdown of 8 GB cards and the video memory diagnostics that found it; Switch 2
+controllers over Bluetooth, AMD cards on Linux past the title, Intel GPUs past the warm-up, and less memory on Windows.
+
 ### Changes
 
+- **Mods** (#218 by @SavageCore): the start screen's Mods page, by @SavageCore, installs a mod from a `.zip` or folder
+  and enables it for the next start, merges enabled mods that change the same game archive, and builds code mods into
+  the game with patches that skip a region of code, not only replace an instruction. On top of it: `.rar` and `.7z`, a
+  GameBanana tab that searches and browses the game's mods there, with their pictures, and installs one with a click
+  (or with GameBanana's 1-Click button), and GameBanana's code mods (`.ips`, such as 200cc or Classic Grand Prix)
+  taken as they are published.
+  Before the first install the page says what a mod can do (crashes, broken saves, graphics mods that cost frame rate),
+  the save is copied to `profile/save-before-mods` before a start with new mods, and the log names the mods in use.
+  Mods are their authors' work; this project is not affiliated with GameBanana or with any mod (README, Mods).
+- **Unlock everything on game version 1.8.0** (#211 by @IgorLomba): Settings > Hacks > Unlock everything did nothing on
+  1.8.0, whose save has another layout than 1.0.0's; @IgorLomba's fix finds the lists by their key in the save itself.
+  It also sets the Special Cup as seen, so the cup select skips its opening animation, where NVIDIA cards faulted after
+  unlocking (#142, not yet confirmed on one).
+- **8 GB cards no longer slow down after a few menus** (#200 by @flavio-silva): textures the game released were capped
+  in count only and could hold 1.6 GB; Windows then moved memory out of the GPU and the game fell to 0.07x speed on the
+  trophy screen of an 8 GB RTX 4070 laptop. Their memory is now bounded too (a twelfth of the video memory budget,
+  `tex_released_mib`), and @flavio-silva's two cups in a row on that laptop stayed at full speed.
+- **Video memory diagnostics** (#199 by @flavio-silva): `vram_log = <frames>` logs the video memory census without the
+  other traces, and the commands `vram` and `trim [MiB]` show it, or free memory as a failed allocation would, in a
+  running game. This is how the slowdown above was found.
+- **Switch 2 controllers over Bluetooth** (discussion #113): Settings > Controls > Switch 2 controllers (Bluetooth),
+  off by default, pairs a Pro Controller or Joy-Con 2 without other software, on Linux (BlueZ) and Windows.
+- **Less memory on Windows** (#198): the game's 8 GB heap is committed as the game touches it instead of at start, so
+  Windows no longer charges it all against RAM and the page file (a race at 10.6 GB private instead of 15.7), which
+  is what a 16 GB PC ran out of at the intro loading screen.
+- Below 3 GB of video memory the texture tiles take a quarter of it instead of 768 MB (#215), and integrated GPUs may
+  use 40 % of the RAM instead of a quarter (#174).
+- On game version 1.8.0: the internal resolution setting takes effect (#195), and so do the ultrawide menus, the shadow
+  map size and the fixed seed, and the game's own texts of 1.8.0 are in Catalan, Galician and Basque as well.
+- In a container that refuses `userfaultfd` (Docker's and Podman's default), textures are no longer uploaded again
+  every frame: ~20 fps there instead of ~6 (#241); the log says how to allow it for full speed (README).
 - **Polish and Thai in the game** (discussion #193): the languages the game's own updates added (Polish in 1.5.0, Thai
   in 1.7.0) are listed in Settings > Game > Language when the dump has them (1.8.0), and a system set to one of them
   picks it; a 1.0.0 dump stays as before. Thai is also a menu and launcher language (the 20th; our first translation,
@@ -34,14 +69,27 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
 - The setup also takes a folder with a loose `exefs/` and `romfs` as a `.nup` package (or a link to one).
 - NVIDIA's shader tools are downloaded again when they arrive cut or damaged (#207), and if they keep arriving damaged
   the setup says so (an antivirus, proxy, VPN or unstable connection) instead of only showing two checksums.
-- Settings > Hacks > Unlock everything did nothing on game version 1.8.0: its save has another layout than 1.0.0's,
-  and the lists are now found by their key in the save itself.
 - AMD GPUs on Linux (RADV) no longer lose the device at the title as soon as the game draws its first task and mesh
   programs (#4, #43, #50, #225): they are drawn as compute passes there by default, as `mesh_compute = 1` in `mkw.ini`
   did (`mesh_compute = 0` goes back to the mesh shaders). A later hang some of these cards still have is in #50.
 - For NVIDIA's "instruction pointer invalid" (#22): `skip_programs = <key>[,<key>...]` in `mkw.ini` leaves out the
   draws of the programs whose key starts with those hex digits (the `vs`/`fs` keys of the breadcrumb lines), so a
   reporter can tell whether the program named at the fault is the one that faults. A diagnosis: those draws are missing.
+
+### Tested
+
+From these packages, before publishing:
+
+- The whole setup on Linux (Radeon 660M, RADV) and on Windows 11 (GTX 1050 Ti), with its one-minute warm-up.
+- A mod of each kind on Windows: a skin from GameBanana's tab and Classic Grand Prix (`.ips`), built in and raced.
+- The AArch64 AppImage on an AYN Odin 2 (Adreno 740, Turnip) by @titooo7, with 0.1.9 (#176).
+
+### Known issues
+
+- NVIDIA cards can still lose the device in some races and menus ("instruction pointer invalid", #22); `skip_programs`
+  above helps us find the program at fault.
+- Some AMD cards on Linux still hang later on, in a race or a menu, with the compute path (#50).
+- Switch 2 controllers over Bluetooth have noticeable input lag on Windows (discussion #113).
 
 ## 0.1.9
 

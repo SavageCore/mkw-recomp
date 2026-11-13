@@ -14,8 +14,8 @@
   The game it builds lives in `~/.local/share/mkw-recomp`. On 64-bit ARM (ARMv8.2: Snapdragon 8 Gen 1 and newer), the
   `-aarch64.AppImage`.
 - Windows 10/11 x64: unpack the zip into a folder and run `mkw.exe`.
-- Either: a Vulkan 1.3 GPU and about 30 GB free. Open **Game files**, point it at your `exefs/` and `romfs/` (Mario
-  Kart World 1.0.0, your own dump) and press **Prepare**. Nothing of the game ships here: the setup builds it on your
+- Either: a Vulkan 1.3 GPU and about 30 GB free. Open **Game files**, point it at your own dump of Mario Kart World
+  1.0.0 or 1.8.0 (its `exefs/` and `romfs/`, or one `.nup` or `.nx` file) and press **Prepare**. Nothing of the game ships here: the setup builds it on your
   machine and downloads NVIDIA's `nvdisasm` and `ptxas` (pinned by sha256; 84 MB on Linux, 126 MB on Windows) to
   describe the shader encoding.
 
