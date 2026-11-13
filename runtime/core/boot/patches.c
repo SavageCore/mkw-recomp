@@ -42,22 +42,37 @@
 #define GUEST_RB_ALLOCATOR_INIT rt_main_addr(rt_version()->rb_alloc_init)
 #define GUEST_RB_POOL_NEW rt_main_addr(rt_version()->rb_pool_new)
 #define GUEST_RB_POOL_INIT rt_main_addr(rt_version()->rb_pool_init)
+#define GUEST_EXPHEAP_CREATE rt_main_addr(rt_version()->expheap_create)
 #define GUEST_RANDOM_CTOR_LR rt_main_addr(rt_version()->random_ctor_lr)
 #define GUEST_RANDOM_CTOR2_LR rt_main_addr(rt_version()->random_ctor2_lr)
 
 // The shadow set: MKW_SHADOW_SIZE (Graphics tab) in place of the cascaded shadow map size the game picks (3072 docked,
 // 2048 handheld). Only a square buffer of 512 or more is resized: what the site's caller (main+0x22d45c) creates.
 static uint32_t shadow_size;
-// MKW_RB_EXTRA_MIB: MiB more in the second pool for the scene's targets. 1.8.0's 2160 layer makes them 3840x2160 and
-// the game's one pool runs out without the shadow set too (#255, s255c: ShadowPrePass gets a null block).
-static uint32_t rb_extra_mib;
-static uint64_t rb_obj, rb_heaps[8];   // the render-buffer allocator and its heap chain (host_shadow_pool)
+// The second pool of the render-buffer allocator (shadow_second_pool): the bytes a map over 3072 grows, the bytes the
+// scene's targets grow over 1440 lines (1.8.0's 2160 layer makes them 3840x2160 and the game's pool runs out with the
+// console's map too: #255, s255c), and MKW_RB_EXTRA_MIB more.
+static uint32_t rb_extra_mib, scene_lines;
+static uint64_t rb_obj;   // the render-buffer allocator (host_shadow_pool)
 static int rb_pool_done, rb_pool_ok;
 static int shadow_second_pool(Cpu *c);
+
+static uint64_t map_bytes(uint32_t size) { return 3 * 2 * (uint64_t)size * size; }   // 3 cascades of D16
+
+// Hypothesis, measured in s255g: the game's 250 MiB pool holds the console's 1440-line targets with its 3072 map, so
+// the targets take the rest and grow with the pixels.
+static uint64_t second_pool_bytes(void) {
+    uint64_t b = (uint64_t)rb_extra_mib << 20;
+    if (shadow_size > 3072) b += map_bytes(shadow_size) - map_bytes(3072);
+    if (scene_lines > 1440)
+        b += ((250ull << 20) - map_bytes(3072)) * ((uint64_t)scene_lines * scene_lines - 1440ull * 1440) / (1440ull * 1440);
+    return (b + 0xffff) & ~0xffffull;
+}
+
 static void host_shadow_rb(Cpu *c) {
     uint32_t *w = (uint32_t *)(uintptr_t)(c->x[0] + 0x68), *h = (uint32_t *)(uintptr_t)(c->x[0] + 0x88);
     int map = *w == *h && *w >= 512;
-    if (map && !rb_pool_done && (shadow_size > 3072 || rb_extra_mib)) rb_pool_ok = shadow_second_pool(c);
+    if (map && !rb_pool_done && second_pool_bytes()) rb_pool_ok = shadow_second_pool(c);
     if (shadow_size && map) {
         // Without the second pool a map over 3072 does not fit and main+0x37b520 reads a null block (issue #48, 4096
         // at 1440 lines: "no free second slot", then that crash after the character choice): the game's size then.
@@ -71,53 +86,56 @@ static void host_shadow_rb(Cpu *c) {
     rt_call(c, GUEST_RENDERBUFFER_CREATE, 4, c->x[0], c->x[1], c->x[2], c->x[3]);
 }
 
-// The render-buffer allocator's pool is sized for the console's 3072 map (3 layers of D16), and the shadow map shares
-// it with the scene's targets: with a larger map and full-resolution targets it runs out when the map changes (issue
-// #9; build/romfs-res, at 720 lines, hid it on Linux). It cannot just get more memory at its init: the pool past
-// ~256 MiB, or a second pool made then, takes bytes the game's later fixed-size heaps count on and it fails at boot
-// (l9-d, l9-f, l9-k). And the allocator only adds a pool when full if its config names a heap (+0x30; MKW's is 0) and
-// its pool table has a free slot (it has one), from a heap that by then is full (l9-j). So the table gets two slots
-// (recomp/patches-mkw.txt) and the init's heap chain is kept here; when the first larger map is made, after boot, the
-// second pool comes from the heap of that chain with the most room (l9-l: one keeps ~209 MiB from the title on).
+// The render-buffer allocator's pool is sized for the console's 3072 map (3 layers of D16) and 1440-line targets, and
+// the shadow map shares it with the scene's targets: a larger map runs out when the map changes (issue #9; build/
+// romfs-res, at 720 lines, hid it on Linux) and 1.8.0's 2160 layer runs out at the title (#255, #210). It cannot just
+// get more memory at its init: the pool past ~256 MiB, or a second pool made then, takes bytes the game's later
+// fixed-size heaps count on and it fails at boot (l9-d, l9-f, l9-k); the allocator adds a pool when full only with a
+// heap in its config (+0x30; MKW's is 0) and a free slot in its pool table (it has one), from a heap that by then is
+// full (l9-j); and the game's heaps keep ~146 MiB after boot, less than 2160 needs (s255d). So the table gets two
+// slots (recomp/patches-mkw.txt) and, when the first map is made after boot, the second pool comes from memory of the
+// runtime's own (mem_runtime_alloc) under a pead::ExpHeap of ours, taking nothing from the game.
 static void host_shadow_pool(Cpu *c) {
-    uint64_t cfg = c->x[1];
     rb_obj = c->x[0];
-    uint64_t h = *(uint64_t *)(uintptr_t)(cfg + 0x28);
-    for (int i = 0; i < 8 && h; i++) rb_heaps[i] = h, h = ((uint64_t *)(uintptr_t)h)[7];  // parent: +0x38
-    rt_call(c, GUEST_RB_ALLOCATOR_INIT, 2, rb_obj, cfg);
+    rt_call(c, GUEST_RB_ALLOCATOR_INIT, 2, rb_obj, c->x[1]);
 }
 
-// The second pool as the allocator makes one (main+0x37cdbc..0x37ce2c; its init's own, main+0x8eb85c..0x8eb890).
+// The second pool as the allocator makes one (main+0x37cdbc..0x37ce2c; its init's own, main+0x8eb85c..0x8eb890),
+// from a heap of the game's own class over the runtime's region: pead::ExpHeap::create(start, size, name, lock, 0)
+// places the heap at start, as the game's root heap is made (main+0xcf3050); name points at the characters' pointer.
 static int shadow_second_pool(Cpu *c) {
     rb_pool_done = 1;
     uint64_t a[4] = {c->x[0], c->x[1], c->x[2], c->x[3]};   // host_shadow_rb passes them on
-    uint64_t grow = shadow_size > 3072 ? 3 * 2 * ((uint64_t)shadow_size * shadow_size - 3072ull * 3072) : 0;
-    uint64_t size = (grow + ((uint64_t)rb_extra_mib << 20) + 0xffff) & ~0xffffull;
-    uint64_t **table = (uint64_t **)(uintptr_t)(rb_obj + 0x2a90), heap = 0, room = 0;
-    char frees[160] = "";   // every heap of the chain, MiB free: which one the map's memory comes out of (#255)
+    uint64_t size = second_pool_bytes(), **table = (uint64_t **)(uintptr_t)(rb_obj + 0x2a90), heap = 0, pool = 0;
     if (!rb_obj || *(int32_t *)(uintptr_t)(rb_obj + 0x2a88) < 2 || (*table)[1]) {
-        rt_log("patches: render-buffer allocator has no free second slot; no pool for the %u shadow map: the game's "
-               "size instead", shadow_size);
+        rt_log("patches: render-buffer allocator has no free second slot; no second pool (shadow map %u, %u lines)",
+               shadow_size, scene_lines);
         return 0;
     }
-    for (int i = 0; i < 8 && rb_heaps[i]; i++) {
-        uint64_t h = rb_heaps[i], *vt = (uint64_t *)(uintptr_t)*(uint64_t *)(uintptr_t)h;
-        uint64_t free_ = rt_call(c, vt[16], 1, h);   // sead::Heap::getFreeSize
-        size_t n = strlen(frees);
-        snprintf(frees + n, sizeof frees - n, "%s%llu", n ? " " : "", (unsigned long long)(free_ >> 20));
-        if (free_ > room) room = free_, heap = h;
+    if (!GUEST_EXPHEAP_CREATE) {
+        rt_log("patches: no ExpHeap::create for this version; no second pool (shadow map %u, %u lines)", shadow_size,
+               scene_lines);
+        return 0;
     }
-    uint64_t pool = room > size + 0x100000 ? rt_call(c, GUEST_RB_POOL_NEW, 3, 0x58, heap, 8) : 0;
+    // the region holds the heap's header and the pool's alignment too
+    uint64_t region_size = size + 0x200000, region = mem_runtime_alloc(region_size, "render-buffer pool");
+    if (region) {
+        static const char text[] = "mkw-recomp render-buffer pool";
+        uint64_t *name = mem_kernel_alloc(8 + sizeof text, 8);
+        memcpy(name + 1, text, sizeof text);
+        name[0] = (uint64_t)(uintptr_t)(name + 1);
+        heap = rt_call(c, GUEST_EXPHEAP_CREATE, 5, region, region_size, (uint64_t)(uintptr_t)name, 1, 0);
+    }
+    if (heap) pool = rt_call(c, GUEST_RB_POOL_NEW, 3, 0x58, heap, 8);
     if (pool) {
         uint32_t count = *(uint32_t *)(uintptr_t)(rb_obj + 0x11c0);
         uint32_t flags = (*(uint8_t *)(uintptr_t)(rb_obj + 0x2a68) & 0x80) ? 0x104 : 4;
         rt_call(c, GUEST_RB_POOL_INIT, 8, pool, 0, 1, 7, count, size, flags, heap);
         (*table)[1] = pool;
     }
-    rt_log("patches: render-buffer allocator: %s second pool of %#llx bytes for the %u shadow map and %u MiB more "
-           "(heap %#llx, %#llx free; MiB free along the chain: %s)", pool ? "a" : "no room for a",
-           (unsigned long long)size, shadow_size, rb_extra_mib, (unsigned long long)heap, (unsigned long long)room,
-           frees);
+    rt_log("patches: render-buffer allocator: %s second pool of %#llx bytes on the runtime's own heap %#llx (shadow map "
+           "%u, scene %u lines, MKW_RB_EXTRA_MIB %u)", pool ? "a" : "no", (unsigned long long)size,
+           (unsigned long long)heap, shadow_size, scene_lines, rb_extra_mib);
     for (int i = 0; i < 4; i++) c->x[i] = a[i];
     return pool != 0;
 }
@@ -140,10 +158,11 @@ static void seed_set(const RtGame *g) {
 
 static void shadow_set(const RtGame *g) {
     shadow_size = (uint32_t)atoi(cfg_value("MKW_SHADOW_SIZE"));   // "console": 0
-    const char *extra = cfg_get("MKW_RB_EXTRA_MIB");
+    const char *extra = cfg_get("MKW_RB_EXTRA_MIB"), *res = cfg_value("MKW_RESOLUTION");
     rb_extra_mib = extra ? (uint32_t)atoi(extra) : 0;
+    scene_lines = strcmp(res, "original") ? (uint32_t)atoi(res) : 0;   // the targets' lines (romfs_res.c)
     for (int i = 0; i < g->npatch_sets; i++)
-        if (!strcmp(g->patch_sets[i].name, "shadow")) g->patch_on[i] = shadow_size != 0 || rb_extra_mib != 0;
+        if (!strcmp(g->patch_sets[i].name, "shadow")) g->patch_on[i] = shadow_size != 0 || second_pool_bytes() != 0;
 }
 
 // The aspect set: MKW_ASPECT (Screen tab) wider than 16:9 shows more at the sides (Hor+): 21:9, 32:9, 48:9 or the window's

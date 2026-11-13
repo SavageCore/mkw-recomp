@@ -11,7 +11,12 @@
 //   matched; rb_create is the only function using the string "shadow_map_depth", rb_alloc_init and rb_pool_init the
 //   ones naming "agl::utl::DynamicTextureAllocator(DL)" and "...Allocator", rb_pool_new the operator new main+0xeb1a10
 //   calls as 1.0.0's main+0x8eb85c does; the two sead::Random constructors are byte-identical to 1.0.0's;
-//   ui_focus_fn has 1.0.0's shape (copies 16 bytes of x1 to this+0x3d0, tail call to a twin of main+0xce8620).
+//   ui_focus_fn has 1.0.0's shape (copies 16 bytes of x1 to this+0x3d0, tail call to a twin of main+0xce8620);
+//   expheap_create is the one function the game's "RootHeap" creator (main+0xbeb470, as 1.0.0's main+0xcf3050) calls:
+//   the same shape (a size check against the 0x120-byte header, the constructor, the free block). main carries two
+//   heap libraries: the game's (pead, its heaps' layout: name at +0x20, lock flag at +0xc8) and a middleware's sead
+//   (1.0.0 main+0x15511f4, 1.8.0 main+0x1699b30, layout 8 bytes longer: a SafeString name); the game's allocator
+//   reads a heap by the first layout (s255h/s255i: a sead heap given to it crashed in main+0x247320).
 #include <string.h>
 
 #include "version.h"
@@ -31,6 +36,7 @@ static const RtVersion versions[] = {
         .rb_alloc_init = 0x8eb6b0,
         .rb_pool_new = 0x67aa40,
         .rb_pool_init = 0x8eb9dc,
+        .expheap_create = 0xcf30c0,
         .random_ctor_lr = 0x922088,
         .random_ctor2_lr = 0x15585a8,
         .ui_text_lr = 0x169aeb4,
@@ -54,6 +60,7 @@ static const RtVersion versions[] = {
         .rb_alloc_init = 0xeb1870,
         .rb_pool_new = 0x3e3550,
         .rb_pool_init = 0xeb1e60,
+        .expheap_create = 0xbeb4e0,
         .random_ctor_lr = 0xbe9b78,
         .random_ctor2_lr = 0x16a0ef0,
         .ui_text_lr = 0x1805f20,

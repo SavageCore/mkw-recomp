@@ -23,6 +23,7 @@ typedef struct {
     uint64_t rb_alloc_init;    // render-buffer allocator setup
     uint64_t rb_pool_new;      // operator new(size, heap, alignment), as the allocator calls it
     uint64_t rb_pool_init;     // one pool of that allocator
+    uint64_t expheap_create;   // pead::ExpHeap::create(void *start, size_t size, const char **name, int lock, 0)
     uint64_t random_ctor_lr;   // sead::Random::Random, after its GetSystemTick call (set seed)
     uint64_t random_ctor2_lr;  // another Random constructor, the same
     uint64_t ui_text_lr;       // return address of the 2D text setup's projection getter call (set aspect)

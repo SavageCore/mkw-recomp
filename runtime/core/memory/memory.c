@@ -393,6 +393,32 @@ void mem_commit_range(uint64_t a, uint64_t n) {
     plat_mutex_unlock(&lock);
 }
 
+// ---- the runtime's own regions (mem_runtime_alloc)
+// Memory the runtime gives the game beyond what the game sized itself (the render-buffer pool for larger targets,
+// patches.c): at the top of the heap block, above the application pool the game's heap can reach (SetHeapSize refuses
+// more), inside the same watched reservation, so the back end's write-watch works there as on the heap. Committed
+// now, also on Windows: the lazy commit only serves the game's own pages (owned_commit_locked). QueryMemory reports
+// it free: the game never asks there.
+static uint64_t runtime_top;
+
+uint64_t mem_runtime_alloc(uint64_t size, const char *what) {
+    size = align_up(size, LAZY_CHUNK);
+    plat_mutex_lock(&lock);
+    if (!runtime_top) runtime_top = L.heap.base + HEAP_CAP;
+    uint64_t a = runtime_top - size;
+    if (size > runtime_top || a < L.heap.base + L.pool) {
+        plat_mutex_unlock(&lock);
+        rt_log("mem: no room above the game's heap for %s (%#llx bytes)", what, (unsigned long long)size);
+        return 0;
+    }
+    commit(a, size, what);
+    runtime_top = a;
+    plat_mutex_unlock(&lock);
+    rt_log("mem: %s: %#llx bytes of the runtime's own at %#llx, above the game's heap", what,
+           (unsigned long long)size, (unsigned long long)a);
+    return a;
+}
+
 static void decommit(uint64_t a, uint64_t n, const char *what) {
     plat_mutex_lock(&frz_lock);
     thaw_range_locked(a, n, 3);
