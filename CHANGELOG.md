@@ -8,6 +8,11 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
 
 ### Changes
 
+- **GPU memory left empty when video memory runs low** (#295 by @andreknieriem): on a Steam Deck (1 GB of video
+  memory, low preset, 1.8.0 time trial) the game's GPU memory pools got their memory in 4 MiB pieces, and a piece
+  that did not fit was left empty while released render targets still held 2 601 MiB. @andreknieriem found that this
+  was the only allocation that gave up at once; it now drops released and idle textures first and tries again, as
+  textures and upload buffers already did.
 - **Profiles in the launcher** (discussion #288): the name the game showed was always "Local". The start screen now
   has a Profiles page, opened from the "Profile: name" row under Play: each profile has its own name (up to 10
   characters, as on the console; also what LAN players see) and its own save, and the one marked Playing is the one
