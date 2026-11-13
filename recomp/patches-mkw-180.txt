@@ -1,6 +1,6 @@
 # Code patches of MKW 1.8.0 (exefs/main build id d00e4f399e411d06; recomp/versions.py). The same sets as
 # recomp/patches-mkw.txt (1.0.0), found again in this executable; that file says what each set does and why.
-# Sets of 1.0.0 not here yet: aspect, shadow and seed (their switches have no effect on 1.8.0).
+# Every set of 1.0.0 is here (aspect, shadow and seed since 13/11/2026); seed has 18 of 1.0.0's 21 sites (below).
 #
 # Spin waits (tools/cpu/spin_waits.py --modules main,subsdk0,subsdk1,sdk, 11/11/2026).
 # main: 81 spin waits
@@ -132,3 +132,53 @@ site camera main cdc344 94000a1f d503201f   # bl main+0xcdebc0 -> nop
 # The next call, main+0xcdc560, asks the camera service (the object main+0xcdebc0 made) for its event and attaches it
 # to the SystemEventType at x0 (x19+0x180): host_camera_event (patches.c) makes that a real event that never fires.
 site camera main cdc34c 94000085 94ac5301   # bl main+0xcdc560 -> host_camera_event (patch page + 0xf50)
+
+# Camera aspect: main+0x8a5b0 is 1.0.0's main+0x460c10 (one caller, three callees, 0x270 bytes against 0x2a8, its
+# prologue saves x30); its two fdiv s0, s0, s1 before str s0, [x8, #0xb0] are the only pair of main, with w in s0 and h
+# in s1 as host_aspect expects (fsub s0, s0, s2 and fsub s1, s1, s3 just before).
+set aspect MKW_ASPECT_PATCH 0
+site aspect main 8a6d4 1e211800 94dd9a2b   # fdiv s0, s0, s1 -> bl host_aspect (patch page + 0xf80); 1.0.0's 460d40
+site aspect main 8a784 1e211800 94dd99ff   # same; 1.0.0's 460dfc
+# DrawInfo's projection getter: main+0x17ed900 is byte-identical to 1.0.0's main+0x1682c9c. Its two callers are
+# main+0x17f3af0 (1.0.0's 1688fdc: same x21-x23 setup) and main+0x1805e10 (1.0.0's 169ada0, the pane in x21).
+site aspect main 17f3c20 97ffe738 947ff4d4   # bl getter -> bl host_ui_proj (patch page + 0xf70); 1.0.0's 1689110
+site aspect main 1805f1c 97ff9e79 947fac15   # same; 1.0.0's 169aeb0
+# 1.0.0's main+0x168a22c is main+0x17f4cb0 here, with DrawInfo in x21 and the rows loaded into q0 and q4 (q2 holds
+# another row by then): host_ui_rows2 (patches.c) in place of host_ui_rows.
+site aspect main 17f5084 ad4092a0 947fefaf   # ldp q0, q4, [x21, #0x10] -> bl host_ui_rows2 (patch page + 0xf40)
+
+# Shadow map: main+0xb72c0 is 1.0.0's main+0x233358, the RenderBuffer creation (the only function using the string
+# "shadow_map_depth"; width and height at [x0+0x68] and [x0+0x88]); its caller main+0xb6e40 is 1.0.0's main+0x22d45c.
+set shadow MKW_SHADOW_PATCH 0
+site shadow main b6f90 940000cc 94dce80c   # bl main+0xb72c0 -> host_shadow_rb (patch page + 0xfc0); 1.0.0's 22d5a0
+# The render-buffer allocator's setup main+0xeb1870 ("agl::utl::DynamicTextureAllocator(DL)", 1.0.0's main+0x8eb6b0),
+# called once, from main+0xd65530 (1.0.0's main+0x8e91b0); the pool table's size and slots as in 1.0.0.
+site shadow main d65720 94053054 94aa2e1c   # bl main+0xeb1870 -> host_shadow_pool (patch page + 0xf90); 1.0.0's 8e93a0
+site shadow main eb199c 52800101 52800201   # mov w1, #8 -> #16: the pool table's bytes; 1.0.0's 8eb7e8
+site shadow main eb19b0 52800029 52800049   # mov w9, #1 -> #2: its slots; 1.0.0's 8eb7fc
+
+# Seed: 1.0.0's sites are the GetSystemTick calls followed within ~40 instructions by the movk #0x6c07 of the
+# generator's 0x6c078965; here that rule gives 19 sites, each paired with its 1.0.0 function by strings, size and
+# callees (the two sead::Random constructors are byte-identical). Without a twin here: 1.0.0's main+0x99a934 and
+# main+0x99b5a4 (sites 99a9a8, 99b918: no function of 1.8.0 has the constant and a GetSystemTick call besides these)
+# and the third call of 1.0.0's main+0x2cc030 (site 2ce14c; its twin main+0x1d6850 makes two). The 19th, main+0x915cbc
+# (twin of 1.0.0's main+0x75d520, which 1.0.0 leaves alone), is left alone too.
+set seed MKW_SEED_PATCH 0
+site seed main 99280 94ac530c 94dd5f4c   # bl nn::os::GetSystemTick -> host_seed_tick (patch page + 0xfb0); 1.0.0's f0ca0
+site seed main 1d2a24 94a76d23 94d87963   # same; 1.0.0's 2c2d68
+site seed main 1d4244 94a7671b 94d8735b   # same; 1.0.0's 2c9068
+site seed main 1d8844 94a7559b 94d861db   # same; 1.0.0's 2ce03c
+site seed main 1d8930 94a75560 94d861a0   # same; 1.0.0's 2ce0d4
+site seed main 667788 949519ca 94c6260a   # same; 1.0.0's 4bf8b4
+site seed main 6a5214 94942327 94c52f67   # same; 1.0.0's aa5690
+site seed main 6ab21c 94940b25 94c51765   # same; 1.0.0's 266238
+site seed main 79e0c4 94903f7b 94c14bbb   # same; 1.0.0's aa76f4
+site seed main 902a24 948aad23 94bbb963   # same; 1.0.0's b15488
+site seed main 9bb214 9487cb27 94b8d767   # same; 1.0.0's 974ae0
+site seed main 9d0250 94877718 94b88358   # same; 1.0.0's abdbf0
+site seed main 9f9aac 9486d101 94b7dd41   # same; 1.0.0's 640104
+site seed main a64488 9485268a 94b632ca   # same; 1.0.0's 932c74
+site seed main ba83fc 948016ad 94b122ed   # same; 1.0.0's ab7900
+site seed main be9b74 947f10cf 94b01d0f   # same; sead::Random constructor, 1.0.0's 922084
+site seed main e4c8e0 94758574 94a691b4   # same; 1.0.0's c006e0
+site seed main 16a0eec 945433f1 94854031   # same; the other sead::Random constructor, 1.0.0's 15585a4

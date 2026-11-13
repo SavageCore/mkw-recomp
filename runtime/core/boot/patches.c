@@ -32,6 +32,7 @@
 #define UI_PROJ_HOST 0xf70       // patch page offset of host_ui_proj (set aspect)
 #define UI_ROWS_HOST 0xf60       // patch page offset of host_ui_rows (set aspect)
 #define CAMERA_EVENT_HOST 0xf50  // patch page offset of host_camera_event (set camera, 1.8.0)
+#define UI_ROWS2_HOST 0xf40      // patch page offset of host_ui_rows2 (set aspect, 1.8.0)
 // The guest functions the sets call or recognise, per game version (version.h; 1.0.0: main+0x233358 RenderBuffer
 // creation, main+0x8eb6b0 the render-buffer allocator setup that main+0x37b520 allocates from, main+0x67aa40 operator
 // new(size, heap, alignment), main+0x8eb9dc one pool of that allocator, main+0x922088 and main+0x15585a8 two
@@ -249,6 +250,15 @@ static void host_ui_rows(Cpu *c) {
     memcpy(&c->v[2], m, 16), memcpy(&c->v[3], m + 4, 16);
 }
 
+// 1.8.0's same load, ldp q0, q4, [x21, #0x10] at main+0x17f5084 (its compiler moved DrawInfo to x21 and the rows to
+// q0 and q4; q2 was loaded just before, so host_ui_rows would overwrite it).
+static void host_ui_rows2(Cpu *c) {
+    float m[16];
+    memcpy(m, (const void *)(uintptr_t)(c->x[21] + 0x10), sizeof m);
+    if (is_16x9(m)) m[0] /= aspect_scale, m[3] /= aspect_scale;
+    memcpy(&c->v[0], m, 16), memcpy(&c->v[4], m + 4, 16);
+}
+
 static int has_set(const RtGame *g, const char *name) {
     for (int i = 0; i < g->npatch_sets; i++)
         if (!strcmp(g->patch_sets[i].name, name)) return 1;
@@ -366,6 +376,7 @@ void rt_patch_hosts(void) {
     if (g->npatch_sets) rt_register_host(g->patch_page + ASPECT_HOST, host_aspect);
     if (g->npatch_sets) rt_register_host(g->patch_page + UI_PROJ_HOST, host_ui_proj);
     if (g->npatch_sets) rt_register_host(g->patch_page + UI_ROWS_HOST, host_ui_rows);
+    if (g->npatch_sets) rt_register_host(g->patch_page + UI_ROWS2_HOST, host_ui_rows2);
     if (g->npatch_sets) frame_rate_host(g->patch_page);
     if (g->npatch_sets) rt_register_host(g->patch_page + CAMERA_EVENT_HOST, host_camera_event);
     if (rt_version()->camera_service) {

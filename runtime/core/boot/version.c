@@ -7,7 +7,11 @@
 //   it adds [+0x214] to (adrp/ldr/add/str at main+0x69cd30).
 // - zstd: recomp/patches-mkw-180.txt says how each function was found.
 // - sdk: tools/gpu/nvn2_procs.py locate(), checked by disassembly.
-// Not found yet for 1.8.0 (0): the shadow, seed and aspect sets' functions and the menu focus probe.
+// - shadow, seed, aspect and the menu focus probe (13/11/2026): recomp/patches-mkw-180.txt says how each site was
+//   matched; rb_create is the only function using the string "shadow_map_depth", rb_alloc_init and rb_pool_init the
+//   ones naming "agl::utl::DynamicTextureAllocator(DL)" and "...Allocator", rb_pool_new the operator new main+0xeb1a10
+//   calls as 1.0.0's main+0x8eb85c does; the two sead::Random constructors are byte-identical to 1.0.0's;
+//   ui_focus_fn has 1.0.0's shape (copies 16 bytes of x1 to this+0x3d0, tail call to a twin of main+0xce8620).
 #include <string.h>
 
 #include "version.h"
@@ -46,6 +50,14 @@ static const RtVersion versions[] = {
         .game_clock = 0x37c8438,
         .zstd_multiframe = 0xe2280,
         .zstd_stream = 0xdeca0,
+        .rb_create = 0xb72c0,
+        .rb_alloc_init = 0xeb1870,
+        .rb_pool_new = 0x3e3550,
+        .rb_pool_init = 0xeb1e60,
+        .random_ctor_lr = 0xbe9b78,
+        .random_ctor2_lr = 0x16a0ef0,
+        .ui_text_lr = 0x1805f20,
+        .ui_focus_fn = 0x7fd810,
         .camera_service = 0x378ecb8,   // RELATIVE at main+0x36f4148; 9 functions load it
         .sdk_name_pool = 0xc26452,
         .sdk_name_offsets = 0xc2b870,
