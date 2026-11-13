@@ -482,6 +482,20 @@ Tex *create_tex(const tex_t *t, const TexKey *k, int defer_init) {
                !block_views && (ci.flags & VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT) && format_list_on();
     if (list && listed[1]) ci.pNext = &fl;
     else if (list) ci.flags &= ~(VkImageCreateFlags)VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+    // Storage refused only because a format of the view list lacks it (R8G8's sRGB twin on ANV, #174): EXTENDED_USAGE
+    // (core 1.1) allows a usage some view formats lack, and every view in another format already names its own usages
+    // (vk_exec_view.c), so storage stays. Left out, a compute pass's imageStore into it went nowhere: the 3D scene came
+    // out tinted red, with red trails behind what moves (#174, Iris Xe, 13/11/2026).
+    static volatile int32_t n_extended;
+    if ((ci.usage & VK_IMAGE_USAGE_STORAGE_BIT) && (ci.flags & VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT) && !usage_ok(&ci)) {
+        VkImageCreateInfo ext = ci;
+        ext.flags |= VK_IMAGE_CREATE_EXTENDED_USAGE_BIT;
+        if (usage_ok(&ext)) {
+            ci.flags = ext.flags;
+            log_limited(&n_extended, "texture format %#x (VkFormat %d): storage kept with EXTENDED_USAGE", d->format,
+                        (int)ci.format);
+        }
+    }
     // the optional usages (storage on any format that allows it, the feedback loop) go first when refused together
     static const VkImageUsageFlags optional[] = {VK_IMAGE_USAGE_STORAGE_BIT, VK_IMAGE_USAGE_ATTACHMENT_FEEDBACK_LOOP_BIT_EXT};
     static volatile int32_t n_dropped;

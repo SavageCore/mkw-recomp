@@ -20,6 +20,7 @@ GPUS = [
     ("Radeon 660M, 16 GB (ours)", 0, 1365, 15300),
     ("integrated, 32 GB", 0, 2048, 31000),
     ("integrated, 8 GB", 0, 512, 7600),
+    ("Iris Xe, 16 GB (#174)", 0, 7765, 15531),
     ("GTX 1050 Ti 4 GB (our Windows PC)", 1, 4035, 16300),
     ("RTX 2070 SUPER 8 GB (#28)", 1, 7989, 40922),
     ("RTX 4070 SUPER 12 GB (#31)", 1, 12011, 32000),
@@ -72,19 +73,25 @@ def test_caps_follow_the_gpu(defaults: Path, name: str, discrete: int, vram: int
     else:
         assert sparse == 768, name  # 1024 hung the 660M with MKW_ASTC_BC1 (run-race41)
         assert pool == 0, name  # the pool is a discrete-GPU path (vk_tex_image.c)
-        assert limit <= max(4096, ram // 4), name  # system RAM, outside the process's cgroup
+        assert limit <= max(4096, ram * 2 // 5), name  # system RAM, outside the process's cgroup
 
 
 def test_the_660m_keeps_its_measured_caps(defaults: Path) -> None:
-    assert caps(defaults, 0, 1365, 15300) == (768, 4096, 0)
+    # the tile slots stay as measured; the memory cap is 40% of the RAM now (our runs set 4096 themselves)
+    assert caps(defaults, 0, 1365, 15300) == (768, 5888, 0)
+
+
+def test_a_16_gb_integrated_gpu_gets_room_for_a_time_trial(defaults: Path) -> None:
+    # #174: a 16 GB Iris Xe ran out of memory at 4096 when a time trial loaded three ~8K textures; 6144 went through
+    assert caps(defaults, 0, 7765, 15531)[1] >= 6144
 
 
 def test_an_integrated_gpu_s_carveout_adds_to_its_cap(defaults: Path) -> None:
     # ROG Ally X (#50): 8 GB carved out, ~16 GB of RAM left; capped at 4096 over both heaps it got 2 730 MiB of its
     # 10 923 MiB device-local heap and hung once it was full
     _, limit, _ = caps(defaults, 0, 10923, 15800, 8192)
-    assert limit == 4096 + 8192
-    assert caps(defaults, 0, 5940, 13724, 2048)[1] == 6144  # our 660M with its 2 GB carve-out
+    assert limit == 6144 + 8192
+    assert caps(defaults, 0, 5940, 13724, 2048)[1] == 5376 + 2048  # our 660M with its 2 GB carve-out
 
 
 def test_a_16_gb_card_reserves_2_gib_not_half(defaults: Path) -> None:

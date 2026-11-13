@@ -13,11 +13,12 @@ uint64_t vk_default_sparse_mib(int discrete, uint64_t vram_mib) {
 }
 
 // What VMA may allocate on an integrated GPU (vk_device.c), system RAM outside the process's cgroup: 4096 at least
-// (3072 makes the race black, sp-v0), a quarter of the RAM above 16 GB, in 256 MiB steps; plus the GPU's carve-out,
+// (3072 makes the race black, sp-v0), else 40% of the RAM in 256 MiB steps (a quarter left a 16 GB Iris Xe at 4096,
+// which ran out at a time trial's three ~8K textures; 6144 went through, #174), plus the GPU's carve-out,
 // memory the firmware gives it that is not the system's RAM. Without it a ROG Ally X with 8 GB carved out got 2 730 MiB
 // of its 10 923 MiB device-local heap, filled it, and hung right after (issue #50).
 uint64_t vk_default_mem_limit_mib(uint64_t ram_mib, uint64_t carveout_mib) {
-    uint64_t mib = ram_mib / 4 / 256 * 256;
+    uint64_t mib = ram_mib * 2 / 5 / 256 * 256;
     return (mib > 4096 ? mib : 4096) + carveout_mib;
 }
 
