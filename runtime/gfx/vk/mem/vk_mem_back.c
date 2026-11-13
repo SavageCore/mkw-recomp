@@ -252,7 +252,16 @@ static int alloc_chunk(VkCtx *c, uint64_t size, PhysChunk *out) {
     // Chunks share VMA blocks; a pool taken whole (MKW_PHYS_CHUNK=0) gets memory of its own as before.
     VmaAllocationCreateInfo aci = {.flags = size > (64ull << 20) ? VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT : 0,
                                    .requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT};
-    if ((res = vmaAllocateMemory(c->vma, &req, &aci, &out->alloc, NULL)) != VK_SUCCESS ||
+    res = vmaAllocateMemory(c->vma, &req, &aci, &out->alloc, NULL);
+    // Out of memory: released and idle textures go first, as for a texture or a staging buffer (vk_texture_trim).
+    // Steam Deck, 13/11/2026 (1 GB UMA carve-out, low preset, time trial): released render targets held 2 601 MiB
+    // when 13 chunks failed in a row, and each failed chunk leaves its pages unmapped until a later request.
+    for (int round = 0; res == VK_ERROR_OUT_OF_DEVICE_MEMORY && round < 4 &&
+                        vk_texture_trim(size * 2 + (8ull << 20)); round++) {
+        vk_mem_collect();
+        res = vmaAllocateMemory(c->vma, &req, &aci, &out->alloc, NULL);
+    }
+    if (res != VK_SUCCESS ||
         (res = vmaBindBufferMemory(c->vma, out->alloc, out->buf)) != VK_SUCCESS) {
         rt_log("vk: physical pool chunk of %#llx bytes: device-local allocation failed (%d)", (unsigned long long)size,
                (int)res);
