@@ -47,6 +47,70 @@ typedef struct {
 } LEDevice3Vtbl;
 struct LEDevice3 { const LEDevice3Vtbl *lpVtbl; };
 
+// ---- Windows 11's preferred connection parameters (windows-rs: IBluetoothLEDevice6,
+// IBluetoothLEPreferredConnectionParametersStatics and ...Request, IBluetoothLEConnectionParameters; the mingw
+// headers name IBluetoothLEDevice6 only). Why: on Windows the link keeps the system's default connection interval, and
+// a tester's Pro Controller 2 had "very noticeable input lag" (discussion #113, 12/11/2026); Switch2Connect asks for
+// ThroughputOptimized for the same reason. The request holds while its object lives: the link keeps it.
+
+DEFINE_GUID(IID_LEDevice6, 0xca7190ef, 0x0cae, 0x573c, 0xa1, 0xca, 0xe1, 0xfc, 0x5b, 0xfc, 0x39, 0xe2);
+DEFINE_GUID(IID_PrefParamsStatics, 0x0e3e8edc, 0x2751, 0x55aa, 0xa8, 0x38, 0x8f, 0xae, 0xee, 0x81, 0x8d, 0x72);
+DEFINE_GUID(IID_PrefParamsRequest, 0x8a375276, 0xa528, 0x5266, 0xb6, 0x61, 0xcc, 0xe6, 0xa5, 0xff, 0x97, 0x39);
+DEFINE_GUID(IID_ConnParams, 0x33cb0771, 0x8da9, 0x508f, 0xa3, 0x66, 0x1c, 0xa3, 0x88, 0xc9, 0x29, 0xab);
+typedef struct WinObj WinObj;   // any of the four: IInspectable's six slots, then its own
+typedef struct {
+    HRESULT (STDMETHODCALLTYPE *QueryInterface)(WinObj *, REFIID, void **);
+    ULONG (STDMETHODCALLTYPE *AddRef)(WinObj *);
+    ULONG (STDMETHODCALLTYPE *Release)(WinObj *);
+    void *GetIids, *GetRuntimeClassName, *GetTrustLevel;
+    HRESULT (STDMETHODCALLTYPE *m[3])(WinObj *, void *, void *);
+} WinObjVtbl;
+struct WinObj { const WinObjVtbl *lpVtbl; };
+#define WIN_CALL(o, i, a, b) ((HRESULT (STDMETHODCALLTYPE *)(WinObj *, void *, void *))(o)->lpVtbl->m[i])(o, a, b)
+// IBluetoothLEDevice6: GetConnectionParameters(out), GetConnectionPhy(out), RequestPreferredConnectionParameters(in, out)
+// Statics: Balanced(out), ThroughputOptimized(out), PowerOptimized(out). Request: Status(out int: 1 success,
+// 2 device not available, 3 access denied). IBluetoothLEConnectionParameters: LinkTimeout, ConnectionLatency,
+// ConnectionInterval (each out uint16; the interval in units of 1.25 ms)
+static const wchar_t PREF_PARAMS[] = L"Windows.Devices.Bluetooth.BluetoothLEPreferredConnectionParameters";
+static HRESULT factory(const wchar_t *cls, const IID *iid, void **out);
+
+// The link's interval and latency in the log ("" when Windows is older than 11: no IBluetoothLEDevice6)
+static void log_conn(IBluetoothLEDevice *dev, uint64_t addr, const char *when) {
+    WinObj *d6 = NULL, *p = NULL;
+    if (FAILED(IBluetoothLEDevice_QueryInterface(dev, &IID_LEDevice6, (void **)&d6))) return;
+    if (SUCCEEDED(WIN_CALL(d6, 0, &p, NULL)) && p) {
+        uint16_t iv = 0, lat = 0, to = 0;
+        ((HRESULT (STDMETHODCALLTYPE *)(WinObj *, uint16_t *))p->lpVtbl->m[0])(p, &to);
+        ((HRESULT (STDMETHODCALLTYPE *)(WinObj *, uint16_t *))p->lpVtbl->m[1])(p, &lat);
+        ((HRESULT (STDMETHODCALLTYPE *)(WinObj *, uint16_t *))p->lpVtbl->m[2])(p, &iv);
+        rt_log("input: Switch 2 controller %012llX %s: connection interval %.2f ms, latency %u, timeout %u ms",
+               (unsigned long long)addr, when, iv * 1.25, lat, to * 10u);
+        p->lpVtbl->Release(p);
+    }
+    d6->lpVtbl->Release(d6);
+}
+
+// Asks Windows 11 for its shortest connection interval; the request object to keep, NULL when refused or older
+static WinObj *prefer_fast(IBluetoothLEDevice *dev, uint64_t addr) {
+    WinObj *d6 = NULL, *st = NULL, *pp = NULL, *req = NULL;
+    int status = 0;
+    if (FAILED(IBluetoothLEDevice_QueryInterface(dev, &IID_LEDevice6, (void **)&d6))) {
+        rt_log("input: Switch 2 controller %012llX: no connection parameters to ask for (Windows 10)", (unsigned long long)addr);
+        return NULL;
+    }
+    if (SUCCEEDED(factory(PREF_PARAMS, &IID_PrefParamsStatics, (void **)&st)) && SUCCEEDED(WIN_CALL(st, 1, &pp, NULL)) &&
+        SUCCEEDED(WIN_CALL(d6, 2, pp, &req)) && req)
+        ((HRESULT (STDMETHODCALLTYPE *)(WinObj *, int *))req->lpVtbl->m[0])(req, &status);
+    rt_log("input: Switch 2 controller %012llX: throughput-optimized connection %s", (unsigned long long)addr,
+           status == 1 ? "asked for" : status == 2 ? "refused (device not available)" : status == 3 ? "refused (access denied)"
+                                                                                       : "not asked (call failed)");
+    if (pp) pp->lpVtbl->Release(pp);
+    if (st) st->lpVtbl->Release(st);
+    d6->lpVtbl->Release(d6);
+    if (status != 1 && req) req->lpVtbl->Release(req), req = NULL;
+    return req;
+}
+
 // IBufferByteAccess (robuffer.h declares it for C++ only): an IBuffer's bytes in place
 DEFINE_GUID(IID_ByteAccess, 0x905a0fef, 0xbc53, 0x11df, 0x8c, 0x49, 0x00, 0x1e, 0x4f, 0xc6, 0x86, 0xda);
 typedef struct ByteAccess ByteAccess;
@@ -232,6 +296,7 @@ struct S2Link {
     int nsvc;
     IGattCharacteristic *cmd, *rsp, *input, *vib;
     EventRegistrationToken t_status, t_rsp, t_input;
+    WinObj *fast;   // the preferred connection parameters request (prefer_fast), held for the link's life
     uint16_t pid;
     int use;
     int gone;   // disconnected while its handshake ran: dropped once that returns
@@ -270,9 +335,50 @@ static int subscribe(IGattCharacteristic *c, int id, int is_input, EventRegistra
 
 static int link_write_cmd(S2Link *l, const uint8_t *d, size_t n) { return write_value(l->cmd, d, n); }
 static int link_write_vib(S2Link *l, const uint8_t *d, size_t n) { return l->vib && write_value(l->vib, d, n); }
-static int link_start_input(S2Link *l) { return subscribe(l->input, l->id, 1, &l->t_input); }
+// The report-rate descriptor of the input characteristic written, when the controller has one (switch2_proto.h)
+static void write_rate_desc(S2Link *l) {
+    static const uint8_t pay[] = {S2_RATE_PAYLOAD};
+    IGattCharacteristic3 *c3 = NULL;
+    __FIAsyncOperation_1_Windows__CDevices__CBluetooth__CGenericAttributeProfile__CGattDescriptorsResult *op = NULL;
+    IGattDescriptorsResult *r = NULL;
+    __FIVectorView_1_Windows__CDevices__CBluetooth__CGenericAttributeProfile__CGattDescriptor *v = NULL;
+    IGattDescriptor *d = NULL;
+    __FIAsyncOperation_1_GattCommunicationStatus *wop = NULL;
+    GattCommunicationStatus st = GattCommunicationStatus_Unreachable;
+    IBuffer *b = NULL;
+    UINT32 n = 0;
+    GUID g;
+    const char *what = "not found";
+    parse_guid(S2_UUID_RATE_DESC, &g);
+    if (SUCCEEDED(IGattCharacteristic_QueryInterface(l->input, &IID_IGattCharacteristic3, (void **)&c3)) &&
+        SUCCEEDED(IGattCharacteristic3_GetDescriptorsForUuidAsync(c3, g, &op)) && wait_async(op, 5000))
+        __FIAsyncOperation_1_Windows__CDevices__CBluetooth__CGenericAttributeProfile__CGattDescriptorsResult_GetResults(op, &r);
+    if (r && SUCCEEDED(IGattDescriptorsResult_get_Descriptors(r, &v)) && v &&
+        SUCCEEDED(__FIVectorView_1_Windows__CDevices__CBluetooth__CGenericAttributeProfile__CGattDescriptor_get_Size(v, &n)) && n &&
+        SUCCEEDED(__FIVectorView_1_Windows__CDevices__CBluetooth__CGenericAttributeProfile__CGattDescriptor_GetAt(v, 0, &d))) {
+        what = "refused";
+        if (SUCCEEDED(ICryptographicBufferStatics_CreateFromByteArray(bytes_to_buffer, sizeof pay, (BYTE *)pay, &b)) &&
+            SUCCEEDED(IGattDescriptor_WriteValueAsync(d, b, &wop)) && wait_async(wop, 5000) &&
+            SUCCEEDED(__FIAsyncOperation_1_GattCommunicationStatus_GetResults(wop, &st)) && st == GattCommunicationStatus_Success)
+            what = "written";
+    }
+    rt_log("input: Switch 2 controller %012llX: report-rate descriptor %s", (unsigned long long)l->addr, what);
+    if (wop) __FIAsyncOperation_1_GattCommunicationStatus_Release(wop);
+    if (b) IBuffer_Release(b);
+    if (d) IGattDescriptor_Release(d);
+    if (v) __FIVectorView_1_Windows__CDevices__CBluetooth__CGenericAttributeProfile__CGattDescriptor_Release(v);
+    if (r) IGattDescriptorsResult_Release(r);
+    if (op) __FIAsyncOperation_1_Windows__CDevices__CBluetooth__CGenericAttributeProfile__CGattDescriptorsResult_Release(op);
+    if (c3) IGattCharacteristic3_Release(c3);
+}
+
+static int link_start_input(S2Link *l) {
+    write_rate_desc(l);
+    return subscribe(l->input, l->id, 1, &l->t_input);
+}
 static void pump(int ms);
-static const S2LinkOps ops = {link_write_cmd, link_write_vib, link_start_input, pump};
+static void link_log(S2Link *l) { log_conn(l->dev, l->addr, "5 s into its reports"); }
+static const S2LinkOps ops = {link_write_cmd, link_write_vib, link_start_input, pump, link_log};
 
 static void release_char(IGattCharacteristic **c, EventRegistrationToken *tok) {
     if (!*c) return;
@@ -291,6 +397,11 @@ static void free_link(S2Link *l) {
         IClosable *c = NULL;
         if (SUCCEEDED(IGattDeviceService_QueryInterface(l->svc[i], &IID_IClosable, (void **)&c))) IClosable_Close(c), IClosable_Release(c);
         IGattDeviceService_Release(l->svc[i]);
+    }
+    if (l->fast) {
+        IClosable *c = NULL;
+        if (SUCCEEDED(l->fast->lpVtbl->QueryInterface(l->fast, &IID_IClosable, (void **)&c))) IClosable_Close(c), IClosable_Release(c);
+        l->fast->lpVtbl->Release(l->fast);
     }
     if (l->dev) {
         IClosable *c = NULL;
@@ -471,12 +582,14 @@ static void connect_one(IBluetoothLEDeviceStatics *devs, const GUID want[7], uin
     if (!find_services(l, want)) return free_link(l), give_up(addr, "its services were not read (the connection failed)");
     if (!l->cmd || !l->rsp || !l->input) return free_link(l), give_up(addr, "not the GATT service of a Switch 2 controller");
     if (!subscribe(l->rsp, l->id, 0, &l->t_rsp)) return free_link(l), give_up(addr, "no replies");
+    log_conn(l->dev, addr, "before");
+    l->fast = prefer_fast(l->dev, addr);
     l->next = links, links = l;
     l->s = switch2_new(l, &ops, pid, use, host);
     busy = l;
     int ok = l->s && switch2_handshake(l->s);
     busy = NULL;
-    if (ok && !l->gone) return;
+    if (ok && !l->gone) return log_conn(l->dev, addr, "after the handshake");
     drop(l);
     give_up(addr, ok ? "it disconnected during the handshake" : "the handshake failed");
 }

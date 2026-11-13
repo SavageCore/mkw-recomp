@@ -31,6 +31,11 @@ enum { S2_PID_JOYCON_R = 0x2066, S2_PID_JOYCON_L = 0x2067, S2_PID_PRO = 0x2069 }
 
 // GATT characteristics of the proprietary service. Every write is Write Without Response.
 #define S2_UUID_INPUT   "AB7DE9BE-89FE-49AD-828F-118F09DF7FD2"   // notifications: 63-byte input reports
+// A vendor descriptor on the input characteristic: the official software writes 85 00 to it before turning the
+// reports on, which moves the controller off its idle report cadence (FlexInput, x-iso, MIT:
+// crates/joycon2/src/protocol.rs:126-131, from a capture; seen on Joy-Con 2, not checked on a Pro Controller 2)
+#define S2_UUID_RATE_DESC "679D5510-5A24-4DEE-9557-95DF80486ECB"
+#define S2_RATE_PAYLOAD 0x85, 0x00
 #define S2_UUID_CMD_WR  "649D4AC9-8EB7-4E6C-AF44-1EA54FE5F005"   // commands
 #define S2_UUID_CMD_RSP "C765A961-D9D8-4D36-A20A-5315B111836A"   // command replies (notifications)
 

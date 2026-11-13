@@ -19,6 +19,7 @@ typedef struct {
     int (*write_vib)(S2Link *l, const uint8_t *d, size_t n);   // to the vibration characteristic, if it has one
     int (*start_input)(S2Link *l);                              // notifications of S2_UUID_INPUT on
     void (*pump)(int ms);   // the transport's events for up to ms (replies and reports reach the session from here)
+    void (*log_link)(S2Link *l);   // optional: the link's own figures in the log (Windows: its connection interval)
 } S2LinkOps;
 
 uint64_t switch2_now_ns(void);

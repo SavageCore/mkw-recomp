@@ -44,6 +44,9 @@ struct S2Session {
     int got;
     uint8_t vseq;
     int quiet;                    // silent rumble packets still to send after the motors stopped
+    uint64_t rate_t0;             // the first report's arrival, for the reports-a-second line 5 s later (#113's lag)
+    uint32_t rate_c0, rate_n;     // its controller clock, and the reports since
+    int rate_done;
     uint64_t next_led;
 };
 
@@ -264,6 +267,14 @@ void switch2_report(S2Session *s, const uint8_t *d, size_t n, uint64_t at) {
     S2Pad *p = s->pad;
     s2_dev *dev = p ? dev_of(p, s->pid) : NULL;
     if (!dev || !s2_report_parse(d, n, &dev->r)) return;
+    if (!s->rate_t0) s->rate_t0 = at, s->rate_c0 = dev->r.clock_ms;
+    else if (!s->rate_done && at - s->rate_t0 >= 5000000000ull) {
+        s->rate_done = 1;
+        rt_log("input: %s: %.1f reports a second over its first 5 s, %.1f ms apart on its own clock", kind(s->pid),
+               s->rate_n / ((at - s->rate_t0) / 1e9), s->rate_n ? (double)(dev->r.clock_ms - s->rate_c0) / s->rate_n : 0.0);
+        if (s->ops->log_link) s->ops->log_link(s->link);
+    }
+    s->rate_n++;
     uint64_t t = s2_clock_sample(&s->clk, dev->r.clock_ms, at, NULL);
     s2_rest_update(&s->rest, dev->r.raw);
     uint64_t b;
