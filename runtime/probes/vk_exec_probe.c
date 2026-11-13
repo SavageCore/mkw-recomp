@@ -4,7 +4,7 @@
 // submission; a present of a cleared vk_texture.c image (layout GENERAL) reads back exactly through the swapchain
 // capture. Clear part: a hand-built op stream (SET_RT to an RGBA8 and a D32 texture, whole-target clears,
 // then scissored clears) through submit reads back exactly with read_texels. Rtstats part: MKW_RTSTATS's rules on
-// cleared targets (test_rtstats).
+// cleared targets (test_rtstats). Target history part: which targets count as rendered recently (test_recent).
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,6 +17,7 @@
 #include "nvn_tex.h"
 #include "vk.h"
 #include "vk_exec.h"
+#include "vk_exec_internal.h"
 #include "platform/platform.h"
 
 #define SUBMITS 100
@@ -50,6 +51,24 @@ static void write_word(void *arg) {
 }
 
 static long ran_now(void) { return __atomic_load_n(&nran, __ATOMIC_ACQUIRE); }
+
+// Target history (vk_exec_rt.c): which draws wait for a pending pipeline as one-shot and which are skipped. A target
+// rendered every frame and one whose layers take turns (one of 12 a frame) are recent; one rendered once long ago, or
+// never, is not.
+static int test_recent(void) {
+    VkExecTarget every = {.image = (VkImage)(uintptr_t)0x1000}, turn = {.image = (VkImage)(uintptr_t)0x2000, .base_layer = 5};
+    VkExecTarget once = {.image = (VkImage)(uintptr_t)0x3000}, never = {.image = (VkImage)(uintptr_t)0x4000};
+    tfr_note(&every, 99), tfr_note(&every, 100);
+    tfr_note(&turn, 88), tfr_note(&turn, 100);
+    tfr_note(&once, 40), tfr_note(&once, 100);
+    CHECK(tfr_recent(&every, 100), "a target rendered in the previous frame is not recent");
+    CHECK(tfr_recent(&turn, 100), "a layer rendered 12 frames before (one layer of 12 a frame) is not recent");
+    CHECK(tfr_recent(&turn, 112), "a layer rendered 12 frames before, not yet in this frame, is not recent");
+    CHECK(!tfr_recent(&once, 100), "a target last rendered 60 frames before is recent");
+    CHECK(!tfr_recent(&once, 200), "a target last rendered 100 frames before is recent");
+    CHECK(!tfr_recent(&never, 100), "a target never rendered is recent");
+    return 0;
+}
 
 static int test_sync(const GfxBackend *b, uint8_t *guest, uint64_t *first, uint64_t *last) {
     // An empty recording as the front end hands it over: {OP_BEGIN, OP_END}.
@@ -671,6 +690,7 @@ int probe_vkexec(void) {
     uint64_t first = 0, last = 0;
     int w = 0, h = 0, inside = 0, xfer_bytes = 0;
     int bad = test_c0();   // CPU only: before the device checks
+    if (!bad) bad = test_recent();
     if (!bad) bad = test_sync(b, guest, &first, &last) || test_present(b, guest, &w, &h);
     int sync_bad = bad;
     if (!bad) bad = test_clear(b, guest, &inside);
@@ -715,6 +735,8 @@ int probe_vkexec(void) {
            zero_bytes, cfg_value("MKW_FIX_ZERO"));
     printf("probe-vkexec: rtstats part passed (MKW_RTSTATS: a NaN rectangle in a %dx%d RGBA16F target hit the nan rule "
            "only, the same target all grey the constant rule only, no inf)\n", TEX_W, TEX_H);
+    printf("probe-vkexec: target history part passed (a target rendered the frame before and a layer rendered 12 frames "
+           "before are recent; one last rendered 60 frames before and one never rendered are not)\n");
     if (vk_mirror_on)
         printf("probe-vkexec: mirror part passed (B2B and fill in a VRAM mirror written back by the fence, a CPU write "
                "between submissions mirrored, CPU bytes beside a fill kept, %d bytes compared)\n", mirror_bytes);

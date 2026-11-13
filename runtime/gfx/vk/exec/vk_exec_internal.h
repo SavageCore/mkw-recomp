@@ -56,6 +56,7 @@ void resolve_rt(VkExec *ex);
 VkImageView view_of(VkExec *ex, const VkExecTarget *t);
 void views_release(VkExec *ex);
 void tfr_note(const VkExecTarget *t, uint64_t stamp);
+int tfr_recent(const VkExecTarget *t, uint64_t stamp);   // rendered in one of the frames just before stamp
 // vk_exec_clear.c
 void clear_color(VkExec *ex, const p_clear_color *c);
 void clear_ds(VkExec *ex, const p_clear_ds *c);

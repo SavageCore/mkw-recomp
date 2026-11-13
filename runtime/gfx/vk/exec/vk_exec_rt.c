@@ -247,10 +247,16 @@ void views_release(VkExec *ex) {
 
 // ---- target history
 // The presented frame (gfx_counters.frames + 1; 0: never) each target subresource was last rendered into, and the one
-// before. prepare_draw lets a draw into a target the previous frame did not render (a one-shot draw: a volume or LUT
+// before. prepare_draw lets a draw into a target not rendered in the last RECENT_FRAMES (a one-shot draw: a volume or LUT
 // generated once) wait for its shaders and pipeline instead of skipping it. Per subresource, not per image: a volume
 // may be generated a few slices per frame. Direct-mapped: a slot another subresource took reads as not rendered, so a
 // collision makes a draw wait rather than skip.
+// "Recent" is within RECENT_FRAMES, not only the frame before: a pass that renders one layer per frame in turn (free
+// roam's 128x128 pass with two colour targets, 12 layers each: every layer once in 12 frames) was taken for a one-shot
+// draw and the frame waited 35-97 ms for a pipeline when its layer came up (13/11/2026, RTX 5070 Ti: 4 such waits in
+// 20 minutes after the load), though skipping it only leaves that layer 12 frames behind. Volumes and LUTs drawn once,
+// and what a load draws after a long gap, are further back and still wait.
+#define RECENT_FRAMES 16
 typedef struct { VkImage image; uint32_t level, layer; uint64_t last, prev; } TargetFrames;
 static TargetFrames tfr[1024];
 static PlatMutex tfr_lock = PLAT_MUTEX_INIT;   // chunks end passes on several threads (MKW_REPLAY_PAR)
@@ -273,11 +279,12 @@ void tfr_note(const VkExecTarget *t, uint64_t stamp) {
     plat_mutex_unlock(&tfr_lock);
 }
 
-static int tfr_recent(const VkExecTarget *t, uint64_t stamp) {
+int tfr_recent(const VkExecTarget *t, uint64_t stamp) {
     plat_mutex_lock_shared(&tfr_lock);
     TargetFrames e = *tfr_slot(t);
     plat_mutex_unlock_shared(&tfr_lock);
-    return tfr_match(&e, t) && (e.last == stamp ? e.prev : e.last) == stamp - 1;
+    uint64_t before = e.last == stamp ? e.prev : e.last;   // the last frame before this one that rendered it
+    return tfr_match(&e, t) && before && before < stamp && stamp - before <= RECENT_FRAMES;
 }
 
 int vk_exec_targets_recent(VkExec *ex, int any) {

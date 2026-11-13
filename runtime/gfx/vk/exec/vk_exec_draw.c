@@ -367,9 +367,9 @@ static uint32_t feedback_prepare(VkExec *ex, const GfxShader *fs) {
 }
 
 // MKW_PIPE_SKIP: which draws are skipped, rather than waited for, while their shaders or pipeline build.
-// strict (0): only draws whose pass targets were all rendered in the previous presented frame; a pass with a target
+// strict (0): only draws whose pass targets were all rendered in the last frames (RECENT_FRAMES); a pass with a target
 //   that was not counts as one-shot and waits.
-// any (1): also draws in a pass with at least one target rendered in the previous frame (a per-frame depth
+// any (1): also draws in a pass with at least one target rendered in the last frames (a per-frame depth
 //   buffer or g-buffer with a colour target the frame before did not use: half-resolution effect buffers in fights).
 //   Passes with none (volumes, LUTs, shadow layers seen for the first time) still wait.
 // fullscreen (2, default): as any, and full-screen draws into such passes are skipped instead of waiting from their
@@ -522,7 +522,7 @@ int prepare_draw_ex(VkExec *ex, int prim, int32_t count, int restart, int mesh) 
             memo_key(ex, &SM.k), SM.vs = vs, SM.fs = fs, SM.has_fs = has_fs, SM.valid = 1;
     }
     if (!has_vs) return vk_exec_frame.skip[VK_SKIP_NO_VS]++, warn_once(W_NO_VS, "a draw with a program that has no vertex stage is skipped"), 0;
-    // A draw into a target the previous frame did not render (or into none) waits for a pending pipeline: one-shot
+    // A draw into a target not rendered in the last RECENT_FRAMES (vk_exec_rt.c; or into none) waits for a pending pipeline: one-shot
     // draws (volumes and LUTs generated once, later only sampled) would leave their target empty for the session. A
     // draw into per-frame targets is skipped until it is ready and comes back next frame.
     int oneshot = -1, skip = pipe_skip_mode();   // -1: not looked up
