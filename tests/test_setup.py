@@ -166,3 +166,22 @@ def test_nup_pack_reads_back(tmp_path: Path) -> None:
     assert n.title_id == "0400C3F00006E000" and n.version == 0
     got = {f"{part}/{k}": n.read(e) for part in ("exefs", "romfs") for k, e in n.files(part).items()}
     assert got == files
+
+
+def test_package_has_the_launchers_tools() -> None:
+    # every script the start screen runs (setup_tool(exe_dir, "mod/import.py", ...)) is copied into the package by
+    # tools/build/dist.py's SOURCES: until 13/11/2026 tools/mod was not, and the Mods page said "no setup tools"
+    import ast
+    import re
+
+    tree = ast.parse((ROOT / "tools/build/dist.py").read_text(encoding="utf-8"))
+    sources = next(ast.literal_eval(n.value) for n in tree.body
+                   if isinstance(n, ast.Assign) and getattr(n.targets[0], "id", "") == "SOURCES")  # fmt: skip
+    wanted = {"prepare/prepare.py"}
+    for cpp in (ROOT / "runtime/ui/launcher").glob("*.cpp"):
+        wanted |= set(re.findall(r'setup_tool\([^,]+, "([^"]+)"', cpp.read_text(encoding="utf-8")))
+    assert wanted - {"prepare/prepare.py"}, "no setup_tool calls found: the pattern is stale"
+    for rel in sorted(wanted):
+        path = f"tools/{rel}"
+        assert any(path == s or path.startswith(s.rstrip("/") + "/") for s in sources), f"{path} not in dist.py SOURCES"
+        assert (ROOT / path).is_file(), path
