@@ -33,7 +33,9 @@ controllers over Bluetooth, AMD cards on Linux past the title, Intel GPUs past t
   other traces, and the commands `vram` and `trim [MiB]` show it, or free memory as a failed allocation would, in a
   running game. This is how the slowdown above was found.
 - **Switch 2 controllers over Bluetooth** (discussion #113): Settings > Controls > Switch 2 controllers (Bluetooth),
-  off by default, pairs a Pro Controller or Joy-Con 2 without other software, on Linux (BlueZ) and Windows.
+  off by default, pairs a Pro Controller or Joy-Con 2 without other software, on Linux (BlueZ) and Windows. On
+  Windows 11 it asks for the shortest Bluetooth connection interval, against the input lag a first tester saw, and the
+  log says how many reports a second the controller sends. Its Bluetooth LE protocol is from mkw-neo.
 - **Less memory on Windows** (#198): the game's 8 GB heap is committed as the game touches it instead of at start, so
   Windows no longer charges it all against RAM and the page file (a race at 10.6 GB private instead of 15.7), which
   is what a 16 GB PC ran out of at the intro loading screen.
@@ -89,7 +91,9 @@ From these packages, before publishing:
 - NVIDIA cards can still lose the device in some races and menus ("instruction pointer invalid", #22); `skip_programs`
   above helps us find the program at fault.
 - Some AMD cards on Linux still hang later on, in a race or a menu, with the compute path (#50).
-- Switch 2 controllers over Bluetooth have noticeable input lag on Windows (discussion #113).
+- Switch 2 controllers over Bluetooth: tested by one player on Windows, where they worked with noticeable input lag;
+  the shorter connection interval above is not confirmed yet to remove it, and no one has tried them on Linux yet
+  (discussion #113). Over USB-C they are not recognised on Windows.
 
 ## 0.1.9
 
