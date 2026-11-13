@@ -18,6 +18,8 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
   the fix, 8 after, and no swapped labels on screen.
 - **The game's icon in the Linux taskbar** (#252 by @EdouardSence): on Wayland (KDE Plasma and other compositors with
   window icons) the game's and the start screen's windows showed a generic icon; they now carry the chequered flag.
+- A setup that stops before doing anything leaves a log now (#251): `logs/setup.log` is opened first, and while the
+  setup runs it writes there every two minutes where it is waiting.
 - The setup compiles with more jobs where memory held it back: a compile was given 1 GB and takes at most 0.4 (a
   12-thread PC with 13 GB went from 8 to 12 jobs, 330 s to 302 s for the game's code; an 8 GB PC with 8 threads from
   4 to 8). `logs/setup.log` now says how long each step took.
