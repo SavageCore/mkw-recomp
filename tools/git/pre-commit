@@ -17,6 +17,8 @@ if [[ -n $blocked ]]; then
     echo "$blocked" >&2
     exit 1
 fi
+# An executable without a #! line runs under bash when called by path.
+tools/git/shebangs.sh
 # A setting read with cfg_value/int/double/bool needs its row in runtime/core/base/cfg.c, or the game stops when it runs.
 uv run --quiet tools/git/cfg_rows.py
 # Docs that no longer match the repo (READMEs, links, progress bars): tools/docs/check.py lists them.
