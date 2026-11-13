@@ -19,6 +19,7 @@ import argparse
 import hashlib
 import math
 import os
+import re
 import struct
 import sys
 from compression import zstd
@@ -28,11 +29,25 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools/shaders"))
 sys.path.insert(0, str(ROOT / "tools/prepare"))
 from extract import sarc_members
-from nup import romfs_read
+from nup import Nup, is_nup, romfs_read
 
-ARCHIVE = "System/GymlArchive/general_format.Product_100.sarc.zs"
+ARCHIVE_DIR = "System/GymlArchive"
+ARCHIVE_NAME = re.compile(r"general_format\.Product_\d+\.sarc\.zs")  # the version's number: 100 in 1.0.0, 180 in 1.8.0
 SCENE_SCALE = 0.65  # rendered scene lines / For3D lines (measured: 464 of 720, 932 of 1440)
 MEMBER = "Gyml/GamePerformanceGraphicsConfigGParam/30_Extendted.game__GamePerformanceGraphicsConfigGParam.bgyml"
+
+
+def archive(romfs: Path) -> str:
+    """The RomFS path of the general_format archive of this copy (its name carries the game version, #195)."""
+    names = (
+        [p.rsplit("/", 1)[1] for p in Nup(romfs).files("romfs") if p.startswith(ARCHIVE_DIR + "/")]
+        if is_nup(romfs)
+        else [p.name for p in (romfs / ARCHIVE_DIR).iterdir()]
+    )
+    found = [n for n in names if ARCHIVE_NAME.fullmatch(n)]
+    if len(found) != 1:
+        sys.exit(f"resolution: {len(found)} general_format archives in {romfs}/{ARCHIVE_DIR}")
+    return f"{ARCHIVE_DIR}/{found[0]}"
 
 
 def byml_root_fields(b: bytes, at: int) -> dict[str, tuple[int, int]]:
@@ -70,7 +85,8 @@ def main() -> None:
     args = ap.parse_args()
     if args.r3d_internal:
         args.r3d = math.ceil(args.r3d_internal / SCENE_SCALE)
-    orig = romfs_read(args.romfs, ARCHIVE)
+    arc = archive(args.romfs)
+    orig = romfs_read(args.romfs, arc)
     sarc = bytearray(zstd.decompress(orig))
     member = sarc_members(bytes(sarc))[MEMBER]
     at = bytes(sarc).index(member)
@@ -86,10 +102,10 @@ def main() -> None:
             print(f"{name}: {struct.unpack_from('<I', sarc, off)[0]} -> {new}")
             struct.pack_into("<I", sarc, off, new)
     data = zstd.compress(bytes(sarc), 19)
-    dest = args.out / ARCHIVE
+    dest = args.out / arc
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_bytes(data)
-    line = f"{ARCHIVE}\t{len(data)}\t{hashlib.sha256(data).hexdigest()}\t{hashlib.sha256(orig).hexdigest()}\n"
+    line = f"{arc}\t{len(data)}\t{hashlib.sha256(data).hexdigest()}\t{hashlib.sha256(orig).hexdigest()}\n"
     (args.out / "manifest.tsv").write_text(line)
     print(f"{dest} ({len(data)} bytes); run with MKW_ROMFS_PATCHES={args.out}")
 

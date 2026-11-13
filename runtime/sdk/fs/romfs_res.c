@@ -4,7 +4,8 @@
 // Default "original": the console's own. 720 is the development machine's (a Radeon 660M; the run scripts set it with
 // build/romfs-res).
 //
-// MKW picks its 3D and screen resolutions from System/GymlArchive/general_format.Product_100.sarc.zs ->
+// MKW picks its 3D and screen resolutions from System/GymlArchive/general_format.Product_<version>.sarc.zs (100 in
+// 1.0.0, 180 in 1.8.0: the name is looked up in the RomFS, #195) ->
 // Gyml/GamePerformanceGraphicsConfigGParam/30_Extendted...bgyml (BYML v7: Resolution{Low,Middle}{For3D,Screen}
 // [ForDiv,ForDiv4], 1080/900/1440; it renders at 2560x1440). The integers are patched where they are: every *For3D*
 // field to LINES / 0.65 (the scene renders at 65 % of For3D lines whatever the GPU load: 720 -> 1108, measured in races
@@ -23,7 +24,7 @@
 #include "platform/platform.h"
 #include "sha256.h"
 
-#define ARCHIVE "System/GymlArchive/general_format.Product_100.sarc.zs"
+#define ARCHIVE_DIR "System/GymlArchive/general_format.Product_"   // + the version and ".sarc.zs"
 #define MEMBER "Gyml/GamePerformanceGraphicsConfigGParam/30_Extendted.game__GamePerformanceGraphicsConfigGParam.bgyml"
 #define SCENE_SCALE 0.65
 
@@ -84,6 +85,19 @@ static void hex(const uint8_t d[32], char out[65]) {
     for (int i = 0; i < 32; i++) snprintf(out + 2 * i, 3, "%02x", d[i]);
 }
 
+// The RomFS path of the general_format archive, whatever version number it carries; NULL when there is none.
+static const char *find_archive(void) {
+    static char name[128];
+    size_t n = strlen(ARCHIVE_DIR);
+    for (uint64_t i = 0;; i++) {
+        const char *p = romfs_entry(i, NULL, NULL);
+        if (!p) return NULL;
+        size_t len = strlen(p);
+        if (!strncmp(p, ARCHIVE_DIR, n) && len > n + 8 && !strcmp(p + len - 8, ".sarc.zs") && len < sizeof name)
+            return memcpy(name, p, len + 1);
+    }
+}
+
 // The overlay directory for MKW_RESOLUTION (lines, 0: the game's) and the detail distance (lod, 0: the game's), written
 // when missing; NULL when it cannot be made.
 static const char *write_overlay(int lines, float lod) {
@@ -93,9 +107,13 @@ static const char *write_overlay(int lines, float lod) {
     char *cut = k ? plat_last_sep(exe) : NULL;
     if (!cut) return NULL;
     *cut = 0;
+    const char *archive = find_archive();
     uint64_t zn = 0;
-    uint8_t *z = romfs_read_whole(ARCHIVE, &zn);   // a loose RomFS or a .nup package
-    if (!z) { rt_log("resolution: %s missing from %s: the game's own resolution", ARCHIVE, rt_config()->romfs); return NULL; }
+    uint8_t *z = archive ? romfs_read_whole(archive, &zn) : NULL;   // a loose RomFS or a .nup package
+    if (!z) {
+        rt_log("resolution: no %s*.sarc.zs in %s: the game's own resolution", ARCHIVE_DIR, rt_config()->romfs);
+        return NULL;
+    }
     uint8_t osha[32];
     char ohex[65];
     sha256(z, zn, osha);
@@ -112,7 +130,7 @@ static const char *write_overlay(int lines, float lod) {
     uint8_t *s = rn != ZSTD_CONTENTSIZE_ERROR && rn != ZSTD_CONTENTSIZE_UNKNOWN ? malloc(rn) : NULL;
     size_t got = s ? ZSTD_decompress(s, rn, z, zn) : 0;
     free(z);
-    if (!s || ZSTD_isError(got)) { free(s); rt_log("resolution: %s does not decompress", ARCHIVE); return NULL; }
+    if (!s || ZSTD_isError(got)) { free(s); rt_log("resolution: %s does not decompress", archive); return NULL; }
     size_t mlen = 0, at = sarc_find(s, got, MEMBER, &mlen);
     int changed = 0;
     if (at && mlen > 16 && !memcmp(s + at, "YB", 2)) {
@@ -126,14 +144,14 @@ static const char *write_overlay(int lines, float lod) {
     size_t on = out ? ZSTD_compress(out, cap, s, got, 9) : 0;
     free(s);
     if (!out || ZSTD_isError(on)) { free(out); return NULL; }
-    snprintf(path, sizeof path, "%s/%s", dir, ARCHIVE);
+    snprintf(path, sizeof path, "%s/%s", dir, archive);
     char *slash = plat_last_sep(path);
     if (slash) { *slash = 0; plat_file_mkdir_p(path); *slash = '/'; }
     uint8_t nsha[32];
     char nhex[65], line[512];
     sha256(out, on, nsha);
     hex(nsha, nhex);
-    snprintf(line, sizeof line, "%s\t%zu\t%s\t%s\n", ARCHIVE, on, nhex, ohex);
+    snprintf(line, sizeof line, "%s\t%zu\t%s\t%s\n", archive, on, nhex, ohex);
     int ok = plat_file_write_atomic(path, out, on) && plat_file_write_atomic(man, line, strlen(line));
     free(out);
     if (!ok) { rt_log("resolution: cannot write %s", dir); return NULL; }
