@@ -8,6 +8,12 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
 
 ### Changes
 
+- **Choose where the game is installed** (#224 by @innateessence, #284): the game files always went beside the
+  launcher (on Linux `~/.local/share/mkw-recomp`), and a folder moved elsewhere was set up again in the old place.
+  @innateessence added "Choose game folder" to the files page: the game files, saves, mods, logs and shader caches go
+  to the folder you pick (a new one is set up there; an existing installation is used as it is), the launcher's own
+  `mkw.ini` only remembers which folder, and `MKW_GAME_DIR` overrides it. With no folder picked everything stays
+  where it was.
 - **Frame hitches in free roam from a pass rendered one layer at a time** (#296 by @guillo1990): a draw whose
   pipeline is still being built is skipped when its target was rendered recently, and the frame waits for it when it
   was not (a volume or table drawn only once). @guillo1990 found a free roam pass that renders one of its 12 layers
@@ -22,6 +28,15 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
   that did not fit was left empty while released render targets still held 2 601 MiB. @andreknieriem found that this
   was the only allocation that gave up at once; it now drops released and idle textures first and tries again, as
   textures and upload buffers already did.
+- **AMD GPU resets with "Illegal opcode in command stream" on Linux** (#281 by @tibor-stick; #43, #50): the thread
+  that records the GPU commands told the submitting thread it had finished while its last commands could still be in
+  the CPU's write-combining buffers, so the GPU sometimes ran leftovers of an earlier recording and the driver reset
+  it. @tibor-stick found it with a patched RADV that checks every command buffer when it is recorded and again when
+  it is submitted (108 broken in a 106 s run); the recorder now flushes those buffers before it says it is done.
+- **About 6 fps at the title on Intel Meteor Lake** (#283, #289): the Intel driver there (Mesa 25.3 and 26.0) has no
+  memory that is both cached and coherent, so the copies of game memory the GPU reads, kept in sync every frame, went
+  into uncached memory and the CPU read them at about 0.25 GB/s. They now use the cached memory and write it out and
+  read it back explicitly (`MKW_SHADOW_CACHED=0` restores the old choice). Not yet confirmed on that hardware.
 - **Profiles in the launcher** (discussion #288): the name the game showed was always "Local". The start screen now
   has a Profiles page, opened from the "Profile: name" row under Play: each profile has its own name (up to 10
   characters, as on the console; also what LAN players see) and its own save, and the one marked Playing is the one
