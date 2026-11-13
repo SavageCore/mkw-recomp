@@ -423,11 +423,18 @@ def main() -> None:
     (game / "logs").mkdir(parents=True, exist_ok=True)
     sys.stderr = open(game / "logs/setup.log", "w", encoding="utf-8", buffering=1)  # noqa: SIM115
     print(f"setup: {' '.join(sys.argv)}", file=sys.stderr)
-    jobs = args.jobs or max(1, min(os.cpu_count() or 1, int(mem_gb() * 0.6)))
+    # Within 60 % of the RAM, by what one job was measured to take (13/11/2026, 12 at once): a compile 0.5 GB (peaks
+    # 266-409 MB, build.py --job-mem-gb), a generate worker 0.7 GB (gen.py: 5 065 MB for 12, one up to 608 MB). 1 GB for
+    # both kept a 12-thread PC with 13 GB at 8 compiles and an 8 GB one at 4
+    def fit(gb: float) -> int:
+        return args.jobs or max(1, min(os.cpu_count() or 1, int(mem_gb() * 0.6 / gb)))
+
+    jobs, gen_jobs = fit(0.5), fit(0.7)
     # setup.log only (stderr): what the machine gave the setup, and below each step's time, so two setups (Linux and
     # Windows, or a player's and ours) compare step by step (Adrià 13/11/2026: "los logs de preparación deberían
     # guardar tiempos"; 0.1.10's Windows setup took twice the Linux one and nothing said where)
-    print(f"machine: {os.cpu_count()} threads, {mem_gb():.1f} GB, {jobs} jobs, {sys.platform}", file=sys.stderr)
+    print(f"machine: {os.cpu_count()} threads, {mem_gb():.1f} GB, {jobs} compile and {gen_jobs} generate jobs, "
+          f"{sys.platform}", file=sys.stderr)
     t_all, step, t_step = time.monotonic(), "check", time.monotonic()
     glslc = args.glslc or default_glslc(game)
     work = game / "setup-work"
@@ -493,7 +500,7 @@ def main() -> None:
                 else:
                     ini_set(game / "mkw.ini", "romfs", str(romfs_src))
             elif step == "generate":
-                generate(game / "exefs", work, jobs, version, image)
+                generate(game / "exefs", work, gen_jobs, version, image)
             elif step == "compile":
                 compile_game(game, game / "exefs", work, cc, args.target, jobs)
             elif step == "shaders":

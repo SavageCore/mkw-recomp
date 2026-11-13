@@ -310,7 +310,9 @@ def main() -> None:
     ap.add_argument("--exefs", type=Path, default=GAME / "exefs")
     ap.add_argument("--romfs", type=Path, default=GAME / "romfs")
     ap.add_argument("--jobs", type=int, default=0, help="parallel compiles (default: from the memory budget)")
-    ap.add_argument("--job-mem-gb", type=float, default=1.0, help="memory one job may take (a main chunk: ~0.3 GB)")
+    # 0.5: measured peaks 13/11/2026, 12 jobs at once: the largest game chunks 266-300 MB, main_table.c 409 MB, zig cc
+    # with the setup's flags 291 MB, the runtime's C++ (imgui.cpp) 199 MB. 1.0 left a third of a 12-thread PC idle.
+    ap.add_argument("--job-mem-gb", type=float, default=0.5, help="memory one job may take (a main chunk: ~0.3 GB)")
     ap.add_argument(
         "--sysroot", type=Path,
         help="Linux: compile and link against this sysroot (tools/build/sysroot.py: glibc 2.31, the release)",
