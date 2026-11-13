@@ -139,8 +139,7 @@ def compile_check(gl: Path, spv: Path, stage: str) -> str:
     if not VALIDATE:
         return "ok"
     v = subprocess.run(
-        # scalar layout: the word views of constant banks (sm86 mem.cb_word), enabled at device creation (vk_device.c)
-        ["spirv-val", "--target-env", "vulkan1.3", "--scalar-block-layout", str(spv)], capture_output=True, text=True, check=False
+        ["spirv-val", "--target-env", "vulkan1.3", str(spv)], capture_output=True, text=True, check=False
     )
     return "ok" if not v.returncode else f"spirv-val: {v.stderr.strip()[:100]}"
 

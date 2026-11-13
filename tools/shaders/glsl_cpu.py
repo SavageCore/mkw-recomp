@@ -34,7 +34,8 @@ c = ["#include <math.h>\n#include <stdio.h>\n#include <string.h>\n#include <stdb
      "#define fma(a,b,c) fmaf(a,b,c)\n#define log2(x) log2f(x)\n#define exp2(x) exp2f(x)\n#define abs(x) fabsf(x)\n#define trunc(x) truncf(x)",
      "#define min(a,b) ((a)<(b)?(a):(b))\n#define LOOP_CAP 0x1000u",
      "typedef union { uint d[4096][4]; uint w[16384]; } CB;"]  # w: the word view cbNw (sm86 mem.cb_word)
-for b in sorted(ubos): c.append(f"static CB cb{b};\n#define cb{b}w cb{b}")
+# cbNw_at: the bounded word read (head.py); here the bound is the bank's 64 KiB, the dump keeps no bound range
+for b in sorted(ubos): c.append(f"static CB cb{b};\nstatic uint cb{b}w_at(uint i){{return i<16384u?cb{b}.w[i]:0u;}}")
 c.append("static float gl_FragCoord[4];")
 for o in outs: c.append(f"static float out_color{o}[4];")
 c.append("static void shader(void) {" + body + "}")

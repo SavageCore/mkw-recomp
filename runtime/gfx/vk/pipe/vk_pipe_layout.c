@@ -23,7 +23,9 @@ Layout *layouts[LAYOUT_BUCKETS];
 static VkDescriptorType descriptor_type(int kind, const GfxShaderRes *r) {
     int buffer = (r->type & 0xff) == 2;
     switch (kind) {
-    case GFX_RES_UBO: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    // flags 2: the bank's word view for dynamic addresses, a read-only storage buffer bound to the uniform range so the
+    // shader bounds its reads by .length() (head.py cbNw; issue #22's NVIDIA device loss).
+    case GFX_RES_UBO: return r->flags & 2 ? VK_DESCRIPTOR_TYPE_STORAGE_BUFFER : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     case GFX_RES_SSBO: return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     case GFX_RES_TEX:
         if (buffer) return VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;

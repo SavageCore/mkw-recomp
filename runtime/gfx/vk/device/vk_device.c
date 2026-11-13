@@ -368,7 +368,6 @@ static int create_device(void) {
     const char *miss = NULL;
     if (!c->f12.timelineSemaphore) miss = "timelineSemaphore";
     else if (!c->f12.drawIndirectCount) miss = "drawIndirectCount";   // MultiDrawElementsIndirectCount
-    else if (!c->f12.scalarBlockLayout) miss = "scalarBlockLayout";   // constant banks read at dynamic addresses (sm86 mem.cb_word)
     else if (!c->f13.dynamicRendering) miss = "dynamicRendering";
     else if (!c->f13.synchronization2) miss = "synchronization2";
     else if (!h->shaderStorageImageWriteWithoutFormat) miss = "shaderStorageImageWriteWithoutFormat";

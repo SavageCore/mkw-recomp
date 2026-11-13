@@ -81,8 +81,6 @@ def declarations(b, stage: str, shape: tuple[int, int, int, int] | None) -> list
         head.append(NMINMAX_FN)
     if b.images:
         head.insert(2, "#extension GL_EXT_shader_image_load_formatted : require")
-    if b.cbufs_w:   # cbNw (mem.cb_word); scalarBlockLayout, enabled by vk_device.c
-        head.insert(2, "#extension GL_EXT_scalar_block_layout : require")
     if b.uses_shadow_lod:
         head.insert(2, "#extension GL_EXT_texture_shadow_lod : require")
     head += [f"layout(location = {a}) {interp(b, stage, a)}in vec4 in_attr{a};" for a in sorted(b.in_attrs)]
@@ -102,10 +100,20 @@ def declarations(b, stage: str, shape: tuple[int, int, int, int] | None) -> list
     nb = 1
     for n in sorted(b.cbufs):
         head.append(f"layout(std140, binding = {nb}) uniform CB{n} {{ uvec4 d[4096]; }} cb{n};")
-        if n in b.cbufs_w:   # the same buffer as words for dynamic addresses (mem.cb_word)
-            head.append(f"layout(scalar, binding = {nb}) uniform CB{n}W {{ uint w[16384]; }} cb{n}w;")
         refl["cbufs"].append({"binding": nb, "slot": n})
         nb += 1
+        if n in b.cbufs_w:
+            # The same bank as words for dynamic addresses (mem.cb_word), through a read-only storage view of its own
+            # binding (flags 2: the back end binds the bank's range to it as a storage buffer) and bounded by that
+            # range: a word past it reads 0, as the console's constant bank. Until 13/11/2026 this was a second uniform
+            # block on the bank's own binding (`scalar`, uint w[16384]), the only aliased binding of the translation,
+            # and NVIDIA (616-621, Turing to Blackwell) lost the device with "instruction pointer invalid" on draws of
+            # vertex shaders whose only difference from a sound twin was one more such read (issue #22, programs
+            # c74a0d4e / 852f48d6); the same pattern faulted in mkw-thwomp ("four reads of c9 at a computed index").
+            head.append(f"layout(std430, binding = {nb}) readonly buffer CB{n}W {{ uint w[]; }} cb{n}w;")
+            head.append(f"uint cb{n}w_at(uint i) {{ return i < uint(cb{n}w.w.length()) ? cb{n}w.w[i] : 0u; }}")
+            refl["cbufs"].append({"binding": nb, "slot": n, "flags": 2})
+            nb += 1
     for o in sorted(b.ssbos):
         head.append(f"layout(std430, binding = {nb}) buffer SB{o:x} {{ uint d[]; }} sb{o:x};")
         # flags 1: the shader stores into it. The replay copies such a range back to guest memory and keeps the CPU's

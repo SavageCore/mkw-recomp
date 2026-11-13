@@ -8,6 +8,15 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
 
 ### Changes
 
+- **NVIDIA: the device loss with "instruction pointer invalid"** (#22, also #112 #133 #137 #142 #166 #189 #203 #208
+  #212 #219 #221 #230 #231 and discussion #139): the Shell Cup after its video, Star High Sundae's lap 2, Moo Moo
+  Meadows after the cows and the Special Cup's unlock animation stopped the GPU on drivers 616-621, Turing to
+  Blackwell. The draws that fault use vertex shaders that read a constant bank at an address computed from a vertex
+  attribute; the shader that faults and its twin that does not differ only in one such read (`c74a0d4e` and
+  `852f48d6`). Those reads went through a second uniform block declared on the same binding as the bank, the only
+  aliased binding of the translation; they now go through a read-only storage view of their own binding, bounded by
+  its range, as the console's bank. Verified on the captures (same images) and not on an NVIDIA card: the
+  `skip_programs` workaround stays, and this is the version to try without it.
 - **Internal resolution in handheld mode** (#248 by @titooo7, #195): with Settings > Graphics > Operation mode on
   Handheld, the 3D scene rendered well above the chosen resolution (1476x828 for 540p), as the game draws all of its
   3D lines there and only 65 % of them docked. @titooo7 measured both modes on an AYN Odin 2 and the setting now

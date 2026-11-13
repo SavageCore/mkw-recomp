@@ -69,7 +69,8 @@ typedef struct {
     uint16_t type;              // TEX/IMG: Ryujinx SamplerType: 1 1D, 2 buffer, 3 2D, 4 3D, 5 cube | 0x100 array,
                                 // 0x200 multisample, 0x400 shadow
     uint8_t format;             // IMG: declared format as a GfxShaderAnswers.img_format code, 0 unknown
-    uint8_t flags;              // SSBO: 1 written; TEX/IMG: Ryujinx TextureUsageFlags (4 image store, 8 coherent)
+    uint8_t flags;              // SSBO: 1 written; UBO: 2 the bank's word view, bound as a storage buffer (cbNw);
+                                // TEX/IMG: Ryujinx TextureUsageFlags (4 image store, 8 coherent)
     int8_t cbuf_slot;           // TEX/IMG: constant buffer of the handle (-1: bound texture buffer); SSBO: of its address
     uint16_t handle;            // TEX/IMG: raw handle (word offset; separate: texture | sampler << 14); SSBO: address offset
     uint16_t count;             // descriptors (array length)

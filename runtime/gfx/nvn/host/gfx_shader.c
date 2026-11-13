@@ -393,10 +393,10 @@ static void add_res(GfxShader *s, int kind, const char *o, const char *e) {
     if (kind == GFX_RES_UBO || kind == GFX_RES_SSBO) {
         r->slot = (int16_t)json_int(o, e, "slot", -1);
         r->count = 1;
+        r->flags = (uint8_t)json_int(o, e, "flags", 0);   // UBO: 2, the bank's bounded word view (head.py cbNw)
         if (kind == GFX_RES_SSBO) {
             r->cbuf_slot = (int8_t)json_int(o, e, "cb_slot", -1);
             r->handle = (uint16_t)json_int(o, e, "cb_offset", 0);
-            r->flags = (uint8_t)json_int(o, e, "flags", 0);
             int slot, k;
             if (s->cs_known && r->cbuf_slot == 0 && (k = cs_res(s, kind, r->handle * 4, &slot)))
                 r->handle = (uint16_t)((k == 2 ? 0x210 : 0x310) + 16 * slot) / 4;   // NVN1's tables (ssbo_slot)
