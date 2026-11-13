@@ -397,7 +397,15 @@ static void zoom_draw(void) {
 
 int mods_browse_draw(const char *exe_dir, SDL_Renderer *ren) {
     if (!G.lock) G.lock = SDL_CreateMutex();
-    if (!g_loaded) g_loaded = 1, list_start(exe_dir);
+    SDL_LockMutex(G.lock);
+    int busy = G.running;
+    SDL_UnlockMutex(G.lock);
+    // the list once, after a 1-Click link's page has come (its file cleared when its page is shown)
+    if (!g_loaded && !g_open_mod && !g_open_file && !busy) {
+        int keep = g_selected;   // a 1-Click page stays shown beside the list
+        g_loaded = 1, list_start(exe_dir);
+        g_selected = keep;
+    }
     pic_tick(exe_dir, ren);
     SDL_LockMutex(G.lock);
     int running = G.running, job = G.job, finished = G.finished;
