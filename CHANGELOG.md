@@ -12,6 +12,9 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
   Handheld, the 3D scene rendered well above the chosen resolution (1476x828 for 540p), as the game draws all of its
   3D lines there and only 65 % of them docked. @titooo7 measured both modes on an AYN Odin 2 and the setting now
   gives the chosen lines in either; the log line names the mode.
+- The setup compiles with more jobs where memory held it back: a compile was given 1 GB and takes at most 0.4 (a
+  12-thread PC with 13 GB went from 8 to 12 jobs, 330 s to 302 s for the game's code; an 8 GB PC with 8 threads from
+  4 to 8). `logs/setup.log` now says how long each step took.
 - **LAN Play with a VPN such as Tailscale** (#245 by @EdouardSence, discussion #148): entering LAN Play went straight
   back to the menu (error 2318-0007) when the VPN's adapter came first, as the game took its /32 address. @EdouardSence
   found it in the reporter's log and reproduced it on Linux; the port now takes an address with a real network first,
