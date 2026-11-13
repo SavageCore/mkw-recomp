@@ -175,7 +175,21 @@ static SlotBlock *new_block(VkCtx *c, uint32_t type_bits, VkDeviceSize slot_size
     VkMemoryRequirements req = {.size = slot_size * BLOCK_SLOTS, .alignment = slot_size > rb.alignment ? slot_size : rb.alignment,
                                 .memoryTypeBits = rb.memoryTypeBits & type_bits};
     VmaAllocationInfo info;
-    if (alloc_local_or_any(c, &req, &b->alloc, &info) != VK_SUCCESS || vmaBindBufferMemory(c->vma, b->alloc, b->buf) != VK_SUCCESS) {
+    VkResult r = alloc_local_or_any(c, &req, &b->alloc, &info);
+    if (r != VK_SUCCESS) {
+        // #215 (GTX 750 Ti): the first slot already failed with no slot live and VRAM to spare; the hypothesis is
+        // that the buffer's memory types and the sparse image's do not meet on that driver (an empty mask fails here)
+        static uint32_t seen[8][2];
+        static int nseen;
+        int known = 0;
+        for (int i = 0; i < nseen; i++) known |= seen[i][0] == rb.memoryTypeBits && seen[i][1] == type_bits;
+        if (!known && nseen < 8) {
+            seen[nseen][0] = rb.memoryTypeBits, seen[nseen++][1] = type_bits;
+            rt_log("vk: sparse: tile block of %llu KiB failed (%d): buffer types %#x, image types %#x, both %#x",
+                   (unsigned long long)(req.size >> 10), r, rb.memoryTypeBits, type_bits, req.memoryTypeBits);
+        }
+    }
+    if (r != VK_SUCCESS || vmaBindBufferMemory(c->vma, b->alloc, b->buf) != VK_SUCCESS) {
         if (b->alloc) vmaFreeMemory(c->vma, b->alloc);
         vkDestroyBuffer(c->device, b->buf, NULL);
         free(b);
