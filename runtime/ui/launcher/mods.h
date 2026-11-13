@@ -35,6 +35,7 @@ typedef struct {
 
 // Scans <exe>/mods (missing is fine: no mods). The list stays sorted; enabled flags re-read every call.
 void mods_refresh(const char *exe_dir);
+void mods_poll(void);   // the UI thread, every frame of the page and before Play: what an import or merge left
 int mods_count(void);
 const Mod *mods_at(int i);
 // The dialog callbacks hand the pick over; the rename field stays empty unless the player typed a name.

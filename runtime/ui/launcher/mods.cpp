@@ -41,7 +41,25 @@ static struct {
     char mcode[32], merror[512];
     ModConflict conflicts[64];
     int nconflicts;
+    // what the import and merge threads leave for the UI thread (mods_poll): G.mods, G.n and the config are only
+    // touched there, since the page draws them every frame without the lock
+    char pending_enable[64];
+    int pending_refresh;
 } G = {};
+
+static void set_enabled(const char *name, int on);
+
+void mods_poll(void) {
+    if (!G.lock) return;
+    char enable[64];
+    SDL_LockMutex(G.lock);
+    snprintf(enable, sizeof enable, "%s", G.pending_enable);
+    int refresh = G.pending_refresh;
+    G.pending_enable[0] = 0, G.pending_refresh = 0;
+    SDL_UnlockMutex(G.lock);
+    if (enable[0] || refresh) mods_refresh(G.exe_dir);   // the new mod is on disk; conflicts.json changed
+    if (enable[0]) set_enabled(enable, 1);                 // imported means enabled: its switches apply and it merges
+}
 
 ModsState mods_state(void) {
     ModsState s = {0, G.finished, "", "", ""};
@@ -446,10 +464,9 @@ static int SDLCALL reader(void *) {
     ModsState s = mods_state();
     int ok = code == 0 && s.done[0];
     if (ok) {
-        char exe[PLAT_PATH_MAX];
-        snprintf(exe, sizeof exe, "%s", G.exe_dir);
-        mods_refresh(exe);              // the new mod is on disk now
-        set_enabled(s.done, 1);         // imported means enabled: its switches apply and it merges
+        SDL_LockMutex(G.lock);
+        snprintf(G.pending_enable, sizeof G.pending_enable, "%s", s.done);   // mods_poll, on the UI thread
+        SDL_UnlockMutex(G.lock);
     }
     if (!ok && !s.code[0]) set_finished(-1, "stopped", "");
     else set_finished(ok ? 1 : -1, nullptr, nullptr);
@@ -542,9 +559,9 @@ static int SDLCALL merge_reader(void *) {
     G.mproc = nullptr;
     int ok = code == 0;
     if (ok) {
-        char exe[PLAT_PATH_MAX];
-        snprintf(exe, sizeof exe, "%s", G.exe_dir);
-        mods_refresh(exe);   // conflicts.json changed; the list shows the same mods
+        SDL_LockMutex(G.lock);
+        G.pending_refresh = 1;   // conflicts.json changed: mods_poll rescans on the UI thread
+        SDL_UnlockMutex(G.lock);
     }
     SDL_LockMutex(G.lock);
     int had_code = G.mcode[0] != 0;
@@ -743,6 +760,7 @@ void mods_conflict_set(const char *archive, const char *inner, const char *winne
 // Blocking merge for the Play button: waits out a running merge, then merges when stale (a no-op
 // when fresh, so Play usually waits only for the Python startup). A failed merge still plays.
 void mods_merge_sync(const char *exe_dir) {
+    mods_poll();   // an import that ended off the page: it enables (and starts a merge) before the wait below
     while (mods_merge_running()) SDL_Delay(50);
     char python[1200], script[1200];
     if (!setup_tool(exe_dir, "mod/merge.py", python, script, sizeof python)) {

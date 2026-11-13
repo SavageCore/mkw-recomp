@@ -109,21 +109,24 @@ static const char *write_overlay(int lines, float lod) {
     *cut = 0;
     const char *archive = find_archive();
     uint64_t zn = 0;
-    uint8_t *z = archive ? romfs_read_whole(archive, &zn) : NULL;   // a loose RomFS or a .nup package
-    if (!z) {
+    // over a mod's copy of the archive when one replaces it (romfs.c loads this overlay last), else the game's own
+    uint8_t *z = archive ? romfs_read_top(archive, &zn) : NULL;
+    char ohex[65];   // the manifest names the RomFS's own original, whatever this one was built from
+    if (!z || !romfs_original_sha(archive, ohex)) {
+        free(z);
         rt_log("resolution: no %s*.sarc.zs in %s: the game's own resolution", ARCHIVE_DIR, rt_config()->romfs);
         return NULL;
     }
-    uint8_t osha[32];
-    char ohex[65];
-    sha256(z, zn, osha);
-    hex(osha, ohex);
+    uint8_t ssha[32];
+    char shex[65];   // what it was built from: a mod enabled or changed since writes it again
+    sha256(z, zn, ssha);
+    hex(ssha, shex);
     if (lod > 0) snprintf(dir, sizeof dir, "%s/cache/graphics-r%d-lod%g", exe, lines, (double)lod);
     else snprintf(dir, sizeof dir, "%s/cache/resolution-%d", exe, lines);
     snprintf(man, sizeof man, "%s/manifest.tsv", dir);
     uint64_t mn = 0;
     char *old = (char *)plat_file_read(man, &mn);
-    int fresh = old && strstr(old, ohex);   // written before from this same original
+    int fresh = old && strstr(old, ohex) && strstr(old, shex);   // written before from this same source
     free(old);
     if (fresh) { free(z); return dir; }
     unsigned long long rn = ZSTD_getFrameContentSize(z, zn);
@@ -151,7 +154,7 @@ static const char *write_overlay(int lines, float lod) {
     char nhex[65], line[512];
     sha256(out, on, nsha);
     hex(nsha, nhex);
-    snprintf(line, sizeof line, "%s\t%zu\t%s\t%s\n", archive, on, nhex, ohex);
+    snprintf(line, sizeof line, "# from %s\n%s\t%zu\t%s\t%s\n", shex, archive, on, nhex, ohex);
     int ok = plat_file_write_atomic(path, out, on) && plat_file_write_atomic(man, line, strlen(line));
     free(out);
     if (!ok) { rt_log("resolution: cannot write %s", dir); return NULL; }

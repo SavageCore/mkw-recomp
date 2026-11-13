@@ -314,14 +314,32 @@ static const char *lang_overlay(void) {
     return dir;
 }
 
+// The bytes a read of rel gets from the overlays loaded so far (the last one that replaces it), else the RomFS's own.
+uint8_t *romfs_read_top(const char *rel, uint64_t *size) {
+    const Overlay *top = NULL;
+    for (size_t k = 0; k < noverlay; k++)
+        if (overlays[k].index != ADDED && !strcmp(overlays[k].name, rel) && (!top || overlays[k].ord >= top->ord))
+            top = &overlays[k];
+    if (!top) return romfs_read_whole(rel, size);
+    return (uint8_t *)plat_file_read(top->path, size);
+}
+
+int romfs_original_sha(const char *rel, char hex[65]) {
+    uint64_t i = lower(rel);
+    if (i >= file_count || strcmp(entry_name(entry(i)), rel)) return 0;
+    sha_row(i, hex);
+    return 1;
+}
+
 static void overlay_init(void) {
-    // MKW_ROMFS_PATCHES (the scripts' build/romfs-res) wins; else the resolution setting writes its own
+    // MKW_ROMFS_PATCHES (the scripts' build/romfs-res) goes first, as before the mods; else the resolution setting
+    // writes its own last, over whatever the mods left of its archive (a mod that ships general_format, as Classic
+    // GP does, replaced the resolution's copy and the setting did nothing)
     const char *patches = cfg_get("MKW_ROMFS_PATCHES");
-    const char *first = patches && *patches ? patches : romfs_resolution_overlay();
-    if (patches && *patches && strcmp(patches, "0")) romfs_resolution_external();
-    if (first && *first && strcmp(first, "0")) {
+    if (patches && *patches && strcmp(patches, "0")) {
+        romfs_resolution_external();
         load_seq++;
-        overlay_load(first);
+        overlay_load(patches);
     }
     const char *legacy = cfg_get("MKW_ROMFS_MODS");
     if (legacy && *legacy && strcmp(legacy, "0")) {
@@ -351,11 +369,6 @@ static void overlay_init(void) {
             overlay_load(dir);
         }
     }
-    const char *lang = lang_overlay();
-    if (lang && *lang) {
-        load_seq++;
-        overlay_load(lang);
-    }
     // the Mods page's merge of the enabled mods' shared archives (tools/mod/merge.py); missing when
     // nothing is shared, and then this is a no-op log line like a missing legacy dir. Gated on MODS so a
     // stale .merged from an earlier enablement never applies after the last mod is toggled off.
@@ -367,6 +380,17 @@ static void overlay_init(void) {
         snprintf(merged, sizeof merged, "%s/mods/.merged/romfs", exe);
         load_seq++;
         overlay_load(merged);
+    }
+    // the language after the mods: a mod's copy of a text archive would leave a translated menu half in Spanish
+    const char *lang = lang_overlay();
+    if (lang && *lang) {
+        load_seq++;
+        overlay_load(lang);
+    }
+    const char *res = patches && *patches ? NULL : romfs_resolution_overlay();
+    if (res) {
+        load_seq++;
+        overlay_load(res);
     }
     added_init();
     if (noverlay) qsort(overlays, noverlay, sizeof *overlays, overlay_order);

@@ -49,6 +49,8 @@ const char *romfs_entry(uint64_t i, uint64_t *offset, uint64_t *size);   // path
 const char *romfs_source_path(uint64_t i, char *buf, size_t n);
 // A whole RomFS file by its path (no overlays), malloc'd; NULL when missing or unreadable. Inside fs_init too.
 uint8_t *romfs_read_whole(const char *path, uint64_t *size);
+uint8_t *romfs_read_top(const char *path, uint64_t *size);   // through the overlays loaded so far (overlay_init)
+int romfs_original_sha(const char *path, char hex[65]);      // the RomFS's own file's SHA-256; 0 when it has none
 size_t romfs_overlay_count(void);
 const char *romfs_overlay(size_t k, const char **file, uint64_t *size, int *is_added);   // RomFS path of overlay k
 void fs_trace(const char *what, const char *path);         // MKW_TRACE=fs: one line per open

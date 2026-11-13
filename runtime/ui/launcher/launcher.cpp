@@ -692,6 +692,7 @@ static void page_mods(float w, float h) {
     static char confirm_delete[MOD_NAME_MAX] = "";
     static int delete_cooldown = 0;
     if (delete_cooldown > 0) delete_cooldown--;   // no re-arm on the same double-click: rows shift up under a fast cursor
+    mods_poll();
     if (mods_count() == 0) {
         ImGui::TextDisabled("%s", menu_text(UI_LAUNCH_MODS_EMPTY));
     }
