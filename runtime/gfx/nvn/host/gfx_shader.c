@@ -123,9 +123,10 @@ static int spirv_complete(const uint32_t *w, uint64_t n) {
 }
 
 // ---- MKW: SPIR-V prepared before the game runs (tools/shaders/translate.py)
-// <exe dir>/spirv/<key>.spv and .res.json, key = nvn2_program_key(control, code): every program the game ships was
+// <game dir>/spirv/<key>.spv and .res.json, key = nvn2_program_key(control, code): every program the game ships was
 // translated offline, so play never translates. MKW_SPIRV names another directory.
 static char prepared_dir[PATH_CAP];
+_Static_assert(CFG_GAME_DIR_MAX + 256 <= PATH_CAP, "game directory must leave room for derived shader paths");
 
 static void prepared_init(void *param) {
     (void)param;
@@ -133,11 +134,7 @@ static void prepared_init(void *param) {
     if (e && *e) {
         snprintf(prepared_dir, sizeof prepared_dir, "%s", e);
     } else {
-        char exe[PATH_CAP];
-        if (!plat_exe_path(exe, sizeof exe)) rt_fatal("gfx_shader: executable path");
-        char *sep = plat_last_sep(exe);
-        if (sep) *sep = 0;
-        snprintf(prepared_dir, sizeof prepared_dir, "%s/spirv", exe);
+        snprintf(prepared_dir, sizeof prepared_dir, "%s/spirv", cfg_game_dir());
     }
     rt_log("gfx_shader: prepared SPIR-V from %s", prepared_dir);
 }
