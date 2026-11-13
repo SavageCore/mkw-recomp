@@ -55,6 +55,22 @@ static uint64_t now_ns(void) { return plat_now_ns(); }
 
 static void exec_packet(uint32_t op, void *p);
 
+// RADV writes command buffer memory (the IBs and the upload buffer) through a write-combined mapping, and x86 does not
+// order write-combined stores with ordinary ones: a release store of tail (a plain MOV) can reach the replay thread
+// while the last commands are still in this CPU's write-combining buffers. The replay thread then ends and submits the
+// buffer, and a GPU that fetches it at once runs what that memory held before: stale packets from an earlier recording,
+// sooner or later "Illegal opcode in command stream" and a GPU reset (#43, #50; #121 on AMD's Windows driver may be
+// the same). SFENCE makes every earlier store globally visible before tail. Measured on an RX 9070 XT with RADV 26.3
+// instrumented to check each IB at vkEndCommandBuffer: IBs invalid there turned valid ~110 us later with no write;
+// without the SFENCE the game hung after 7 s, with it 4 runs of 150 s did not. On AArch64 the release store (STLR)
+// already orders earlier stores of every memory type.
+static inline void publish_tail(uint64_t t) {
+#if defined(__x86_64__)
+    __builtin_ia32_sfence();
+#endif
+    __atomic_store_n(&tail, t, __ATOMIC_RELEASE);
+}
+
 static void rec_main(void *arg) {
     (void)arg;
     plat_thread_priority(rec_prio);
@@ -76,9 +92,9 @@ static void rec_main(void *arg) {
             uint32_t op = (uint32_t)(w & 0xffff), n = (uint32_t)(w >> 32);
             if (op != R_PAD) exec_packet(op, &ring[t % RING_WORDS + 1]);
             t += n;
-            if ((k & 63) == 63) __atomic_store_n(&tail, t, __ATOMIC_RELEASE);
+            if ((k & 63) == 63) publish_tail(t);
         }
-        __atomic_store_n(&tail, t, __ATOMIC_RELEASE);
+        publish_tail(t);
     }
     return;
 }
