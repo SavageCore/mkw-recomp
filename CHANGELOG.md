@@ -8,6 +8,15 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
 
 ### Changes
 
+- **Frame hitches in free roam from a pass rendered one layer at a time** (#296 by @guillo1990): a draw whose
+  pipeline is still being built is skipped when its target was rendered recently, and the frame waits for it when it
+  was not (a volume or table drawn only once). @guillo1990 found a free roam pass that renders one of its 12 layers
+  each frame, so every layer looked like a one-shot draw and the frame waited 36 to 43 ms for the pipeline. Rendered
+  within the last 16 frames now counts as recent.
+- **GPU hangs that the driver never reports now leave a report in the log** (#297 by @guillo1990): on NVIDIA 620.70.06
+  (Linux) the GPU stopped with Xid 109 while the game stayed open and the log said nothing (#13 and #206 looked the
+  same). @guillo1990 added a check: when the GPU has not finished a submission in 5 s, the log names what it had
+  started and not finished, with every step between them and the shader programs involved.
 - **GPU memory left empty when video memory runs low** (#295 by @andreknieriem): on a Steam Deck (1 GB of video
   memory, low preset, 1.8.0 time trial) the game's GPU memory pools got their memory in 4 MiB pieces, and a piece
   that did not fit was left empty while released render targets still held 2 601 MiB. @andreknieriem found that this
