@@ -89,6 +89,7 @@ static int shadow_second_pool(Cpu *c) {
     uint64_t a[4] = {c->x[0], c->x[1], c->x[2], c->x[3]};   // host_shadow_rb passes them on
     uint64_t size = (3 * 2 * ((uint64_t)shadow_size * shadow_size - 3072ull * 3072) + 0xffff) & ~0xffffull;
     uint64_t **table = (uint64_t **)(uintptr_t)(rb_obj + 0x2a90), heap = 0, room = 0;
+    char frees[160] = "";   // every heap of the chain, MiB free: which one the map's memory comes out of (#255)
     if (!rb_obj || *(int32_t *)(uintptr_t)(rb_obj + 0x2a88) < 2 || (*table)[1]) {
         rt_log("patches: render-buffer allocator has no free second slot; no pool for the %u shadow map: the game's "
                "size instead", shadow_size);
@@ -97,6 +98,8 @@ static int shadow_second_pool(Cpu *c) {
     for (int i = 0; i < 8 && rb_heaps[i]; i++) {
         uint64_t h = rb_heaps[i], *vt = (uint64_t *)(uintptr_t)*(uint64_t *)(uintptr_t)h;
         uint64_t free_ = rt_call(c, vt[16], 1, h);   // sead::Heap::getFreeSize
+        size_t n = strlen(frees);
+        snprintf(frees + n, sizeof frees - n, "%s%llu", n ? " " : "", (unsigned long long)(free_ >> 20));
         if (free_ > room) room = free_, heap = h;
     }
     uint64_t pool = room > size + 0x100000 ? rt_call(c, GUEST_RB_POOL_NEW, 3, 0x58, heap, 8) : 0;
@@ -107,8 +110,8 @@ static int shadow_second_pool(Cpu *c) {
         (*table)[1] = pool;
     }
     rt_log("patches: render-buffer allocator: %s second pool of %#llx bytes for the %u shadow map (heap %#llx, "
-           "%#llx free)", pool ? "a" : "no room for a", (unsigned long long)size, shadow_size,
-           (unsigned long long)heap, (unsigned long long)room);
+           "%#llx free; MiB free along the chain: %s)", pool ? "a" : "no room for a", (unsigned long long)size,
+           shadow_size, (unsigned long long)heap, (unsigned long long)room, frees);
     for (int i = 0; i < 4; i++) c->x[i] = a[i];
     return pool != 0;
 }
