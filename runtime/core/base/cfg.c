@@ -98,7 +98,7 @@ static const CfgMeta metas[] = {
     {"PICTURE_FIT", "keep", "keep|stretch", LIVE}, {"HDR", "auto", "auto|off", LIVE},   // auto: HDR when the display is (hdr6c, 12/11/2026)
     {"DEVICE_PROFILE", "auto", "auto|desktop|deck", RESTART},
     {"RESOLUTION", "original", "original|540|720|900|1080|1440|2160", RESTART},
-    {"ASPECT", "16:9", "16:9|window|21:9|32:9", RESTART},
+    {"ASPECT", "16:9", "16:9|window|21:9|32:9|48:9", RESTART},
     // Game
     {"LANG", "", "ja|en-US|fr|de|it|es|zh-CN|ko|nl|pt|ru|zh-TW|en-GB|fr-CA|es-419|zh-Hans|zh-Hant|pt-BR|ca|gl|eu", RESTART},
     {"OPERATION_MODE", "docked", "docked|handheld", RESTART},

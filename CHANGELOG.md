@@ -31,6 +31,9 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
   back to the menu (error 2318-0007) when the VPN's adapter came first, as the game took its /32 address. @EdouardSence
   found it in the reporter's log and reproduced it on Linux; the port now takes an address with a real network first,
   and says in the log when only a /32 one is left.
+- 48:9 for three screens side by side (discussion #264): Settings > Graphics > Aspect ratio now offers 48:9 (5760x1080,
+  7680x1440 on NVIDIA Surround or AMD Eyefinity) beside 21:9 and 32:9. Races show more at the sides and the menus and
+  HUD keep their shape; "window" already took that shape from a full-screen window.
 
 ## 0.1.10
 

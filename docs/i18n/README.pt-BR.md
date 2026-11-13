@@ -1,4 +1,4 @@
-<!-- translated from README.md 64148490d940 -->
+<!-- translated from README.md df5b2f6e71f1 -->
 
 <p align="center"><img src="../logo.svg" width="128" alt="mkw-recomp logo"></p>
 
@@ -128,7 +128,7 @@ recusa): sem ele, o port não sabe qual memória do jogo mudou e roda várias ve
 
 Além do console, todos opcionais e desligados (ou no valor do console) por padrão:
 
-- **Tela**: resolução interna acima ou abaixo da do console, 21:9 e 32:9 (as corridas mostram mais nas laterais),
+- **Tela**: resolução interna acima ou abaixo da do console, 21:9, 32:9 e 48:9 (as corridas mostram mais nas laterais),
   escala AMD FSR 1, HDR em telas HDR, VSync, apresentação mailbox ou imediata.
 - **Geração de quadros**: quadros criados entre os do jogo (uma corrida a 30 fps mostrada a 60, ou a 240 em uma tela
   de 240 Hz). Mais fluido, não mais rápido: a imagem chega até um quadro depois, e movimentos rápidos e o minimapa

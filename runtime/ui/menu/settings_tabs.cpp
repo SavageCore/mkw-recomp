@@ -222,9 +222,9 @@ static void tab_graphics(float scale) {
         opt_choice_list("MKW_RESOLUTION", UI_MENU_RESOLUTION, vals, names, 7, UI_MENU_RESOLUTION_DESC);
     }
     {   // the cameras' aspect and the output's width (core/boot/patches.c, set aspect), read at start
-        static const char *const vals[] = {"16:9", "window", "21:9", "32:9"};
-        const char *names[4] = {"16:9", menu_text(UI_MENU_ASPECT_WINDOW), "21:9", "32:9"};
-        opt_choice_list("MKW_ASPECT", UI_MENU_ASPECT, vals, names, 4, UI_MENU_ASPECT_DESC);
+        static const char *const vals[] = {"16:9", "window", "21:9", "32:9", "48:9"};   // 48:9: three screens, #264
+        const char *names[5] = {"16:9", menu_text(UI_MENU_ASPECT_WINDOW), "21:9", "32:9", "48:9"};
+        opt_choice_list("MKW_ASPECT", UI_MENU_ASPECT, vals, names, 5, UI_MENU_ASPECT_DESC);
     }
     static const UiTextId up[] = {UI_MENU_UPSCALER_FSR, UI_MENU_UPSCALER_BILINEAR};
     opt_choice("MKW_UPSCALER", UI_MENU_UPSCALER, up, 2, UI_MENU_UPSCALER_DESC);

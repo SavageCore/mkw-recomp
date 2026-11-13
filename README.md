@@ -118,7 +118,7 @@ default refuses it): without it the port cannot tell which game memory changed, 
 
 Beyond the console, all optional and off (or at the console's value) by default:
 
-- **Display**: internal resolution above or below the console's, 21:9 and 32:9 (races show more at the sides), AMD FSR 1 scaling, HDR on HDR
+- **Display**: internal resolution above or below the console's, 21:9, 32:9 and 48:9 (races show more at the sides), AMD FSR 1 scaling, HDR on HDR
   screens, VSync, mailbox or immediate presentation.
 - **Frame generation**: frames made between the game's (a race at 30 fps shown at 60, or at 240 on a 240 Hz screen).
   Smoother, not faster: the picture is up to one frame later, and fast motion and the minimap can smear.

@@ -1,4 +1,4 @@
-<!-- translated from README.md 64148490d940 -->
+<!-- translated from README.md df5b2f6e71f1 -->
 
 <p align="center"><img src="../logo.svg" width="128" alt="mkw-recomp logo"></p>
 
@@ -131,7 +131,7 @@ lo rechaza por defecto): sin él, el port no sabe qué memoria del juego cambió
 
 Más allá de la consola, todas opcionales y desactivadas (o al valor de la consola) por defecto:
 
-- **Pantalla**: resolución interna por encima o por debajo de la de la consola, 21:9 y 32:9 (las carreras muestran más
+- **Pantalla**: resolución interna por encima o por debajo de la de la consola, 21:9, 32:9 y 48:9 (las carreras muestran más
   a los lados), escalado AMD FSR 1, HDR en pantallas HDR, VSync, presentación mailbox o inmediata.
 - **Generación de fotogramas**: fotogramas intercalados entre los del juego (una carrera a 30 fps mostrada a 60, o a
   240 en una pantalla de 240 Hz). Más fluido, no más rápido: la imagen llega hasta un fotograma más tarde, y el

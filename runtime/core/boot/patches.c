@@ -135,7 +135,7 @@ static void shadow_set(const RtGame *g) {
         if (!strcmp(g->patch_sets[i].name, "shadow")) g->patch_on[i] = shadow_size != 0;
 }
 
-// The aspect set: MKW_ASPECT (Screen tab) wider than 16:9 shows more at the sides (Hor+): 21:9, 32:9 or the window's
+// The aspect set: MKW_ASPECT (Screen tab) wider than 16:9 shows more at the sides (Hor+): 21:9, 32:9, 48:9 or the window's
 // own. Each camera's aspect is widened by the output's over 16:9 (host_aspect), and the output gets that width
 // (output_size); the 2D layouts keep their shape in the middle 16:9 (host_ui_proj). The race's HUD follows (uw-32x9b).
 static float aspect_out;     // the output's width / height; 0: 16:9, the set off

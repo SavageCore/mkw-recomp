@@ -1,4 +1,4 @@
-<!-- translated from README.md 64148490d940 -->
+<!-- translated from README.md df5b2f6e71f1 -->
 
 <p align="center"><img src="../logo.svg" width="128" alt="mkw-recomp logo"></p>
 
@@ -128,7 +128,7 @@ por omissão): sem ele, o port não sabe que memória do jogo mudou e fica vári
 
 Para além da consola, todas opcionais e desligadas (ou no valor da consola) por omissão:
 
-- **Ecrã**: resolução interna acima ou abaixo da da consola, 21:9 e 32:9 (as corridas mostram mais dos lados),
+- **Ecrã**: resolução interna acima ou abaixo da da consola, 21:9, 32:9 e 48:9 (as corridas mostram mais dos lados),
   escalamento AMD FSR 1, HDR em ecrãs HDR, VSync, apresentação mailbox ou imediata.
 - **Geração de fotogramas**: fotogramas criados entre os do jogo (uma corrida a 30 fps mostrada a 60, ou a 240 num ecrã
   de 240 Hz). Mais fluido, não mais rápido: a imagem chega até um fotograma mais tarde, e o movimento rápido e o
