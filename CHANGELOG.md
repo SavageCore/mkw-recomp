@@ -13,6 +13,12 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
   characters, as on the console; also what LAN players see) and its own save, and the one marked Playing is the one
   the next start plays. The save you already have is the first profile, named "Player" until you rename it; removing
   a profile takes it off the list and keeps its save in `profile/players/deleted`.
+- **Crash at 2160p on game version 1.8.0** (#255, #210): with the internal resolution at 2160 the game's render-buffer
+  pool (250 MiB, sized for the console's 1440-line targets) ran out at the title screen and the game died in
+  `ShadowPrePass`. The second pool now comes from memory the runtime reserves beside the game's heap, sized by the
+  resolution and the shadow map, so it fits at any resolution without taking memory from the game. The game logic is
+  checked; the 2160 picture itself still needs a GPU with memory for it (the developer's Radeon 660M runs out).
+
 - **Giant triangles over Shy Guy Bazaar** (#291 by @flavio-silva, #72): for single frames the 3D scene was covered by
   huge triangles there. MKW fills its instanced characters' animations on the GPU into pitch textures of 70-190 KiB
   and its CPU code reads their bytes in place every frame; only targets up to 64 KiB went back to memory at a fence
