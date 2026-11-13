@@ -39,6 +39,9 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
 - AMD GPUs on Linux (RADV) no longer lose the device at the title as soon as the game draws its first task and mesh
   programs (#4, #43, #50, #225): they are drawn as compute passes there by default, as `mesh_compute = 1` in `mkw.ini`
   did (`mesh_compute = 0` goes back to the mesh shaders). A later hang some of these cards still have is in #50.
+- For NVIDIA's "instruction pointer invalid" (#22): `skip_programs = <key>[,<key>...]` in `mkw.ini` leaves out the
+  draws of the programs whose key starts with those hex digits (the `vs`/`fs` keys of the breadcrumb lines), so a
+  reporter can tell whether the program named at the fault is the one that faults. A diagnosis: those draws are missing.
 
 ## 0.1.9
 

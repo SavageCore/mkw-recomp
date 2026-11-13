@@ -389,6 +389,44 @@ static int pipe_skip_mode(void) {
     return mode;
 }
 
+// MKW_SKIP_PROGRAMS=<hex>[,<hex>...] (diagnosis): draws whose vertex or fragment program key (the 64 hex digits of
+// the breadcrumb and "last programs" lines) starts with one of these are left out, each one logged the first time.
+// Why: issue #22's NVIDIA faults ("instruction pointer invalid") were each narrowed to one program by skipping it on a
+// reporter's debug branch (c74a0d4e at Star High Sundae, 1c7a765b in the Shell Cup); in the release every reporter can.
+#define SKIP_PROGS 16
+static struct { int n; uint8_t key[SKIP_PROGS][32]; uint8_t len[SKIP_PROGS]; int logged[SKIP_PROGS]; } SP = {.n = -1};
+static int hexval(char c) { return c >= '0' && c <= '9' ? c - '0' : (c | 32) >= 'a' && (c | 32) <= 'f' ? (c | 32) - 'a' + 10 : -1; }
+
+static int skip_listed(const GfxShader *vs, const GfxShader *fs) {
+    if (SP.n < 0) {
+        int n = 0;
+        for (const char *p = cfg_get("MKW_SKIP_PROGRAMS"); p && *p && n < SKIP_PROGS;) {
+            int len = 0;
+            memset(SP.key[n], 0, 32);
+            for (; hexval(*p) >= 0 && len < 64; p++, len++) SP.key[n][len / 2] |= (uint8_t)(hexval(*p) << (len & 1 ? 0 : 4));
+            if (len) SP.len[n++] = (uint8_t)len;
+            while (*p && hexval(*p) < 0) p++;
+        }
+        __atomic_store_n(&SP.n, n, __ATOMIC_RELEASE);
+        if (n) rt_log("vk_exec: draws with %d listed programs are skipped (MKW_SKIP_PROGRAMS, a diagnosis)", n);
+    }
+    for (int i = 0; i < SP.n; i++)
+        for (int s = 0; s < 2; s++) {
+            const GfxShader *g = s ? fs : vs;
+            if (!g) continue;
+            const uint8_t *k = gfx_shader_key(g);
+            int len = SP.len[i], ok = !memcmp(k, SP.key[i], (size_t)len / 2);
+            if (ok && len & 1) ok = (k[len / 2] >> 4) == (SP.key[i][len / 2] >> 4);
+            if (!ok) continue;
+            if (!__atomic_exchange_n(&SP.logged[i], 1, __ATOMIC_RELAXED))
+                rt_log("vk_exec: frame %llu: first draw skipped by MKW_SKIP_PROGRAMS entry %d (%s program)",
+                       (unsigned long long)__atomic_load_n(&gfx_counters.frames, __ATOMIC_RELAXED) + 1, i + 1,
+                       s ? "fragment" : "vertex");
+            return 1;
+        }
+    return 0;
+}
+
 // The previous draw's shaders, kept while its program and bound pipeline state stay the same: shader_for reads nothing
 // else (the vertex attribute formats are in the state), so it would return the same shaders. MKW_SHADER_MEMO=0 turns
 // it off; =check looks the shaders up on every hit too and stops on a difference.
@@ -489,6 +527,7 @@ int prepare_draw_ex(VkExec *ex, int prim, int32_t count, int restart, int mesh) 
     // draw into per-frame targets is skipped until it is ready and comes back next frame.
     int oneshot = -1, skip = pipe_skip_mode();   // -1: not looked up
     if (!vs || (has_fs && !fs)) return vk_exec_frame.skip[VK_SKIP_SHADER_MISSING]++, 0;
+    if (SP.n && skip_listed(vs, has_fs ? fs : NULL)) return 0;
     PD_MARK(PD_SHADER);
     uint32_t fbl = feedback_prepare(ex, fs);
     if (ru_cap) ru_note_fbl(fbl);
