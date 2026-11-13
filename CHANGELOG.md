@@ -34,6 +34,8 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
 - The setup also takes a folder with a loose `exefs/` and `romfs` as a `.nup` package (or a link to one).
 - NVIDIA's shader tools are downloaded again when they arrive cut or damaged (#207), and if they keep arriving damaged
   the setup says so (an antivirus, proxy, VPN or unstable connection) instead of only showing two checksums.
+- Settings > Hacks > Unlock everything did nothing on game version 1.8.0: its save has another layout than 1.0.0's,
+  and the lists are now found by their key in the save itself.
 
 ## 0.1.9
 
