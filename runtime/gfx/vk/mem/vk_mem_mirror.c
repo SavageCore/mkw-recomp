@@ -388,16 +388,20 @@ int vk_mem_mirror_pending(void) { return npend; }
 
 void vk_mem_mirror_prologue(VkCommandBuffer cb) {
     if (!npend) return;
-    // A shadowed pool's mirror is copied from its shadow, which holds the writes stamped up to its sgen only: the mirror
-    // sync also lists pages stamped after the pool's last shadow sync, and its mgen claimed them, so they were never
-    // copied again. Issue #61: the menu labels drew another
-    // frame's glyphs; 1,242-1,844 of ~200,000 mirror pages per 200 submissions went over ahead of their shadow, and
-    // MKW_MEMORY=verify found ~3,000 stale pages per 1,200 frames (g61c/g61d, 13/11/2026). Capped here, after the shadow
-    // sync of this part, those pages go again at the next mirror sync, once the shadow has them.
+    // A shadowed pool's mirror is copied from its shadow, which holds the writes stamped up to its sgen only. A pool
+    // already synced for this submission (by the early thread or an earlier part) is not synced again, so the shadow
+    // keeps the bytes of that sync, but the mirror sync's query stamps the writes made since and listed them, and its
+    // mgen claimed them: they were never copied again (#61, the menu labels drew another frame's glyphs). Measured
+    // after the shadow sync: 1,242-2,101 of every ~200,000 mirror pages copied had a stamp above their pool's sgen; at
+    // the mirror sync, ~3,400 listed pages per 20,000 syncs were of pools already synced for the submission and none of
+    // a pool left untouched (g61d, g61h, 13/11/2026). Capped here, those pages go again at the next mirror sync, once
+    // the shadow has them.
+    gen_lock_x();
     for (int i = 0; i < npend; i++) {
         PoolRec *r = pend[i].r;
         if (r->smap && r->mgen > r->sgen) r->mgen = r->sgen;
     }
+    plat_mutex_unlock(&gen_lock);
     // #43 (RX 6650 XT, a discrete card: mirror mode) hung after every marked command had finished
     uint32_t crumb = vk_crumb_op(cb, "mirror copies at the submission's start", (uint32_t)npend, 0);
     mbarrier(cb, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_MEMORY_WRITE_BIT, VK_PIPELINE_STAGE_2_COPY_BIT,
