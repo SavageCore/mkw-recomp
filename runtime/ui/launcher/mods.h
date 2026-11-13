@@ -21,6 +21,7 @@ typedef struct {
 typedef struct {
     char name[MOD_NAME_MAX], title[96];
     int has_romfs, romfs_files, has_exefs, exefs_match, nswitches, enabled;
+    int warn_graphics, warn_shaders;   // mod.json's "warnings" (import.py): files the port treats its own way
     char exefs_build[17];   // the first .ips build id, short (16 hex) for the "not this build" line
     ModSwitch switches[MOD_SWITCHES_MAX];
 } Mod;
@@ -52,6 +53,8 @@ void mods_cancel(void);
 // Runs import.py on the pick (no-op without tools or while one runs); clears the pick when it ends.
 void mods_import_start(const char *exe_dir);
 void mods_clear_pick(void);
+// import.py found several mods in the archive ("error variants", tab-separated): import the one chosen
+void mods_import_variant(const char *exe_dir, const char *variant);
 ModsState mods_state(void);
 // Enabled on/off: writes mkw.ini's MODS (enabled order is the overlay precedence) and re-applies every scanned
 // mod's switches, so deleting a mod folder cannot strand a switch on.

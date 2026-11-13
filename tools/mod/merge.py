@@ -22,6 +22,18 @@ import json
 import os
 import struct
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "prepare"))
+from nup import romfs_read  # noqa: E402  (a loose RomFS or a .nup package)
+
+
+def game_file(romfs, rel):
+    """The game's own file at rel (a loose RomFS or a .nup), None when it has none."""
+    try:
+        return romfs_read(Path(romfs), rel)
+    except (KeyError, OSError):
+        return None
 
 HASH_KEY, DATA_ALIGN = 0x65, 0x100
 
@@ -35,39 +47,6 @@ def filename_hash(name):
     for ch in name.encode("utf-8"):
         h = ((h * HASH_KEY) + ch) & 0xFFFFFFFF
     return h
-
-
-def parse_sarc(raw):
-    if raw[:4] != b"SARC":
-        raise ValueError("not a SARC archive")
-    hlen, _, fsize, data_off = struct.unpack_from("<HHII", raw, 4)
-    if fsize != len(raw):
-        raise ValueError("SARC size mismatch")
-    pos = hlen
-    if raw[pos:pos + 4] != b"SFAT":
-        raise ValueError("no SFAT")
-    _, nfiles, hkey = struct.unpack_from("<HHI", raw, pos + 4)
-    if hkey != HASH_KEY:
-        raise ValueError("unsupported SARC hash key")
-    pos += 12
-    nodes = []
-    for _ in range(nfiles):
-        h, field, start, end = struct.unpack_from("<IIII", raw, pos)
-        nodes.append((h, (field & 0xFFFFFF) * 4, start, end))
-        pos += 16
-    if raw[pos:pos + 4] != b"SFNT":
-        raise ValueError("no SFNT")
-    strtab = pos + 8
-    files = []
-    for h, noff, start, end in nodes:
-        e = raw.index(b"\0", strtab + noff)
-        name = raw[strtab + noff:e].decode("utf-8")
-        if filename_hash(name) != h:
-            raise ValueError(f"hash mismatch for {name}")
-        files.append((name, raw[data_off + start:data_off + end]))
-    files.sort(key=lambda f: raw.index(b"\0", 0))  # placeholder, reordered below
-    order, seen = {}, 0
-    return files
 
 
 def parse_sarc_ordered(raw):
@@ -169,8 +148,8 @@ def main():
     merged = args.merged or os.path.join(mods_dir, ".merged")
     mromfs = os.path.join(merged, "romfs")
     enabled = [m for m in args.enable.split(",") if m]
-    if not os.path.isdir(args.romfs):
-        return fail("romfs", f"{args.romfs} is not a loose romfs folder")
+    if not os.path.exists(args.romfs):
+        return fail("romfs", f"{args.romfs} is not the game's RomFS (a folder or a .nup)")
     picks = []
     if args.choices and os.path.isfile(args.choices):
         try:
@@ -240,14 +219,12 @@ def main():
                 per_archive.setdefault(rel, []).append((m, dict(inners), ver))
     conflicts, merged_n, auto_n = [], 0, 0
     manifest = []
-    loose_arch = {}
     for rel, versions in sorted(per_archive.items()):
         if len(versions) < 2:
             continue
         vanilla, verr = None, None
-        loose = os.path.join(args.romfs, rel.replace("/", os.sep))
-        if os.path.isfile(loose):
-            lraw = open(loose, "rb").read()
+        lraw = game_file(args.romfs, rel)
+        if lraw is not None:
             if rel.endswith(".zs"):
                 try:
                     lraw = zstd.decompress(lraw)
@@ -311,8 +288,8 @@ def main():
     with open(manifest_path, "w", encoding="utf-8", newline="\n") as mf:
         for relq, dest in sorted(manifest):
             size = os.path.getsize(dest)
-            orig = os.path.join(args.romfs, relq.replace("/", os.sep))
-            osha = sha256_file(orig) if os.path.isfile(orig) else "-"
+            orig = game_file(args.romfs, relq)
+            osha = hashlib.sha256(orig).hexdigest() if orig is not None else "-"
             mf.write(f"{relq}\t{size}\t{sha256_file(dest)}\t{osha}\n")
     with open(os.path.join(merged, "conflicts.json"), "w", encoding="utf-8") as f:
         json.dump([{"archive": a, "inner": i, "mods": m, "winner": w, "resolved": r}

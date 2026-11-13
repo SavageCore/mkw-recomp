@@ -415,6 +415,84 @@ TH = {
 for _ctx, _text in TH.items():
     T.setdefault(_ctx, {})["th"] = _text
 
+# The game's own file in the conflict picker, the archive variants and the unpacking errors (13/11/2026)
+LATER = {
+    "UI_MOD_VANILLA": {
+        "fr": "Original", "de": "Original", "es": "Original", "es-419": "Original", "it": "Originale",
+        "pt": "Original", "pt-BR": "Original", "nl": "Origineel", "ru": "Оригинал", "ja": "オリジナル",
+        "ko": "원본", "zh-Hans": "原版", "zh-Hant": "原版", "ca": "Original", "gl": "Orixinal", "eu": "Jatorrizkoa",
+        "pl": "Oryginał", "tr": "Orijinal", "uk": "Оригінал",
+    },
+    "UI_MOD_VARIANTS": {
+        "fr": "Cette archive contient plusieurs mods : choisissez celui à importer",
+        "de": "Dieses Archiv enthält mehrere Mods: wähle den zu importierenden",
+        "es": "Este archivo contiene varios mods: elige el que quieres importar",
+        "es-419": "Este archivo contiene varios mods: elige el que quieres importar",
+        "it": "Questo archivio contiene più mod: scegli quello da importare",
+        "pt": "Este arquivo contém vários mods: escolhe o que queres importar",
+        "pt-BR": "Este arquivo contém vários mods: escolha o que quer importar",
+        "nl": "Dit archief bevat meerdere mods: kies welke je wilt importeren",
+        "ru": "В этом архиве несколько модов: выберите, какой импортировать",
+        "ja": "このアーカイブには複数のModがあります：インポートするものを選んでください",
+        "ko": "이 압축 파일에는 여러 모드가 있습니다: 가져올 모드를 고르세요",
+        "zh-Hans": "此压缩包包含多个模组：请选择要导入的那个",
+        "zh-Hant": "此壓縮檔包含多個模組：請選擇要匯入的那個",
+        "ca": "Aquest arxiu conté diversos mods: tria el que vols importar",
+        "gl": "Este arquivo contén varios mods: escolle o que queres importar",
+        "eu": "Artxibo honek hainbat mod ditu: aukeratu inportatu nahi duzuna",
+        "pl": "To archiwum zawiera kilka modów: wybierz ten do zaimportowania",
+        "tr": "Bu arşivde birden fazla mod var: içe aktarılacak olanı seçin",
+        "uk": "У цьому архіві кілька модів: виберіть, який імпортувати",
+        "th": "ไฟล์นี้มีหลายม็อด: เลือกม็อดที่จะนำเข้า",
+    },
+    "UI_MOD_ERR_BIG": {
+        "fr": "Trop volumineux pour être un mod (plus de 4 Go ou 50000 fichiers)",
+        "de": "Zu groß für einen Mod (über 4 GB oder 50000 Dateien)",
+        "es": "Demasiado grande para ser un mod (más de 4 GB o 50000 archivos)",
+        "es-419": "Demasiado grande para ser un mod (más de 4 GB o 50000 archivos)",
+        "it": "Troppo grande per essere una mod (oltre 4 GB o 50000 file)",
+        "pt": "Demasiado grande para ser um mod (mais de 4 GB ou 50000 ficheiros)",
+        "pt-BR": "Grande demais para ser um mod (mais de 4 GB ou 50000 arquivos)",
+        "nl": "Te groot voor een mod (meer dan 4 GB of 50000 bestanden)",
+        "ru": "Слишком большой для мода (больше 4 ГБ или 50000 файлов)",
+        "ja": "Modにしては大きすぎます（4 GBまたは50000ファイル超）",
+        "ko": "모드라기엔 너무 큽니다 (4 GB 또는 50000개 파일 초과)",
+        "zh-Hans": "太大，不像是模组（超过 4 GB 或 50000 个文件）",
+        "zh-Hant": "太大，不像是模組（超過 4 GB 或 50000 個檔案）",
+        "ca": "Massa gran per ser un mod (més de 4 GB o 50000 fitxers)",
+        "gl": "Demasiado grande para ser un mod (máis de 4 GB ou 50000 ficheiros)",
+        "eu": "Handiegia mod bat izateko (4 GB edo 50000 fitxategi baino gehiago)",
+        "pl": "Za duże jak na mod (ponad 4 GB lub 50000 plików)",
+        "tr": "Bir mod için çok büyük (4 GB veya 50000 dosyadan fazla)",
+        "uk": "Завеликий для мода (понад 4 ГБ або 50000 файлів)",
+        "th": "ใหญ่เกินกว่าจะเป็นม็อด (เกิน 4 GB หรือ 50000 ไฟล์)",
+    },
+    "UI_MOD_ERR_UNPACK": {
+        "fr": "Impossible d'ouvrir cette archive : les .rar et .7z nécessitent bsdtar (libarchive)",
+        "de": "Archiv lässt sich nicht öffnen: .rar und .7z brauchen installiertes bsdtar (libarchive)",
+        "es": "No se puede abrir este archivo: los .rar y .7z necesitan bsdtar (libarchive) instalado",
+        "es-419": "No se puede abrir este archivo: los .rar y .7z necesitan bsdtar (libarchive) instalado",
+        "it": "Impossibile aprire l'archivio: .rar e .7z richiedono bsdtar (libarchive) installato",
+        "pt": "Não é possível abrir este arquivo: .rar e .7z precisam do bsdtar (libarchive) instalado",
+        "pt-BR": "Não foi possível abrir este arquivo: .rar e .7z precisam do bsdtar (libarchive) instalado",
+        "nl": "Kan dit archief niet openen: .rar en .7z hebben bsdtar (libarchive) nodig",
+        "ru": "Не удаётся открыть архив: для .rar и .7z нужен установленный bsdtar (libarchive)",
+        "ja": "このアーカイブを開けません：.rar と .7z には bsdtar（libarchive）が必要です",
+        "ko": "이 압축 파일을 열 수 없습니다: .rar와 .7z에는 bsdtar(libarchive)가 필요합니다",
+        "zh-Hans": "无法打开此压缩包：.rar 和 .7z 需要安装 bsdtar（libarchive）",
+        "zh-Hant": "無法開啟此壓縮檔：.rar 與 .7z 需要安裝 bsdtar（libarchive）",
+        "ca": "No es pot obrir aquest arxiu: els .rar i .7z necessiten bsdtar (libarchive) instal·lat",
+        "gl": "Non se pode abrir este arquivo: os .rar e .7z precisan bsdtar (libarchive) instalado",
+        "eu": "Ezin da artxibo hau ireki: .rar eta .7z fitxategiek bsdtar (libarchive) behar dute",
+        "pl": "Nie można otworzyć archiwum: .rar i .7z wymagają zainstalowanego bsdtar (libarchive)",
+        "tr": "Bu arşiv açılamıyor: .rar ve .7z için bsdtar (libarchive) kurulu olmalı",
+        "uk": "Не вдається відкрити архів: для .rar і .7z потрібен встановлений bsdtar (libarchive)",
+        "th": "เปิดไฟล์นี้ไม่ได้: .rar และ .7z ต้องติดตั้ง bsdtar (libarchive)",
+    },
+}
+for _ctx, _langs in LATER.items():
+    T.setdefault(_ctx, {}).update(_langs)
+
 
 def main():
     changed = 0

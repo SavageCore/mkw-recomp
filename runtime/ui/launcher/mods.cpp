@@ -34,6 +34,7 @@ static struct {
     char pick[PLAT_PATH_MAX];   // the zip or folder the dialog chose
     int pick_is_zip;
     char name[MOD_NAME_MAX];    // the rename field; empty: import.py takes the mod's own name
+    char variant[512];          // the mod chosen from an archive with several (import.py --variant)
     // merge (tools/mod/merge.py, same child-process pattern; reruns after every toggle/import/delete)
     SDL_Thread *mthread;
     SDL_Process *mproc;
@@ -143,6 +144,14 @@ static int list_cb(const char *name, int kind, uint64_t, void *ctx) {
         if (json_value(json, "romfs_files", v, sizeof v)) m->romfs_files = atoi(v);
         if (json_value(json, "has_exefs", v, sizeof v)) m->has_exefs = !strcmp(v, "true") || !strcmp(v, "1");
         if (json_value(json, "exefs_match", v, sizeof v)) m->exefs_match = !strcmp(v, "true") || !strcmp(v, "1");
+        const char *warn = strstr(json, "\"warnings\"");   // a list of names; ours, so a search is enough
+        const char *end = warn ? strchr(warn, ']') : nullptr;
+        if (warn && end) {
+            char list[128];
+            snprintf(list, sizeof list, "%.*s", (int)(end - warn), warn);
+            m->warn_graphics = strstr(list, "\"graphics\"") != nullptr;
+            m->warn_shaders = strstr(list, "\"shaders\"") != nullptr;
+        }
         const char *b = strstr(json, "\"exefs_builds\"");
         if (b && (b = strchr(b, '[')) && (b = strchr(b, '"'))) {
             size_t n = 0;
@@ -368,12 +377,11 @@ void mods_pick(const char *path, int is_zip) {
 #endif
     base = base ? base + 1 : path;
     snprintf(G.name, sizeof G.name, "%s", base);
+    G.variant[0] = 0;
     if (is_zip) {
-        size_t n = strlen(G.name);   // "timer.zip" -> "timer"
-        if (n > 4 && G.name[n - 4] == '.' && (G.name[n - 3] == 'z' || G.name[n - 3] == 'Z') &&
-            (G.name[n - 2] == 'i' || G.name[n - 2] == 'I') &&
-            (G.name[n - 1] == 'p' || G.name[n - 1] == 'P'))
-            G.name[n - 4] = 0;
+        char *dot = strrchr(G.name, '.');   // "timer.zip" -> "timer", the same for .rar and .7z
+        if (dot && (!SDL_strcasecmp(dot, ".zip") || !SDL_strcasecmp(dot, ".rar") || !SDL_strcasecmp(dot, ".7z")))
+            *dot = 0;
     } else {
         char romfs[PLAT_PATH_MAX * 2], exefs[PLAT_PATH_MAX * 2];
         snprintf(romfs, sizeof romfs, "%s/romfs", path);
@@ -404,8 +412,15 @@ void mods_cancel(void) {
     SDL_UnlockMutex(G.lock);
 }
 
+void mods_import_variant(const char *exe_dir, const char *variant) {
+    snprintf(G.variant, sizeof G.variant, "%s", variant);
+    G.finished = 0;
+    G.done[0] = G.code[0] = G.error[0] = 0;
+    mods_import_start(exe_dir);
+}
+
 void mods_clear_pick(void) {
-    G.pick[0] = G.name[0] = 0;
+    G.pick[0] = G.name[0] = G.variant[0] = 0;
     G.finished = 0;
     G.done[0] = G.code[0] = G.error[0] = 0;
 }
@@ -493,9 +508,12 @@ void mods_import_start(const char *exe_dir) {
     char exefs[PLAT_PATH_MAX * 2];
     exefs_root(exe_dir, exefs, sizeof exefs);
     const char *kind = G.pick_is_zip ? "--zip" : "--folder";
-    const char *args[] = {python, "-I", script, "--game", exe_dir, "--romfs", romfs, "--exefs", exefs,
-                          kind,      G.pick,   "--name", G.name, nullptr};
-    if (!G.name[0]) args[11] = nullptr;
+    // the name and the variant are optional: each pair only when it has a value
+    const char *args[16] = {python, "-I", script, "--game", exe_dir, "--romfs", romfs, "--exefs", exefs, kind, G.pick};
+    int na = 11;
+    if (G.name[0]) args[na++] = "--name", args[na++] = G.name;
+    if (G.variant[0]) args[na++] = "--variant", args[na++] = G.variant;
+    args[na] = nullptr;
     rt_log("mods: %s %s --game %s %s %s%s%s", python, script, exe_dir, kind, G.pick,
            G.name[0] ? " --name " : "", G.name[0] ? G.name : "");
     G.proc = SDL_CreateProcess(args, true);

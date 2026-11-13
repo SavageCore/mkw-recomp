@@ -40,6 +40,7 @@
 #include "ui/launcher/launcher_setup.h"
 #include "ui/launcher/launcher_update.h"
 #include "ui/launcher/mods.h"
+#include "ui/launcher/mods_browse.h"
 #include "ui/menu/menu_look.h"
 #include "ui/menu/option_rows.h"
 #include "ui/menu/settings_tabs.h"
@@ -595,7 +596,7 @@ static void mods_error_text(const ModsState &st, char *out, size_t cap) {
         UiTextId text;
     } kWhy[] = {{"layout", UI_MOD_ERR_LAYOUT}, {"name", UI_MOD_ERR_NAME}, {"io", UI_MOD_ERR_IO},
                 {"notported", UI_MOD_ERR_NOPORT}, {"nogame", UI_MOD_ERR_NOGAME},
-                {"no_setup", UI_SETUP_ERR_NO_SETUP}};
+                {"no_setup", UI_SETUP_ERR_NO_SETUP}, {"big", UI_MOD_ERR_BIG}, {"unpack", UI_MOD_ERR_UNPACK}};
     char why[600];
     snprintf(why, sizeof why, "%s", st.error);
     for (const auto &w : kWhy)
@@ -649,6 +650,24 @@ static void page_mods(float w, float h) {
         mods_refresh(L.exe_dir);
         snprintf(shown, sizeof shown, "%s", L.exe_dir);
         if (!getenv("MKW_LAUNCHER_NO_MERGE")) mods_merge_start(L.exe_dir);   // (test) skip: pre-merged shots
+    }
+    // two tabs: the player's mods, and GameBanana's (MKW_LAUNCHER_MODS_FIND=1 opens the second, for shots)
+    static int find_tab = getenv("MKW_LAUNCHER_MODS_FIND") ? 1 : 0;
+    if (ImGui::RadioButton(menu_text(UI_MOD_TAB_INSTALLED), find_tab == 0)) find_tab = 0;
+    ImGui::SameLine();
+    if (ImGui::RadioButton(menu_text(UI_MOD_TAB_FIND), find_tab == 1)) find_tab = 1;
+    ImGui::Separator();
+    if (find_tab == 1) {
+        mods_poll();
+        if (!ready) ImGui::TextWrapped("%s", menu_text(UI_LAUNCH_FILES_MISSING));
+        else if (mods_browse_draw(L.exe_dir, L.ren)) find_tab = 0;   // an install went to the import: show it
+        ImGui::EndChild();
+        bool leave = panel_back_row() || back_pressed();
+        ImGui::End();
+        if (!leave) return;
+        if (mods_merge_running()) mods_merge_cancel();
+        go_main();
+        return;
     }
     if (const char *t = getenv("MKW_LAUNCHER_MODS_PICK")) {   // (test) the picked zip or folder, as its dialog does
         if (!mods_has_pick()) {
@@ -731,6 +750,11 @@ static void page_mods(float w, float h) {
             snprintf(detail + n, sizeof detail - n, "%s", code);
         }
         if (n) ImGui::TextDisabled("%s", detail);
+        // files the port treats its own way (import.py): the mod is still installed, the player told what to expect
+        ImGui::PushTextWrapPos(0);
+        if (m->warn_graphics) ImGui::TextColored(ImVec4(0.95f, 0.75f, 0.35f, 1), "%s", menu_text(UI_MOD_WARN_GRAPHICS));
+        if (m->warn_shaders) ImGui::TextColored(ImVec4(0.95f, 0.75f, 0.35f, 1), "%s", menu_text(UI_MOD_WARN_SHADERS));
+        ImGui::PopTextWrapPos();
         ImGui::Separator();
         ImGui::PopID();
     }
@@ -751,7 +775,7 @@ static void page_mods(float w, float h) {
         ImGui::SameLine();
         if (ImGui::Button(menu_text(UI_LAUNCH_CANCEL))) mods_cancel();
     } else if (!mods_has_pick() && !ms.finished) {
-        static const SDL_DialogFileFilter zip_filter = {"Mod zip", "zip"};
+        static const SDL_DialogFileFilter zip_filter = {"Mod (.zip, .rar, .7z)", "zip;rar;7z"};
         if (ImGui::Button(menu_text(UI_MOD_IMPORT_ZIP)))
             SDL_ShowOpenFileDialog(pick_zip, nullptr, L.win, &zip_filter, 1, nullptr, false);
         ImGui::SameLine();
@@ -762,6 +786,17 @@ static void page_mods(float w, float h) {
             char done[128];
             snprintf(done, sizeof done, menu_text(UI_MOD_IMPORTED), ms.done);
             ImGui::TextColored(ImVec4(0.55f, 0.85f, 0.6f, 1), "%s", done);
+        } else if (!strcmp(ms.code, "variants")) {
+            // one button per mod the archive holds (import.py lists their folders, tab-separated)
+            ImGui::TextWrapped("%s", menu_text(UI_MOD_VARIANTS));
+            char list[sizeof ms.error];
+            snprintf(list, sizeof list, "%s", ms.error);
+            int k = 0;
+            for (char *v = strtok(list, "\t"); v; v = strtok(NULL, "\t"), k++) {
+                ImGui::PushID(k);
+                if (ImGui::Button(v)) mods_import_variant(L.exe_dir, v);
+                ImGui::PopID();
+            }
         } else {
             char msg[700];
             mods_error_text(ms, msg, sizeof msg);

@@ -1950,7 +1950,7 @@ msgstr "Konflikty: kliknij zwycięzcę, aby go zmienić"
 
 msgctxt "UI_MOD_VANILLA"
 msgid "Vanilla"
-msgstr ""
+msgstr "Oryginał"
 
 msgctxt "UI_MOD_IMPORTED"
 msgid "Imported %s"
@@ -1983,6 +1983,111 @@ msgstr "Jeszcze nie przeniesiono: brak patchy kodu dla tej gry"
 msgctxt "UI_MOD_ERR_NOGAME"
 msgid "Game files not set up: do that on the Files page first"
 msgstr "Brak plików gry: najpierw skonfiguruj je na stronie Pliki"
+
+#. Above one button per mod found in the archive (its folder inside the archive).
+msgctxt "UI_MOD_VARIANTS"
+msgid "This archive holds several mods: pick the one to import"
+msgstr "To archiwum zawiera kilka modów: wybierz ten do zaimportowania"
+
+msgctxt "UI_MOD_ERR_BIG"
+msgid "Too large to be a mod (over 4 GB or 50000 files)"
+msgstr "Za duże jak na mod (ponad 4 GB lub 50000 plików)"
+
+msgctxt "UI_MOD_ERR_UNPACK"
+msgid "Cannot open this archive: .rar and .7z need bsdtar (libarchive) installed"
+msgstr "Nie można otworzyć archiwum: .rar i .7z wymagają zainstalowanego bsdtar (libarchive)"
+
+#. The Mods page's two tabs: the player's mods, and GameBanana's.
+msgctxt "UI_MOD_TAB_INSTALLED"
+msgid "Installed"
+msgstr ""
+
+msgctxt "UI_MOD_TAB_FIND"
+msgid "Find on GameBanana"
+msgstr ""
+
+#. Shown above the GameBanana list: the project hosts no mods.
+msgctxt "UI_GB_NOTE"
+msgid ""
+"Mods are made by their authors and downloaded from GameBanana when you install them; this project "
+"does not host or endorse them. Each mod has its own license."
+msgstr ""
+
+msgctxt "UI_GB_SEARCH"
+msgid "Search"
+msgstr ""
+
+msgctxt "UI_GB_SORT_DOWNLOADS"
+msgid "Most downloaded"
+msgstr ""
+
+msgctxt "UI_GB_SORT_NEW"
+msgid "Newest"
+msgstr ""
+
+msgctxt "UI_GB_SORT_LIKES"
+msgid "Most liked"
+msgstr ""
+
+msgctxt "UI_GB_LOADING"
+msgid "Loading..."
+msgstr ""
+
+msgctxt "UI_GB_NONE"
+msgid "No mods found"
+msgstr ""
+
+#. %s: the mod's author on GameBanana.
+msgctxt "UI_GB_BY"
+msgid "by %s"
+msgstr ""
+
+#. %s: the mod's license, e.g. "CC BY-NC-ND 4.0".
+msgctxt "UI_GB_LICENSE"
+msgid "License: %s"
+msgstr ""
+
+msgctxt "UI_GB_OPEN"
+msgid "Open its GameBanana page"
+msgstr ""
+
+#. %s: the file's name.
+msgctxt "UI_GB_INSTALL"
+msgid "Install %s"
+msgstr ""
+
+#. First %s: the file's name; second %s: its author.
+msgctxt "UI_GB_CONFIRM"
+msgid "Download %s by %s from GameBanana and install it?"
+msgstr ""
+
+msgctxt "UI_GB_UNSAFE"
+msgid "Not offered: GameBanana's virus scan has not marked this file clean"
+msgstr ""
+
+#. %d: this page; %d: how many pages.
+msgctxt "UI_GB_PAGE"
+msgid "Page %d of %d"
+msgstr ""
+
+#. %s: what failed (an English detail from the network).
+msgctxt "UI_GB_ERROR"
+msgid "GameBanana did not answer: %s"
+msgstr ""
+
+#. Under an installed mod that replaces the game's graphics settings archive (general_format).
+msgctxt "UI_MOD_WARN_GRAPHICS"
+msgid ""
+"Changes the game's graphics settings: the port's own settings (resolution, quality) go on top, so "
+"this mod may do less than on a console, look worse or misbehave"
+msgstr ""
+
+#. Under an installed mod that ships shaders (Shader/ files).
+msgctxt "UI_MOD_WARN_SHADERS"
+msgid ""
+"Replaces shaders: the port translates the game's shaders during the setup, so this mod may not "
+"show, or may break the picture"
+msgstr ""
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_UPDATE"
