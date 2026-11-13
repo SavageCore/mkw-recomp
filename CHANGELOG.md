@@ -16,6 +16,8 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
   menu texts drew another frame's glyphs for a frame. @EdouardSence traced it, on an RX 9070 XT, to pages of game
   memory the GPU copy took from a shadow that did not have them yet, and measured each step: 2 947 stale pages before
   the fix, 8 after, and no swapped labels on screen.
+- **The game's icon in the Linux taskbar** (#252 by @EdouardSence): on Wayland (KDE Plasma and other compositors with
+  window icons) the game's and the start screen's windows showed a generic icon; they now carry the chequered flag.
 - The setup compiles with more jobs where memory held it back: a compile was given 1 GB and takes at most 0.4 (a
   12-thread PC with 13 GB went from 8 to 12 jobs, 330 s to 302 s for the game's code; an 8 GB PC with 8 threads from
   4 to 8). `logs/setup.log` now says how long each step took.
