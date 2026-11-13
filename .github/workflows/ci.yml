@@ -57,9 +57,16 @@ jobs:
     steps:
       - name: Toolchain and libraries
         run: |
-          pacman -Syu --noconfirm --needed git clang lld ninja uv python sdl3 opus libvpx zstd xxhash \
+          pacman -Syu --noconfirm --needed git ccache clang lld ninja uv python sdl3 opus libvpx zstd xxhash \
             vulkan-headers vulkan-icd-loader
       - uses: actions/checkout@v5
+      - name: ccache in the checkout, kept between runs (build.py compiles through it when installed)
+        run: echo "CCACHE_DIR=$PWD/.ccache" >> "$GITHUB_ENV"
+      - uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ccache-${{ github.job }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-
       - name: VMA header
         run: |
           mkdir -p scratchpad/vma
@@ -75,8 +82,15 @@ jobs:
     continue-on-error: true   # not a required check: a failure here does not block the other platforms
     steps:
       - name: Tools
-        run: pacman -Syu --noconfirm --needed git clang lld llvm ninja make cmake pkgconf expat binutils uv python
+        run: pacman -Syu --noconfirm --needed git ccache clang lld llvm ninja make cmake pkgconf expat binutils uv python
       - uses: actions/checkout@v5
+      - name: ccache in the checkout, kept between runs (build.py compiles through it when installed)
+        run: echo "CCACHE_DIR=$PWD/.ccache" >> "$GITHUB_ENV"
+      - uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ccache-${{ github.job }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-
       - name: VMA header
         run: |
           mkdir -p scratchpad/vma
@@ -96,8 +110,15 @@ jobs:
     container: archlinux:latest
     steps:
       - name: Tools
-        run: pacman -Syu --noconfirm --needed git ninja uv python
+        run: pacman -Syu --noconfirm --needed git ccache ninja uv python
       - uses: actions/checkout@v5
+      - name: ccache in the checkout, kept between runs (build.py compiles through it when installed)
+        run: echo "CCACHE_DIR=$PWD/.ccache" >> "$GITHUB_ENV"
+      - uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ccache-${{ github.job }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-
       - uses: actions/cache@v4
         with:
           path: build/win

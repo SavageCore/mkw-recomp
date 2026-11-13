@@ -28,8 +28,15 @@ jobs:
     container: archlinux:latest
     steps:
       - name: Tools
-        run: pacman -Syu --noconfirm --needed git clang lld llvm ninja make cmake pkgconf expat binutils uv python
+        run: pacman -Syu --noconfirm --needed git ccache clang lld llvm ninja make cmake pkgconf expat binutils uv python
       - uses: actions/checkout@v5
+      - name: ccache in the checkout, kept between runs (build.py compiles through it when installed)
+        run: echo "CCACHE_DIR=$PWD/.ccache" >> "$GITHUB_ENV"
+      - uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ccache-${{ github.job }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-
       - name: Git trusts the checkout (build.py's version comes from git describe)
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: VMA header
@@ -60,8 +67,15 @@ jobs:
     container: archlinux:latest
     steps:
       - name: Tools
-        run: pacman -Syu --noconfirm --needed git clang lld llvm ninja make cmake pkgconf expat binutils uv python
+        run: pacman -Syu --noconfirm --needed git ccache clang lld llvm ninja make cmake pkgconf expat binutils uv python
       - uses: actions/checkout@v5
+      - name: ccache in the checkout, kept between runs (build.py compiles through it when installed)
+        run: echo "CCACHE_DIR=$PWD/.ccache" >> "$GITHUB_ENV"
+      - uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ccache-${{ github.job }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-
       - name: Git trusts the checkout (build.py's version comes from git describe)
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: VMA header
@@ -92,8 +106,15 @@ jobs:
     container: archlinux:latest
     steps:
       - name: Tools
-        run: pacman -Syu --noconfirm --needed git ninja binutils uv python
+        run: pacman -Syu --noconfirm --needed git ccache ninja binutils uv python
       - uses: actions/checkout@v5
+      - name: ccache in the checkout, kept between runs (build.py compiles through it when installed)
+        run: echo "CCACHE_DIR=$PWD/.ccache" >> "$GITHUB_ENV"
+      - uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ccache-${{ github.job }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-
       - name: Git trusts the checkout (build.py's version comes from git describe)
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - uses: actions/cache@v4
