@@ -168,6 +168,25 @@ def test_nup_pack_reads_back(tmp_path: Path) -> None:
     assert got == files
 
 
+def test_copy_removes_other_versions_files(tmp_path: Path) -> None:
+    # a folder set up from 1.0.0, then copied from 1.8.0: only 1.8.0's files stay (#261), never in a linked folder
+    import gamecopy
+
+    def make(root: Path, names: list[str]) -> None:
+        for name in names:
+            (root / name).parent.mkdir(parents=True, exist_ok=True)
+            (root / name).write_text(name)
+
+    src, dst = tmp_path / ODD / "1.8.0", tmp_path / ODD / "game/romfs"
+    make(src, ["UI/Product_180.sarc.zs", "Sub Dir/b"])
+    make(dst, ["UI/Product_100.sarc.zs", "Old/x/y", "Sub Dir/b"])
+    gamecopy.copy_tree(src, dst, 2, "1.8.0")
+    assert sorted(p.relative_to(dst).as_posix() for p in dst.rglob("*")) == ["Sub Dir", "Sub Dir/b", "UI",
+                                                                             "UI/Product_180.sarc.zs"]  # fmt: skip
+    gamecopy.clear_dir(dst, dst / "Sub Dir/b")  # the source inside: kept
+    assert (dst / "UI/Product_180.sarc.zs").is_file()
+
+
 def test_package_has_the_launchers_tools() -> None:
     # every script the start screen runs (setup_tool(exe_dir, "mod/import.py", ...)) is copied into the package by
     # tools/build/dist.py's SOURCES: until 13/11/2026 tools/mod was not, and the Mods page said "no setup tools"

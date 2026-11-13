@@ -71,7 +71,7 @@ import game_texts  # (build_all: the game's texts in ca, gl, eu)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from gamecode import compile_game
-from gamecopy import copy_tree
+from gamecopy import clear_dir, copy_tree, remove_stale
 from nup import Nup, is_nup
 from machine import (
     Failed,
@@ -482,18 +482,24 @@ def main() -> None:
             t_step = time.monotonic()
             if step == "exefs":
                 if is_nx(exefs_src):
+                    clear_dir(game / "exefs", exefs_src)
                     unpack(game, exefs_src, game, "exefs")
                 elif exefs_src.is_file():
-                    Nup(exefs_src).extract("exefs", game / "exefs", lambda d, t: emit("progress", d, t))
+                    nup = Nup(exefs_src)
+                    nup.extract("exefs", game / "exefs", lambda d, t: emit("progress", d, t))
+                    remove_stale(game / "exefs", exefs_src, set(nup.files("exefs")), version.name)
                 else:
                     copy_tree(exefs_src, game / "exefs", sum(1 for p in exefs_src.iterdir() if p.is_file()),
                               version.name)
             elif step == "romfs":
                 if args.romfs == "copy" and is_nx(romfs_src):
+                    clear_dir(romfs, romfs_src)
                     unpack(game, romfs_src, game, "romfs")
                     ini_set(game / "mkw.ini", "romfs", "romfs")
                 elif args.romfs == "copy" and romfs_src.is_file():
-                    Nup(romfs_src).extract("romfs", romfs, lambda d, t: emit("progress", d, t))
+                    nup = Nup(romfs_src)
+                    nup.extract("romfs", romfs, lambda d, t: emit("progress", d, t))
+                    remove_stale(romfs, romfs_src, set(nup.files("romfs")), version.name)
                     ini_set(game / "mkw.ini", "romfs", "romfs")
                 elif args.romfs == "copy":
                     copy_tree(romfs_src, romfs, version.romfs_files, version.name)
