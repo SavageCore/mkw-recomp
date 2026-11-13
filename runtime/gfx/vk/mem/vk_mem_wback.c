@@ -179,6 +179,7 @@ void vk_gpu_written(uint64_t addr, uint64_t size) {
         // With read traps the pages take the bytes when the game touches them (memory.c), not all of them here.
         uint64_t wb = 0;   // trapped ranges count when filled (read traps below)
         if (r && r->smap && addr >= r->import_lo && addr + size <= r->import_hi) {
+            shadow_inval(r, addr, addr + size);   // the GPU's bytes, read below or by a read trap later
             // The bases leave their entry here, before the copy changes guest memory. Without any, no lock: the
             // completion thread waited for syncs on it (MKW_SHADOW_WB_DEFER).
             uint8_t *base = NULL, *mbase = NULL;

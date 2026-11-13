@@ -58,10 +58,9 @@ int shadow_pool(VkCtx *c, PoolRec *r, uint64_t addr, uint64_t size) {
     uint64_t n = r->import_hi - r->import_lo;
     VkBufferCreateInfo bi = {.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, .size = n, .usage = pool_usage(c),
                              .sharingMode = VK_SHARING_MODE_EXCLUSIVE};
-    // Cached where the device has it: the fence copies read it back on the CPU.
-    VmaAllocationCreateInfo ai = {.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT,
-                                  .requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                  .preferredFlags = VK_MEMORY_PROPERTY_HOST_CACHED_BIT};
+    // Cached: the fence copies read it back on the CPU (vk_mem_shadow_nc.c picks the type).
+    VmaAllocationCreateInfo ai = {.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT};
+    shadow_alloc_flags(c, &ai);
     VmaAllocationInfo info;
     VkResult res = vmaCreateBuffer(c->vma, &bi, &ai, &r->buf, &r->salloc, &info);
     if (res != VK_SUCCESS) {
@@ -73,10 +72,12 @@ int shadow_pool(VkCtx *c, PoolRec *r, uint64_t addr, uint64_t size) {
         return 0;
     }
     r->smap = info.pMappedData;
+    shadow_alloc_note(c, r);
     gen_lock_x();
     r->sgen = gen_now;   // the copy below holds every write stamped so far; later stamps are copied again
     plat_mutex_unlock(&gen_lock);
     memcpy(r->smap, (const void *)(uintptr_t)r->import_lo, n);
+    shadow_flush(r, r->import_lo, r->import_hi);
     plat_mutex_lock(&shadow_lock);
     s_live_n++, s_live_bytes += (int64_t)n;
     plat_mutex_unlock(&shadow_lock);
@@ -166,8 +167,10 @@ static int shadow_merge(PoolRec *r, uint64_t lo, uint64_t hi, const uint8_t *src
         bases[n] = e->mbase, blo[n++] = e->lo;
         if (e->lazy && lazy_check(e->lazy)) bases[n] = lazy_check(e->lazy), blo[n++] = e->lo;   // kept alike
     }
+    shadow_inval(r, lo, hi);   // merge_in compares the GPU's bytes with the bases
     uint8_t *old = race_on > 0 ? merge_base(r, lo, hi) : NULL;   // MKW_SHADOW_RACE: the shadow's bytes before
     uint64_t over = merge_over, m = merge_in(r, lo, hi, bases, blo, n, src);
+    if (m) shadow_flush(r, lo, hi);
     if (watch_hi && merge_over != over) watch_event("merge-in over the GPU's", lo, hi, sync_fence, merge_over - over);
     if (old && m) race_check(r, lo, hi, sync_fence, old);
     free(old);
@@ -209,6 +212,7 @@ static void shadow_copy(PoolRec *r, uint64_t a, uint64_t b, int i, const uint8_t
     // writes stamp their pages (vk_guest_written), so every sync after a fence would.
     if (src) {
         memcpy(r->smap + (a - r->import_lo), src, b - a);
+        shadow_flush(r, a, b);
         s_copied += b - a;
         if (n_early_base) base_follow(r, a, b);
         return;
@@ -221,6 +225,7 @@ static void shadow_copy(PoolRec *r, uint64_t a, uint64_t b, int i, const uint8_t
         if (race_on > 0) race_wait(race_check(r, x, y, sync_fence, NULL));
         if (watch_hi) watch_copy(r, x, y, sync_fence);
         mem_copy_out(r->smap + (x - r->import_lo), x, y - x);   // MKW_EARLY_READ's watched pages stay watched
+        shadow_flush(r, x, y);
         s_copied += y - x;
         if (n_early_base) base_follow(r, x, y);
     }

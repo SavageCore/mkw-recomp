@@ -55,6 +55,7 @@ typedef struct PoolRec {
     // Shadow storage (POOL_IMPORT in shadow mode, "shadow storage" below): buf is a host-visible copy of the guest pages.
     VmaAllocation salloc;
     uint8_t *smap;                     // its mapping; offsets as in buf (from import_lo)
+    uint8_t snc;                       // salloc is not coherent (or MKW_SHADOW_CACHED=1): shadow_flush, shadow_inval
     uint32_t sgen;                     // gen_lock: every page write stamped up to this generation is in the shadow
     volatile uint8_t stouched;         // on the touched list: the GPU may use it in the submission being recorded
     uint64_t ssub;                     // shadow_lock: the submission whose shadow sync last covered it
@@ -124,6 +125,11 @@ extern int64_t s_live_n, s_live_bytes;
 int shadow_pool(VkCtx *c, PoolRec *r, uint64_t addr, uint64_t size);
 void shadow_touch(PoolRec *r);
 void shadow_forget(PoolRec *r);
+// vk_mem_shadow_nc.c: shadow storage on cached memory that may not be coherent (#283)
+void shadow_alloc_flags(VkCtx *c, VmaAllocationCreateInfo *ai);
+void shadow_alloc_note(VkCtx *c, PoolRec *r);
+void shadow_flush(const PoolRec *r, uint64_t lo, uint64_t hi);   // the CPU wrote [lo, hi): to the GPU
+void shadow_inval(const PoolRec *r, uint64_t lo, uint64_t hi);   // before the CPU reads what the GPU wrote there
 void shadow_log(uint64_t frame);
 void shadow_reset(void);
 
