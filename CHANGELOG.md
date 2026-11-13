@@ -4,6 +4,15 @@ Each version's section is that release's notes: `tools/build/notes.py` puts it i
 updating, known issues, reporting) for the GitHub release. A section has a summary paragraph, `### Changes` (each with
 its issue, #N), `### Tested` (what was run from the packages before publishing) and optionally `### Known issues`.
 
+## 0.1.11
+
+### Changes
+
+- **LAN Play with a VPN such as Tailscale** (#245 by @EdouardSence, discussion #148): entering LAN Play went straight
+  back to the menu (error 2318-0007) when the VPN's adapter came first, as the game took its /32 address. @EdouardSence
+  found it in the reporter's log and reproduced it on Linux; the port now takes an address with a real network first,
+  and says in the log when only a /32 one is left.
+
 ## 0.1.10
 
 Mods in the start screen, from @SavageCore's work, with GameBanana's mods a click away; Unlock everything on 1.8.0 by
