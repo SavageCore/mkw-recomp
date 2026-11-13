@@ -20,7 +20,8 @@
 // modal does; MKW_LAUNCHER_MODS_CONFLICT_OK=1 presses the picker's OK, MKW_LAUNCHER_MODS_MODAL=1 opens it;
 // MKW_LAUNCHER_MODS_IMPORT=1 runs the import of the picked zip or folder; MKW_LAUNCHER_NO_MERGE=1
 // skips the page-entry merge (pre-merged shots).
-// MKW_LAUNCHER_SHORTCUT=1 makes the desktop shortcut at start, as its button does.
+// MKW_LAUNCHER_SHORTCUT=1 makes the desktop shortcut at start, as its button does. MKW_LAUNCHER_PLAY=1 presses Play once
+// the game files are there (with MKW_GPU=x the game's process then stops at once: the save copy before mods, alone).
 // MKW_LAUNCHER_EXIT_AFTER_SETUP=1 quits when that setup ends, after saving the page as <shot out>-end.png (its result
 // is in the log); MKW_LAUNCHER_SHOT then takes its shot without quitting. During a shot the update check runs only
 // with MKW_UPDATE_AS (tools/prepare/update.py: compare as that version). MKW_LAUNCHER_UPDATE=1 takes the update offered
@@ -307,7 +308,10 @@ static void page_main(float w, float h) {
         L.focus_main = 0;
     }
     v0 = dl->VtxBuffer.Size;
-    if (play_button(menu_text(UI_LAUNCH_PLAY), ImVec2(cw, play_h), ready)) {
+    static bool play_test = getenv("MKW_LAUNCHER_PLAY") != nullptr;   // (test) once, as the button does
+    bool play = play_button(menu_text(UI_LAUNCH_PLAY), ImVec2(cw, play_h), ready);
+    if (play || (play_test && ready)) {
+        play_test = false;
         char state[PLAT_PATH_MAX + 32];
         snprintf(state, sizeof state, "%s/setup-state.json", L.exe_dir);
         if (mods_code_changed() && L.tools && plat_file_exists(state)) {   // a set-up folder (not build/mkw)

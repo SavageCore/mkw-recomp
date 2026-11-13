@@ -83,6 +83,7 @@ int mods_risk_draw(void) {
 // KEEP_BEFORE_MODS stay
 #define KEEP_BEFORE_MODS 10
 static void remove_tree(const char *path);
+static int remove_backup(const char *root, const char *name);
 
 struct CopyCtx {
     char src[PLAT_PATH_MAX], dst[PLAT_PATH_MAX];
@@ -140,9 +141,7 @@ void mods_before_play(const char *player_dir) {
                 g_oldest[0] = 0, g_nbackups = 0;
                 plat_fs_list(root, oldest_cb, nullptr);
                 if (g_nbackups <= KEEP_BEFORE_MODS || !g_oldest[0]) break;
-                char old[PLAT_PATH_MAX];
-                snprintf(old, sizeof old, "%s/%s", root, g_oldest);
-                remove_tree(old);
+                if (!remove_backup(root, g_oldest)) break;   // it stays: listed again, it would loop forever
             }
         }
     }
@@ -422,6 +421,29 @@ void mods_delete(const char *name) {
 typedef struct {
     char path[PLAT_PATH_MAX];
 } RmCtx;
+
+// One of mods_before_play's copies, root/<YYYYMMDD-HHMMSS>: remove_tree refuses anything outside mods/ (on purpose),
+// so the copies have their own remover, as narrow: that name only, a real folder (never a link followed). 1 when gone.
+static int rm_cb(const char *name, int kind, uint64_t, void *ctx);
+static int remove_backup(const char *root, const char *name) {
+    int ok = strlen(name) == 15 && name[8] == '-';
+    for (int i = 0; ok && i < 15; i++) ok = i == 8 || (name[i] >= '0' && name[i] <= '9');
+    char path[PLAT_PATH_MAX];
+    snprintf(path, sizeof path, "%s/%s", root, name);
+    if (!ok || plat_fs_kind(path) != PLAT_FS_DIR) {
+        rt_log("mods: refusing to delete %s (not a save copy of save-before-mods)", path);
+        return 0;
+    }
+    RmCtx c;
+    snprintf(c.path, sizeof c.path, "%s", path);
+    plat_fs_list(path, rm_cb, &c);
+    if (plat_fs_rmdir(path) != PLAT_FS_OK) {
+        rt_log("mods: cannot delete the old save copy %s (OS error %d)", path, plat_fs_os_error());
+        return 0;
+    }
+    rt_log("mods: deleted the old save copy %s", path);
+    return 1;
+}
 
 static int rm_cb(const char *name, int kind, uint64_t, void *ctx) {
     RmCtx *c = (RmCtx *)ctx;

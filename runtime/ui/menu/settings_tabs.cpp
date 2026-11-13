@@ -352,11 +352,18 @@ static bool validation_layer_present(void) {
     return have != 0;
 }
 
-// Every setting the menu shows back to its default (the environment's keys stay), written to mkw.ini.
+// Every setting the menu shows back to its default (the environment's keys stay), written to mkw.ini. The Mods page's
+// keys have rows too but are the player's choices, not settings: a reset left every mod disabled.
 static void reset_all(void) {
+    static const char *const keep[] = {"MODS", "MODS_ACK", "MODS_PLAYED"};
     const char *keys[128];
     int n = 0;
-    for (const CfgMeta *m; n < 128 && (m = cfg_meta_at(n)); n++) keys[n] = m->key;
+    for (int i = 0; n < 128 && cfg_meta_at(i); i++) {
+        const char *k = cfg_meta_at(i)->key;
+        bool kept = false;
+        for (const char *x : keep) kept |= !strcmp(k, x);
+        if (!kept) keys[n++] = k;
+    }
     int done = cfg_reset(keys, n);
     opt_save_soon();
     rt_log("menu: reset %d settings to their defaults", done);

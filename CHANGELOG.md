@@ -19,6 +19,11 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
   resolution and the shadow map, so it fits at any resolution without taking memory from the game. The game logic is
   checked; the 2160 picture itself still needs a GPU with memory for it (the developer's Radeon 660M runs out).
 
+- **Play no longer hangs after many mod changes**: before the first start with a new set of mods the launcher copies
+  the save to `save-before-mods` and keeps the newest 10 copies, but it was not allowed to delete the older ones and
+  tried again forever, so the 11th change of mods froze the launcher on Play. The old copies are now deleted (only
+  those dated folders), and the launcher goes on if one cannot be.
+- **Reset all settings keeps your mods**: it also emptied the list of enabled mods.
 - **Giant triangles over Shy Guy Bazaar** (#291 by @flavio-silva, #72): for single frames the 3D scene was covered by
   huge triangles there. MKW fills its instanced characters' animations on the GPU into pitch textures of 70-190 KiB
   and its CPU code reads their bytes in place every frame; only targets up to 64 KiB went back to memory at a fence
