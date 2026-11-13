@@ -74,7 +74,7 @@ static char adapter[128];
 static uint8_t host[6];   // the adapter's address, little endian (what the controllers wake toward)
 
 struct S2Link {
-    char dev[160], cmd[200], rsp[200], input[200], vib[200];
+    char dev[160], cmd[200], rsp[200], input[200], vib[200], rate[240];   // rate: the report-rate descriptor, if any
     uint16_t pid;
     int use;
     int gone;   // disconnected while its handshake ran: dropped once that returns
@@ -145,7 +145,32 @@ static int write_value(const char *path, const uint8_t *d, size_t n) {
 
 static int link_write_cmd(S2Link *l, const uint8_t *d, size_t n) { return write_value(l->cmd, d, n); }
 static int link_write_vib(S2Link *l, const uint8_t *d, size_t n) { return l->vib[0] && write_value(l->vib, d, n); }
-static int link_start_input(S2Link *l) { return call_void(l->input, "org.bluez.GattCharacteristic1", "StartNotify", 5000); }
+// The report-rate descriptor of the input characteristic written, when the controller has one (switch2_proto.h)
+static void write_rate_desc(S2Link *l) {
+    static const uint8_t pay[] = {S2_RATE_PAYLOAD};
+    size_t n = strlen(l->input);
+    const char *what = "not found";
+    if (l->rate[0] && !strncmp(l->rate, l->input, n) && l->rate[n] == '/') {
+        DBusMessage *m = method(l->rate, "org.bluez.GattDescriptor1", "WriteValue");
+        DBusMessageIter it, arr, opts;
+        const uint8_t *p = pay;
+        D.init_append(m, &it);
+        D.open(&it, T_ARRAY, "y", &arr);
+        D.append_fixed(&arr, T_BYTE, &p, (int)sizeof pay);
+        D.close(&it, &arr);
+        D.open(&it, T_ARRAY, "{sv}", &opts);
+        D.close(&it, &opts);
+        DBusMessage *r = call(m, 5000);
+        what = r ? "written" : "refused";
+        if (r) D.unref(r);
+    }
+    rt_log("input: Switch 2 controller %s: report-rate descriptor %s", l->dev, what);
+}
+
+static int link_start_input(S2Link *l) {
+    write_rate_desc(l);
+    return call_void(l->input, "org.bluez.GattCharacteristic1", "StartNotify", 5000);
+}
 static void pump(int ms);
 static const S2LinkOps ops = {link_write_cmd, link_write_vib, link_start_input, pump};
 
@@ -354,9 +379,12 @@ static void find_chars(const char *path, const char *iface, DBusMessageIter *pro
     S2Link *l = ctx;
     size_t n = strlen(l->dev);
     const char *uuid;
-    if (strcmp(iface, "org.bluez.GattCharacteristic1") || strncmp(path, l->dev, n) || path[n] != '/' ||
-        !(uuid = prop_string(props, "UUID")))
+    if (strncmp(path, l->dev, n) || path[n] != '/' || !(uuid = prop_string(props, "UUID"))) return;
+    if (!strcmp(iface, "org.bluez.GattDescriptor1")) {
+        if (!strcasecmp(uuid, S2_UUID_RATE_DESC)) snprintf(l->rate, sizeof l->rate, "%s", path);
         return;
+    }
+    if (strcmp(iface, "org.bluez.GattCharacteristic1")) return;
     char *dst = !strcasecmp(uuid, S2_UUID_CMD_WR) ? l->cmd : !strcasecmp(uuid, S2_UUID_CMD_RSP) ? l->rsp
               : !strcasecmp(uuid, S2_UUID_INPUT) ? l->input
               : !strcasecmp(uuid, S2_UUID_VIB_PRO) || !strcasecmp(uuid, S2_UUID_VIB_JOYCON_L) ||
