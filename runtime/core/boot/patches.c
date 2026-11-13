@@ -48,13 +48,17 @@
 // The shadow set: MKW_SHADOW_SIZE (Graphics tab) in place of the cascaded shadow map size the game picks (3072 docked,
 // 2048 handheld). Only a square buffer of 512 or more is resized: what the site's caller (main+0x22d45c) creates.
 static uint32_t shadow_size;
+// MKW_RB_EXTRA_MIB: MiB more in the second pool for the scene's targets. 1.8.0's 2160 layer makes them 3840x2160 and
+// the game's one pool runs out without the shadow set too (#255, s255c: ShadowPrePass gets a null block).
+static uint32_t rb_extra_mib;
 static uint64_t rb_obj, rb_heaps[8];   // the render-buffer allocator and its heap chain (host_shadow_pool)
 static int rb_pool_done, rb_pool_ok;
 static int shadow_second_pool(Cpu *c);
 static void host_shadow_rb(Cpu *c) {
     uint32_t *w = (uint32_t *)(uintptr_t)(c->x[0] + 0x68), *h = (uint32_t *)(uintptr_t)(c->x[0] + 0x88);
-    if (shadow_size && *w == *h && *w >= 512) {
-        if (shadow_size > 3072 && !rb_pool_done) rb_pool_ok = shadow_second_pool(c);
+    int map = *w == *h && *w >= 512;
+    if (map && !rb_pool_done && (shadow_size > 3072 || rb_extra_mib)) rb_pool_ok = shadow_second_pool(c);
+    if (shadow_size && map) {
         // Without the second pool a map over 3072 does not fit and main+0x37b520 reads a null block (issue #48, 4096
         // at 1440 lines: "no free second slot", then that crash after the character choice): the game's size then.
         if (shadow_size <= 3072 || rb_pool_ok) {
@@ -87,7 +91,8 @@ static void host_shadow_pool(Cpu *c) {
 static int shadow_second_pool(Cpu *c) {
     rb_pool_done = 1;
     uint64_t a[4] = {c->x[0], c->x[1], c->x[2], c->x[3]};   // host_shadow_rb passes them on
-    uint64_t size = (3 * 2 * ((uint64_t)shadow_size * shadow_size - 3072ull * 3072) + 0xffff) & ~0xffffull;
+    uint64_t grow = shadow_size > 3072 ? 3 * 2 * ((uint64_t)shadow_size * shadow_size - 3072ull * 3072) : 0;
+    uint64_t size = (grow + ((uint64_t)rb_extra_mib << 20) + 0xffff) & ~0xffffull;
     uint64_t **table = (uint64_t **)(uintptr_t)(rb_obj + 0x2a90), heap = 0, room = 0;
     char frees[160] = "";   // every heap of the chain, MiB free: which one the map's memory comes out of (#255)
     if (!rb_obj || *(int32_t *)(uintptr_t)(rb_obj + 0x2a88) < 2 || (*table)[1]) {
@@ -109,9 +114,10 @@ static int shadow_second_pool(Cpu *c) {
         rt_call(c, GUEST_RB_POOL_INIT, 8, pool, 0, 1, 7, count, size, flags, heap);
         (*table)[1] = pool;
     }
-    rt_log("patches: render-buffer allocator: %s second pool of %#llx bytes for the %u shadow map (heap %#llx, "
-           "%#llx free; MiB free along the chain: %s)", pool ? "a" : "no room for a", (unsigned long long)size,
-           shadow_size, (unsigned long long)heap, (unsigned long long)room, frees);
+    rt_log("patches: render-buffer allocator: %s second pool of %#llx bytes for the %u shadow map and %u MiB more "
+           "(heap %#llx, %#llx free; MiB free along the chain: %s)", pool ? "a" : "no room for a",
+           (unsigned long long)size, shadow_size, rb_extra_mib, (unsigned long long)heap, (unsigned long long)room,
+           frees);
     for (int i = 0; i < 4; i++) c->x[i] = a[i];
     return pool != 0;
 }
@@ -134,8 +140,10 @@ static void seed_set(const RtGame *g) {
 
 static void shadow_set(const RtGame *g) {
     shadow_size = (uint32_t)atoi(cfg_value("MKW_SHADOW_SIZE"));   // "console": 0
+    const char *extra = cfg_get("MKW_RB_EXTRA_MIB");
+    rb_extra_mib = extra ? (uint32_t)atoi(extra) : 0;
     for (int i = 0; i < g->npatch_sets; i++)
-        if (!strcmp(g->patch_sets[i].name, "shadow")) g->patch_on[i] = shadow_size != 0;
+        if (!strcmp(g->patch_sets[i].name, "shadow")) g->patch_on[i] = shadow_size != 0 || rb_extra_mib != 0;
 }
 
 // The aspect set: MKW_ASPECT (Screen tab) wider than 16:9 shows more at the sides (Hor+): 21:9, 32:9, 48:9 or the window's
