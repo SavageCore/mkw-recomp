@@ -1841,7 +1841,9 @@ msgstr "konfigurazio-tresnak falta dira (setup/ programaren ondoan): erauzi berr
 #. %s: the folder of the last setup's game files, which no longer exists.
 msgctxt "UI_SETUP_ERR_MOVED"
 msgid "your game files are no longer in %s: if you moved or renamed that folder, choose it again"
-msgstr "jokoaren fitxategiak ez daude jada %s karpetan: karpeta hori mugitu edo izenez aldatu baduzu, aukeratu berriro"
+msgstr ""
+"jokoaren fitxategiak ez daude jada %s karpetan: karpeta hori mugitu edo izenez aldatu baduzu, "
+"aukeratu berriro"
 
 msgctxt "UI_LAUNCH_STEP_CHECK"
 msgid "Check the copy"
@@ -1891,6 +1893,110 @@ msgstr "Lasterbidea sortuta: %s"
 msgctxt "UI_LAUNCH_SHORTCUT_FAILED"
 msgid "Could not make the shortcut"
 msgstr "Ezin izan da lasterbidea sortu"
+
+msgctxt "UI_LAUNCH_MODS"
+msgid "Mods"
+msgstr "Modak"
+
+msgctxt "UI_LAUNCH_MODS_EMPTY"
+msgid "No mods yet: import a zip or a folder below"
+msgstr "Oraindik ez dago modik: inportatu zip edo karpeta bat behean"
+
+msgctxt "UI_MOD_IMPORT_ZIP"
+msgid "Import zip..."
+msgstr "Inportatu zip..."
+
+msgctxt "UI_MOD_IMPORT_FOLDER"
+msgid "Import folder..."
+msgstr "Inportatu karpeta..."
+
+msgctxt "UI_MOD_NAME"
+msgid "Name"
+msgstr "Izena"
+
+msgctxt "UI_MOD_IMPORT"
+msgid "Import"
+msgstr "Inportatu"
+
+msgctxt "UI_MOD_DELETE"
+msgid "Delete"
+msgstr "Ezabatu"
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_MOD_CONFIRM"
+msgid "Delete %s?"
+msgstr "Ezabatu %s?"
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_MOD_ROMFS"
+msgid "%d files"
+msgstr "%d fitxategi"
+
+msgctxt "UI_MOD_ROMFS_1"
+msgid "1 file"
+msgstr "Fitxategi 1"
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_MOD_CODE_BUILD"
+msgid "code: built for %s"
+msgstr "kodea: %s(r)ako"
+
+msgctxt "UI_MOD_CODE_PORT"
+msgid "code: needs a ported build"
+msgstr "kodea: portatu behar da"
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_MOD_CODE_SWITCHES"
+msgid "code: %d switches"
+msgstr "kodea: %d etengailu"
+
+msgctxt "UI_MOD_CODE_SWITCH_1"
+msgid "code: 1 switch"
+msgstr "kodea: etengailu 1"
+
+msgctxt "UI_MOD_MERGING"
+msgid "Merging mods..."
+msgstr "Modak batzen..."
+
+msgctxt "UI_MOD_CONFLICTS"
+msgid "Conflicts: click the winner to change it"
+msgstr "Gatazkak: egin klik irabazlearen gainean aldatzeko"
+
+msgctxt "UI_MOD_VANILLA"
+msgid "Vanilla"
+msgstr ""
+
+msgctxt "UI_MOD_IMPORTED"
+msgid "Imported %s"
+msgstr "%s inportatu da"
+
+msgctxt "UI_MOD_RESOLVE"
+msgid "Resolve conflicts"
+msgstr "Ebatzi gatazkak"
+
+msgctxt "UI_MOD_OK"
+msgid "OK"
+msgstr "Ados"
+
+msgctxt "UI_MOD_ERR_LAYOUT"
+msgid "Not a mod: no romfs/ or exefs/ inside"
+msgstr "Ez da mod bat: ez dago romfs/ edo exefs/ barruan"
+
+msgctxt "UI_MOD_ERR_NAME"
+msgid "That name is taken or empty"
+msgstr "Izen hori hartuta edo hutsik dago"
+
+msgctxt "UI_MOD_ERR_IO"
+msgid "Could not copy the files"
+msgstr "Ezin izan dira fitxategiak kopiatu"
+
+msgctxt "UI_MOD_ERR_NOPORT"
+msgid "Not ported yet: no code patches for this game"
+msgstr "Oraindik portatu gabe: ez dago joko honetarako kode-adabakirik"
+
+msgctxt "UI_MOD_ERR_NOGAME"
+msgid "Game files not set up: do that on the Files page first"
+msgstr "Joko-fitxategiak falta dira: konfiguratu lehenago Fitxategiak orrian"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_UPDATE"

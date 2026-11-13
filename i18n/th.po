@@ -1852,6 +1852,110 @@ msgctxt "UI_LAUNCH_SHORTCUT_FAILED"
 msgid "Could not make the shortcut"
 msgstr "สร้างทางลัดไม่ได้"
 
+msgctxt "UI_LAUNCH_MODS"
+msgid "Mods"
+msgstr "ม็อด"
+
+msgctxt "UI_LAUNCH_MODS_EMPTY"
+msgid "No mods yet: import a zip or a folder below"
+msgstr "ยังไม่มีม็อด: นำเข้าไฟล์ zip หรือโฟลเดอร์ด้านล่าง"
+
+msgctxt "UI_MOD_IMPORT_ZIP"
+msgid "Import zip..."
+msgstr "นำเข้า zip..."
+
+msgctxt "UI_MOD_IMPORT_FOLDER"
+msgid "Import folder..."
+msgstr "นำเข้าโฟลเดอร์..."
+
+msgctxt "UI_MOD_NAME"
+msgid "Name"
+msgstr "ชื่อ"
+
+msgctxt "UI_MOD_IMPORT"
+msgid "Import"
+msgstr "นำเข้า"
+
+msgctxt "UI_MOD_DELETE"
+msgid "Delete"
+msgstr "ลบ"
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_MOD_CONFIRM"
+msgid "Delete %s?"
+msgstr "ลบ %s ไหม?"
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_MOD_ROMFS"
+msgid "%d files"
+msgstr "%d ไฟล์"
+
+msgctxt "UI_MOD_ROMFS_1"
+msgid "1 file"
+msgstr "1 ไฟล์"
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_MOD_CODE_BUILD"
+msgid "code: built for %s"
+msgstr "โค้ด: สร้างสำหรับ %s"
+
+msgctxt "UI_MOD_CODE_PORT"
+msgid "code: needs a ported build"
+msgstr "โค้ด: ต้องใช้บิลด์ที่พอร์ตแล้ว"
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_MOD_CODE_SWITCHES"
+msgid "code: %d switches"
+msgstr "โค้ด: %d สวิตช์"
+
+msgctxt "UI_MOD_CODE_SWITCH_1"
+msgid "code: 1 switch"
+msgstr "โค้ด: 1 สวิตช์"
+
+msgctxt "UI_MOD_MERGING"
+msgid "Merging mods..."
+msgstr "กำลังรวมม็อด..."
+
+msgctxt "UI_MOD_CONFLICTS"
+msgid "Conflicts: click the winner to change it"
+msgstr "ขัดแย้งกัน: คลิกตัวที่ชนะเพื่อเปลี่ยน"
+
+msgctxt "UI_MOD_VANILLA"
+msgid "Vanilla"
+msgstr "ต้นฉบับ"
+
+msgctxt "UI_MOD_IMPORTED"
+msgid "Imported %s"
+msgstr "นำเข้า %s แล้ว"
+
+msgctxt "UI_MOD_RESOLVE"
+msgid "Resolve conflicts"
+msgstr "แก้ไขความขัดแย้ง"
+
+msgctxt "UI_MOD_OK"
+msgid "OK"
+msgstr "ตกลง"
+
+msgctxt "UI_MOD_ERR_LAYOUT"
+msgid "Not a mod: no romfs/ or exefs/ inside"
+msgstr "ไม่ใช่ม็อด: ไม่มี romfs/ หรือ exefs/ ข้างใน"
+
+msgctxt "UI_MOD_ERR_NAME"
+msgid "That name is taken or empty"
+msgstr "ชื่อนี้ถูกใช้แล้วหรือว่างเปล่า"
+
+msgctxt "UI_MOD_ERR_IO"
+msgid "Could not copy the files"
+msgstr "คัดลอกไฟล์ไม่ได้"
+
+msgctxt "UI_MOD_ERR_NOPORT"
+msgid "Not ported yet: no code patches for this game"
+msgstr "ยังไม่ได้พอร์ต: ไม่มีแพตช์โค้ดสำหรับเกมนี้"
+
+msgctxt "UI_MOD_ERR_NOGAME"
+msgid "Game files not set up: do that on the Files page first"
+msgstr "ยังไม่ได้ตั้งค่าไฟล์เกม: ทำในหน้าไฟล์เกมก่อน"
+
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_UPDATE"
 msgid "Update to %s (%d MB)"

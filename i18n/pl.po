@@ -1827,7 +1827,9 @@ msgstr "brakuje narzędzi konfiguracji (setup/ obok programu): rozpakuj wydanie 
 #. %s: the folder of the last setup's game files, which no longer exists.
 msgctxt "UI_SETUP_ERR_MOVED"
 msgid "your game files are no longer in %s: if you moved or renamed that folder, choose it again"
-msgstr "pliki gry nie znajdują się już w %s: jeśli przeniesiono lub zmieniono nazwę tego folderu, wybierz go ponownie"
+msgstr ""
+"pliki gry nie znajdują się już w %s: jeśli przeniesiono lub zmieniono nazwę tego folderu, wybierz "
+"go ponownie"
 
 msgctxt "UI_LAUNCH_STEP_CHECK"
 msgid "Check the copy"
@@ -1877,6 +1879,110 @@ msgstr "Utworzono skrót: %s"
 msgctxt "UI_LAUNCH_SHORTCUT_FAILED"
 msgid "Could not make the shortcut"
 msgstr "Nie udało się utworzyć skrótu"
+
+msgctxt "UI_LAUNCH_MODS"
+msgid "Mods"
+msgstr "Mody"
+
+msgctxt "UI_LAUNCH_MODS_EMPTY"
+msgid "No mods yet: import a zip or a folder below"
+msgstr "Brak modów: zaimportuj poniżej plik zip lub folder"
+
+msgctxt "UI_MOD_IMPORT_ZIP"
+msgid "Import zip..."
+msgstr "Importuj zip..."
+
+msgctxt "UI_MOD_IMPORT_FOLDER"
+msgid "Import folder..."
+msgstr "Importuj folder..."
+
+msgctxt "UI_MOD_NAME"
+msgid "Name"
+msgstr "Nazwa"
+
+msgctxt "UI_MOD_IMPORT"
+msgid "Import"
+msgstr "Importuj"
+
+msgctxt "UI_MOD_DELETE"
+msgid "Delete"
+msgstr "Usuń"
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_MOD_CONFIRM"
+msgid "Delete %s?"
+msgstr "Usunąć %s?"
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_MOD_ROMFS"
+msgid "%d files"
+msgstr "%d plików"
+
+msgctxt "UI_MOD_ROMFS_1"
+msgid "1 file"
+msgstr "1 plik"
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_MOD_CODE_BUILD"
+msgid "code: built for %s"
+msgstr "kod: zbudowany dla %s"
+
+msgctxt "UI_MOD_CODE_PORT"
+msgid "code: needs a ported build"
+msgstr "kod: wymaga portu"
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_MOD_CODE_SWITCHES"
+msgid "code: %d switches"
+msgstr "kod: %d przełączników"
+
+msgctxt "UI_MOD_CODE_SWITCH_1"
+msgid "code: 1 switch"
+msgstr "kod: 1 przełącznik"
+
+msgctxt "UI_MOD_MERGING"
+msgid "Merging mods..."
+msgstr "Łączenie modów..."
+
+msgctxt "UI_MOD_CONFLICTS"
+msgid "Conflicts: click the winner to change it"
+msgstr "Konflikty: kliknij zwycięzcę, aby go zmienić"
+
+msgctxt "UI_MOD_VANILLA"
+msgid "Vanilla"
+msgstr ""
+
+msgctxt "UI_MOD_IMPORTED"
+msgid "Imported %s"
+msgstr "Zaimportowano %s"
+
+msgctxt "UI_MOD_RESOLVE"
+msgid "Resolve conflicts"
+msgstr "Rozwiąż konflikty"
+
+msgctxt "UI_MOD_OK"
+msgid "OK"
+msgstr "OK"
+
+msgctxt "UI_MOD_ERR_LAYOUT"
+msgid "Not a mod: no romfs/ or exefs/ inside"
+msgstr "To nie jest mod: brak w środku romfs/ lub exefs/"
+
+msgctxt "UI_MOD_ERR_NAME"
+msgid "That name is taken or empty"
+msgstr "Ta nazwa jest zajęta lub pusta"
+
+msgctxt "UI_MOD_ERR_IO"
+msgid "Could not copy the files"
+msgstr "Nie można skopiować plików"
+
+msgctxt "UI_MOD_ERR_NOPORT"
+msgid "Not ported yet: no code patches for this game"
+msgstr "Jeszcze nie przeniesiono: brak patchy kodu dla tej gry"
+
+msgctxt "UI_MOD_ERR_NOGAME"
+msgid "Game files not set up: do that on the Files page first"
+msgstr "Brak plików gry: najpierw skonfiguruj je na stronie Pliki"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_UPDATE"

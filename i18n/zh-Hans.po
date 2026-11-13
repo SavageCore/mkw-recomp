@@ -1801,6 +1801,110 @@ msgctxt "UI_LAUNCH_SHORTCUT_FAILED"
 msgid "Could not make the shortcut"
 msgstr "无法创建快捷方式"
 
+msgctxt "UI_LAUNCH_MODS"
+msgid "Mods"
+msgstr "模组"
+
+msgctxt "UI_LAUNCH_MODS_EMPTY"
+msgid "No mods yet: import a zip or a folder below"
+msgstr "还没有模组：在下面导入 zip 或文件夹"
+
+msgctxt "UI_MOD_IMPORT_ZIP"
+msgid "Import zip..."
+msgstr "导入 zip..."
+
+msgctxt "UI_MOD_IMPORT_FOLDER"
+msgid "Import folder..."
+msgstr "导入文件夹..."
+
+msgctxt "UI_MOD_NAME"
+msgid "Name"
+msgstr "名称"
+
+msgctxt "UI_MOD_IMPORT"
+msgid "Import"
+msgstr "导入"
+
+msgctxt "UI_MOD_DELETE"
+msgid "Delete"
+msgstr "删除"
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_MOD_CONFIRM"
+msgid "Delete %s?"
+msgstr "删除%s？"
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_MOD_ROMFS"
+msgid "%d files"
+msgstr "%d 个文件"
+
+msgctxt "UI_MOD_ROMFS_1"
+msgid "1 file"
+msgstr "1 个文件"
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_MOD_CODE_BUILD"
+msgid "code: built for %s"
+msgstr "代码：适用于 %s"
+
+msgctxt "UI_MOD_CODE_PORT"
+msgid "code: needs a ported build"
+msgstr "代码：需要移植"
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_MOD_CODE_SWITCHES"
+msgid "code: %d switches"
+msgstr "代码：%d 个开关"
+
+msgctxt "UI_MOD_CODE_SWITCH_1"
+msgid "code: 1 switch"
+msgstr "代码：1 个开关"
+
+msgctxt "UI_MOD_MERGING"
+msgid "Merging mods..."
+msgstr "正在合并模组..."
+
+msgctxt "UI_MOD_CONFLICTS"
+msgid "Conflicts: click the winner to change it"
+msgstr "冲突：点击胜出者以更改"
+
+msgctxt "UI_MOD_VANILLA"
+msgid "Vanilla"
+msgstr ""
+
+msgctxt "UI_MOD_IMPORTED"
+msgid "Imported %s"
+msgstr "已导入 %s"
+
+msgctxt "UI_MOD_RESOLVE"
+msgid "Resolve conflicts"
+msgstr "解决冲突"
+
+msgctxt "UI_MOD_OK"
+msgid "OK"
+msgstr "确定"
+
+msgctxt "UI_MOD_ERR_LAYOUT"
+msgid "Not a mod: no romfs/ or exefs/ inside"
+msgstr "不是模组：里面没有 romfs/ 或 exefs/"
+
+msgctxt "UI_MOD_ERR_NAME"
+msgid "That name is taken or empty"
+msgstr "该名称已被占用或为空"
+
+msgctxt "UI_MOD_ERR_IO"
+msgid "Could not copy the files"
+msgstr "无法复制文件"
+
+msgctxt "UI_MOD_ERR_NOPORT"
+msgid "Not ported yet: no code patches for this game"
+msgstr "尚未移植：没有适用于此游戏的代码补丁"
+
+msgctxt "UI_MOD_ERR_NOGAME"
+msgid "Game files not set up: do that on the Files page first"
+msgstr "尚未设置游戏文件：请先在文件页面完成设置"
+
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_UPDATE"
 msgid "Update to %s (%d MB)"

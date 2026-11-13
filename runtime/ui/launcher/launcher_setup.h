@@ -16,6 +16,8 @@ typedef struct {
 } SetupState;
 
 int setup_available(const char *exe_dir);   // the Python and the script are there
+// The package's Python and tools/<rel> (import.py), for pages that run scripts like the setup does.
+int setup_tool(const char *exe_dir, const char *rel, char *python, char *script, size_t cap);
 // source NULL: the last setup's copy and RomFS mode (after an update: only what changed runs again)
 void setup_start(const char *exe_dir, const char *source, int link_romfs);
 void setup_cancel(void);
