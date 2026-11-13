@@ -33,12 +33,17 @@ def _read_encoded(img, off, enc, pc_base):
 
 
 class Module:
-    def __init__(self, name, path, base, simd='c'):
+    def __init__(self, name, path, base, simd='c', image_patches=()):
+        """image_patches: [(module offset, bytes)] the enabled code mods write into the image before it is read
+        (patches.load_image, gen.py --image)."""
         self.name = name
         self.nso = Nso(str(path))
         self.base = base
         n = self.nso
-        self.image = bytes(n.image)
+        img = bytearray(n.image)
+        for off, data in image_patches:
+            img[off:off + len(data)] = data
+        self.image = bytes(img)
         self.lo = base + n.text[0]
         self.hi = self.lo + n.text[1]
         self.words = np.frombuffer(self.image, dtype='<u4', count=n.text[1] // 4, offset=n.text[0])

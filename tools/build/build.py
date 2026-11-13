@@ -150,12 +150,19 @@ def module_glue(gen: Path, exefs: Path, library: bool) -> str:
     out += ["};", "", "#ifdef RT_PATCH_COUNT", "static const RtPatchSet patch_sets[] = {",
             "#define X(i, n, e, d) {#n, e, d},", "    RT_PATCH_SETS(X)", "#undef X", "};", "#else",
             "#define RT_PATCH_COUNT 0", "#define RT_PATCH_PAGE 0", "static const RtPatchSet *const patch_sets = 0;",
-            "#endif", "",
+            "#endif",
+            # the enabled code mods' bytes (gen.py --image), for the loader to write into each module's .text
+            "#if defined(RT_IMAGE_PATCH_COUNT) && RT_IMAGE_PATCH_COUNT",
+            "static const RtImagePatch image_patches[] = {",
+            "#define X(m, off, b, n) {m, off, (const uint8_t *)b, n},", "    RT_IMAGE_PATCHES(X)", "#undef X", "};",
+            "#else", "#undef RT_IMAGE_PATCH_COUNT", "#define RT_IMAGE_PATCH_COUNT 0",
+            "static const RtImagePatch *const image_patches = 0;", "#endif", "",
             # RtGame.version: recomp/versions.py's number for the dump (100: 1.0.0, 180: 1.8.0)
             "volatile int g_fnprof;", "uint8_t rt_patch_on[RT_MAX_PATCH_SETS];", "",
             "static const RtGame game = {RT_GAME_ABI, RT_GAME_ID, modules, sizeof modules / sizeof *modules,",
             "                            exefs_sha256, sizeof exefs_sha256 / sizeof *exefs_sha256, patch_sets,",
-            f"                            RT_PATCH_COUNT, RT_PATCH_PAGE, {detect_version(exefs).number}, &g_fnprof, rt_patch_on}};", "",
+            f"                            RT_PATCH_COUNT, RT_PATCH_PAGE, {detect_version(exefs).number}, &g_fnprof, rt_patch_on,",
+            "                            image_patches, RT_IMAGE_PATCH_COUNT};", "",
             "RT_GAME_EXPORT const RtGame *mkwgame_tables(void) { return &game; }" if library
             else "const RtGame *rt_game_builtin(void) { return &game; }", ""]  # fmt: skip
     return "\n".join(out)

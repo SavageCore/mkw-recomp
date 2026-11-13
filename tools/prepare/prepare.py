@@ -205,6 +205,38 @@ def ini_set(ini: Path, key: str, value: str) -> None:
     ini.write_text("\n".join([*keep, f"{key} = {value}"]) + "\n", encoding="utf-8")
 
 
+def ini_get(ini: Path, key: str) -> str:
+    """key's value in mkw.ini, "" when it has none."""
+    norm = key.upper().removeprefix("MKW_")
+    for ln in ini.read_text(encoding="utf-8").splitlines() if ini.is_file() else []:
+        k, sep, v = ln.partition("=")
+        if sep and k.strip().upper().removeprefix("MKW_") == norm:
+            return v.strip()
+    return ""
+
+
+def code_mods(game: Path) -> tuple[list[dict], str]:
+    """The enabled mods' code bytes (mod.json "image", tools/mod/ips.py), each with its mod's name, for gen.py --image;
+    and a key over them and every installed mod's switchable "patches" (gen.py compiles those in, recomp/patches.py
+    load_mods): "" without any, so a setup without code mods keeps its keys."""
+    enabled = [m.strip() for m in ini_get(game / "mkw.ini", "mods").split(",") if m.strip()]
+    image, switchable = [], {}
+    mods = game / "mods"
+    for mj in sorted(mods.glob("*/mod.json")) if mods.is_dir() else []:
+        try:
+            meta = json.loads(mj.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if meta.get("patches"):
+            switchable[mj.parent.name] = meta["patches"]
+        if mj.parent.name in enabled:
+            image += [{"mod": mj.parent.name, **p} for p in meta.get("image") or []]
+    if not image and not switchable:
+        return [], ""
+    blob = json.dumps([image, switchable], sort_keys=True).encode()
+    return image, hashlib.sha256(blob).hexdigest()[:16]
+
+
 # ---- the game code
 def run(cmd: list[str], env: dict[str, str] | None = None, progress_prefix: str = "") -> None:
     """A tool's run; its 'progress n total' lines (translate.py) pass through, the rest goes to stderr."""
@@ -220,10 +252,14 @@ def run(cmd: list[str], env: dict[str, str] | None = None, progress_prefix: str 
         raise Failed(f"{Path(cmd[1] if len(cmd) > 1 else cmd[0]).name} failed: {' / '.join(tail)}")
 
 
-def generate(exefs: Path, work: Path, jobs: int, v: Version) -> None:
+def generate(exefs: Path, work: Path, jobs: int, v: Version, image: list[dict]) -> None:
     gen = work / "generated"
-    run([sys.executable, str(ROOT / "recomp/gen.py"), "--exefs", str(exefs), "--out", str(gen), "--jobs", str(jobs),
-         "--patches", str(v.patches)])  # fmt: skip
+    cmd = [sys.executable, str(ROOT / "recomp/gen.py"), "--exefs", str(exefs), "--out", str(gen), "--jobs", str(jobs),
+           "--patches", str(v.patches), "--mods", str(exefs.parent / "mods")]  # fmt: skip
+    if image:   # the enabled code mods' bytes, lifted in place
+        (work / "image.json").write_text(json.dumps(image), encoding="utf-8")
+        cmd += ["--image", str(work / "image.json")]
+    run(cmd)
 
 
 def code_key(files: list[Path]) -> str:
@@ -398,11 +434,15 @@ def main() -> None:
         # The version (from exefs/main's build id) says which game a step built from; the folder only matters to the
         # steps that copy from it or point mkw.ini at it. With the folder in every key, moving or renaming it redid
         # generate, compile and the shaders (#188: 16 min on Linux, 31 on Windows)
+        # code mods: their key joins generate's and compile's only when there are some (a mod enabled, disabled,
+        # imported or deleted builds the game code again; tools/mod/ips.py)
+        image, mods_key = code_mods(game)
+        with_mods = f" mods {mods_key}" if mods_key else ""
         keys = {
             "exefs": str(exefs_src),
             "romfs": f"copy {version.name}" if args.romfs == "copy" else f"link {romfs_src}",
-            "generate": f"{build.game_id()} {version.name} {code_key(GENERATOR)}",
-            "compile": f"{build.game_id()} {version.name} {args.target} {code_key(COMPILER)}",
+            "generate": f"{build.game_id()} {version.name} {code_key(GENERATOR)}{with_mods}",
+            "compile": f"{build.game_id()} {version.name} {args.target} {code_key(COMPILER)}{with_mods}",
             "shaders": f"{version.name} {translator_key()}",
             "warm": f"{build.game_id()} {version.name}",
         }
@@ -447,7 +487,7 @@ def main() -> None:
                 else:
                     ini_set(game / "mkw.ini", "romfs", str(romfs_src))
             elif step == "generate":
-                generate(game / "exefs", work, jobs, version)
+                generate(game / "exefs", work, jobs, version, image)
             elif step == "compile":
                 compile_game(game, game / "exefs", work, cc, args.target, jobs)
             elif step == "shaders":

@@ -7,7 +7,7 @@
 
 #include "cpu.h"
 
-#define RT_GAME_ABI 1
+#define RT_GAME_ABI 2   // 2: image_patches
 #ifndef RT_GAME_ID
 #define RT_GAME_ID "dev"   // -D from build.py: a hash of the headers the game code is compiled against
 #endif
@@ -29,6 +29,15 @@ typedef struct {
     int on;                  // generated default, for a set without a row in cfg.c
 } RtPatchSet;
 
+// A mod's change to the game's own code (tools/mod/ips.py, from its .ips): the generator lifted the module with these
+// bytes in place, and the loader writes them into the module's .text too, so what the code reads of itself agrees.
+typedef struct {
+    const char *module;
+    uint64_t off;            // module offset, inside .text
+    const uint8_t *bytes;
+    uint32_t n;
+} RtImagePatch;
+
 typedef struct {
     uint32_t abi;            // RT_GAME_ABI
     const char *id;          // RT_GAME_ID: a library built against other headers is built again, not loaded
@@ -43,6 +52,8 @@ typedef struct {
     // The data the generated code reads on every call lives beside it, so a library reaches it without an import.
     volatile int *fnprof;    // g_fnprof (cpu.h FN_ENTER)
     uint8_t *patch_on;       // rt_patch_on[RT_MAX_PATCH_SETS]
+    const RtImagePatch *image_patches;   // the enabled code mods' (recomp/gen.py --image), applied at load
+    int nimage_patches;
 } RtGame;
 
 const RtGame *rt_game(void);           // the tables in use; fatal when there are none

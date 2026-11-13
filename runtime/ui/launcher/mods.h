@@ -22,6 +22,7 @@ typedef struct {
     char name[MOD_NAME_MAX], title[96];
     int has_romfs, romfs_files, has_exefs, exefs_match, nswitches, enabled;
     int warn_graphics, warn_shaders;   // mod.json's "warnings" (import.py): files the port treats its own way
+    int code;                          // changes the game's code ("image" or "patches"): built into the game code
     char exefs_build[17];   // the first .ips build id, short (16 hex) for the "not this build" line
     ModSwitch switches[MOD_SWITCHES_MAX];
 } Mod;
@@ -36,7 +37,11 @@ typedef struct {
 
 // Scans <exe>/mods (missing is fine: no mods). The list stays sorted; enabled flags re-read every call.
 void mods_refresh(const char *exe_dir);
-void mods_poll(void);   // the UI thread, every frame of the page and before Play: what an import or merge left
+void mods_poll(void);
+// A code mod was enabled, disabled, imported or deleted since the last setup: Play sets the game code up again
+// first (only generate and compile run: tools/prepare/prepare.py's keys). mods/.rebuild marks it.
+int mods_code_changed(void);
+void mods_code_built(void);   // the UI thread, every frame of the page and before Play: what an import or merge left
 int mods_count(void);
 const Mod *mods_at(int i);
 // The dialog callbacks hand the pick over; the rename field stays empty unless the player typed a name.

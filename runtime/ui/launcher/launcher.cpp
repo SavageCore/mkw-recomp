@@ -67,6 +67,7 @@ static struct {
     Page page;
     int focus_main;                 // the main page's first button takes the cursor
     int result;                     // LAUNCHER_PLAY or LAUNCHER_QUIT once chosen; -1 running
+    int play_after_setup;           // Play with code mods changed: the setup builds the game code, then the game
     int save_pending;
     // test hook
     long shot_at;
@@ -301,8 +302,17 @@ static void page_main(float w, float h) {
     }
     v0 = dl->VtxBuffer.Size;
     if (play_button(menu_text(UI_LAUNCH_PLAY), ImVec2(cw, play_h), ready)) {
-        mods_merge_sync(L.exe_dir);   // a stale .merged must not boot: usually a no-op fresh-check
-        L.result = LAUNCHER_PLAY;
+        char state[PLAT_PATH_MAX + 32];
+        snprintf(state, sizeof state, "%s/setup-state.json", L.exe_dir);
+        if (mods_code_changed() && L.tools && plat_file_exists(state)) {   // a set-up folder (not build/mkw)
+            // a code mod changed: the game code is built again first (generate and compile), on the files page
+            L.play_after_setup = 1;
+            L.page = PAGE_FILES;
+            setup_start(L.exe_dir, nullptr, 0);
+        } else {
+            mods_merge_sync(L.exe_dir);   // a stale .merged must not boot: usually a no-op fresh-check
+            L.result = LAUNCHER_PLAY;
+        }
     }
     intro_apply(dl, v0, intro(1));
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
@@ -742,7 +752,8 @@ static void page_mods(float w, float h) {
             else if (m->nswitches > 1) {
                 snprintf(codebuf, sizeof codebuf, menu_text(UI_MOD_CODE_SWITCHES), m->nswitches);
                 code = codebuf;
-            } else if (m->exefs_match) code = menu_text(UI_MOD_CODE_PORT);
+            } else if (m->code) code = menu_text(UI_MOD_CODE_REBUILD);
+            else if (m->exefs_match) code = menu_text(UI_MOD_CODE_PORT);
             else {
                 snprintf(codebuf, sizeof codebuf, menu_text(UI_MOD_CODE_BUILD), m->exefs_build);
                 code = codebuf;
@@ -984,6 +995,15 @@ extern "C" int launcher_run(void) {
     rt_log("launcher: start screen, game files %s, setup tools %s", rt_game_present() ? "ready" : "not set up",
            L.tools ? "present" : "missing");
     for (long frame = 1; L.result < 0; frame++) {
+        if (L.play_after_setup && setup_state().finished) {   // the code mods' build ended: play if it went well
+            L.play_after_setup = 0;
+            if (setup_state().finished > 0) {
+                mods_code_built();
+                mods_merge_sync(L.exe_dir);
+                L.result = LAUNCHER_PLAY;
+                break;
+            }
+        }
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_EVENT_QUIT) L.result = LAUNCHER_QUIT;

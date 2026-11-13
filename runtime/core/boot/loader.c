@@ -277,6 +277,22 @@ static uint64_t decode_ctor_flag(const Mod *m) {
     return 0;
 }
 
+// The enabled code mods' bytes for module name (RtGame.image_patches) over its .text image at text (mem_off text_off,
+// size text_size): the generated code was lifted with them, so what the code reads of itself agrees.
+static int image_patches(const char *name, uint8_t *text, uint64_t text_off, uint64_t text_size) {
+    const RtGame *g = rt_game();
+    int n = 0;
+    for (int i = 0; i < g->nimage_patches; i++) {
+        const RtImagePatch *p = &g->image_patches[i];
+        if (strcmp(p->module, name)) continue;
+        if (p->off < text_off || p->off + p->n > text_off + text_size)
+            rt_fatal("loader: a mod's code patch at %s+%#llx lies outside .text", name, (unsigned long long)p->off);
+        memcpy(text + (p->off - text_off), p->bytes, p->n);
+        n++;
+    }
+    return n;
+}
+
 static void load_module(Mod *m, const char *dir, const RtGameModule *lay) {
     size_t len;
     uint8_t *raw = ldr_read_verified(dir, lay->name, &len);
@@ -294,6 +310,9 @@ static void load_module(Mod *m, const char *dir, const RtGameModule *lay) {
         m->seg_size[i] = seg[i].size;
     }
     free(raw);
+    int patched = image_patches(lay->name, (uint8_t *)(uintptr_t)(lay->base + seg[0].mem_off), seg[0].mem_off,
+                                seg[0].size);
+    if (patched) rt_log("loader: %s: %d code patches of the enabled mods", lay->name, patched);
     m->pub.name = lay->name;
     m->pub.base = lay->base;
     m->pub.size = size;
@@ -604,6 +623,7 @@ static void check_segments(const char *dir) {
             uint8_t *buf = malloc(seg[s].size ? seg[s].size : 1);
             if (!buf) rt_fatal("probe: allocation");
             nso_segment(raw, &seg[s], buf, m->pub.name, s);
+            if (s == 0) image_patches(m->pub.name, buf, seg[0].mem_off, seg[0].size);   // as load_module wrote it
             if (memcmp(buf, (const void *)(uintptr_t)(m->pub.base + seg[s].mem_off), seg[s].size)) same = 0;
             free(buf);
         }

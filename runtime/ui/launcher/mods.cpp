@@ -50,6 +50,30 @@ static struct {
 
 static void set_enabled(const char *name, int on);
 
+static void rebuild_path(char *out, size_t cap) { snprintf(out, cap, "%s/mods/.rebuild", G.exe_dir); }
+
+static void mark_rebuild(const char *name) {
+    for (int i = 0; i < G.n; i++)
+        if (!strcmp(G.mods[i].name, name) && G.mods[i].code) {
+            char path[PLAT_PATH_MAX];
+            rebuild_path(path, sizeof path);
+            plat_file_write_atomic(path, name, strlen(name));
+            rt_log("mods: %s changes the game code: it is built again before the next start", name);
+        }
+}
+
+int mods_code_changed(void) {
+    char path[PLAT_PATH_MAX];
+    rebuild_path(path, sizeof path);
+    return plat_file_exists(path);
+}
+
+void mods_code_built(void) {
+    char path[PLAT_PATH_MAX];
+    rebuild_path(path, sizeof path);
+    remove(path);
+}
+
 void mods_poll(void) {
     if (!G.lock) return;
     char enable[64];
@@ -144,6 +168,7 @@ static int list_cb(const char *name, int kind, uint64_t, void *ctx) {
         if (json_value(json, "romfs_files", v, sizeof v)) m->romfs_files = atoi(v);
         if (json_value(json, "has_exefs", v, sizeof v)) m->has_exefs = !strcmp(v, "true") || !strcmp(v, "1");
         if (json_value(json, "exefs_match", v, sizeof v)) m->exefs_match = !strcmp(v, "true") || !strcmp(v, "1");
+        m->code = strstr(json, "\"image\"") || strstr(json, "\"patches\"");
         const char *warn = strstr(json, "\"warnings\"");   // a list of names; ours, so a search is enough
         const char *end = warn ? strchr(warn, ']') : nullptr;
         if (warn && end) {
@@ -239,6 +264,7 @@ static void set_enabled(const char *name, int on) {
         strcat(out, keep[i]);
     }
     if (!on) rewrite_choices(nullptr, nullptr, nullptr, name);   // a disabled mod's picks go with it
+    mark_rebuild(name);
     cfg_set("MKW_MODS", out);
     mods_refresh(G.exe_dir);
     mods_apply();   // saves too
@@ -299,6 +325,7 @@ void mods_delete(const char *name) {
     char path[PLAT_PATH_MAX * 2];
     snprintf(path, sizeof path, "%s/mods/%s", G.exe_dir, name);
     rt_log("mods: delete %s", path);
+    mark_rebuild(name);   // before the folder goes: its mod.json says whether it changed the code
     remove_tree(path);
     rewrite_choices(nullptr, nullptr, nullptr, name);
     set_enabled(name, 0);   // drops it from MODS when present; re-applies switches and rescans either way

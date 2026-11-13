@@ -615,8 +615,9 @@ def _retry(fn, *args):
 _W = {}  # worker state: 'mods' {name: (path, base)}, 'starts' {name: sorted array}, 'emitters' {name: Emitter}
 
 
-def _worker_init(mods, starts, table, opts):
+def _worker_init(mods, starts, table, opts, image=None):
     _W['mods'] = mods
+    _W['image'] = image or {}   # {module: [(offset, bytes)]}: enabled code mods (--image)
     _W['starts'] = starts
     _W['patches'] = table
     _W['opts'] = opts   # Emitter keyword arguments
@@ -627,7 +628,7 @@ def _emitter(name):
     e = _W['emitters'].get(name)
     if e is None:
         path, base = _W['mods'][name]
-        mod = Module(name, path, base, 'c')
+        mod = Module(name, path, base, 'c', _W['image'].get(name, ()))
         e = _W['emitters'][name] = Emitter(mod, set(_W['starts'][name].tolist()),
                                            _W['patches'].for_module(name, base),
                                            spins=_W['patches'].spins_for(name, base),
@@ -698,6 +699,8 @@ def main():
                          'the mods/ beside --exefs when there is one)')
     ap.add_argument('--reg-locals', type=int, default=regs.LOCALS,
                     help=f'guest registers per function kept in C locals (recomp/regs.py; default {regs.LOCALS}, 0: none)')
+    ap.add_argument('--image', type=Path,
+                    help='the enabled code mods\' bytes (JSON from tools/prepare/prepare.py), lifted in place')
     ap.add_argument('--no-callee-saved-trust', action='store_true',
                     help='reload X19-X29 and SP after every call too, instead of trusting AAPCS64 (slower; for '
                          'telling a broken callee from a generator bug)')
@@ -713,6 +716,7 @@ def main():
         patches.load_mods(table, args.mods, bases)
     elif (args.exefs.parent / 'mods').is_dir():
         patches.load_mods(table, args.exefs.parent / 'mods', bases)
+    image = patches.load_image(table, args.image) if args.image else {}
     write_if_changed(args.out / 'patches.h', patches.header_text(table, GENERATED_MARKER))
     want = args.modules.split(',') if args.modules else [n for n, _, _ in mods]
     unknown = set(want) - {n for n, _, _ in mods}
@@ -725,7 +729,7 @@ def main():
             continue
         t = time.perf_counter()
         path = args.exefs / name
-        mod = Module(name, path, base, 'c')
+        mod = Module(name, path, base, 'c', image.get(name, ()))
         patches.check(table, mod, name)
         starts, dstats = discover(mod)
         est = estimate_sizes(mod, starts)
@@ -753,7 +757,7 @@ def main():
     done_at, errors = {}, []
     t_emit = time.perf_counter()
     ctx = mp.get_context('spawn')
-    with ctx.Pool(max(1, args.jobs), initializer=_worker_init, initargs=(paths, starts_abs, table, opts)) as pool:
+    with ctx.Pool(max(1, args.jobs), initializer=_worker_init, initargs=(paths, starts_abs, table, opts, image)) as pool:
         for i, r in enumerate(pool.imap_unordered(_emit_chunk, [t for _, t in tasks], chunksize=1)):
             results[r['module']].append(r)
             if r['error']:

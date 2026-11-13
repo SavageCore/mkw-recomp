@@ -2031,6 +2031,11 @@ msgid ""
 "this mod may do less than on a console, look worse or misbehave"
 msgstr ""
 
+#. Under a mod that changes the game's code (its .ips): the game code is built with it.
+msgctxt "UI_MOD_CODE_REBUILD"
+msgid "code: turning it on or off builds the game code again before you play (a few minutes)"
+msgstr ""
+
 #. Under an installed mod that ships shaders (Shader/ files).
 msgctxt "UI_MOD_WARN_SHADERS"
 msgid ""
