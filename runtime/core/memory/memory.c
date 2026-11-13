@@ -116,6 +116,7 @@ static void thaw_range_locked(uint64_t a, uint64_t n, int why) {
 }
 
 void mem_thaw(uint64_t a, uint64_t n) {
+    mem_commit_range(a, n);   // a kernel write does not fault into lazy_fault
     plat_mutex_lock(&frz_lock);   // also when nothing is frozen: the hold keeps a read's buffer writable
     thaw_range_locked(a, n, 2);
     plat_mutex_unlock(&frz_lock);
@@ -343,6 +344,55 @@ static void commit(uint64_t a, uint64_t n, const char *what) {
     if (!ok) rt_fatal("memory: commit %s %#llx+%#llx failed", what, (unsigned long long)a, (unsigned long long)n);
 }
 
+// Windows (#198): the game sets an 8 GiB heap at boot and maps physical memory it touches later, and Windows charges
+// every committed page against RAM plus the page file whether it is touched or not (Linux only counts touched pages):
+// the process ran at about three times its resident memory in private bytes (#198: 13.4 GB private, 3.4 resident) and
+// a 16 GB machine refused the next commit. There the heap and the mapped physical pages stay reserved and are
+// committed 2 MiB at a time on their first access (lazy_fault); anything that reaches guest memory outside our CPU
+// threads (a kernel write into a file read's buffer, a driver import) commits its range first (mem_thaw,
+// mem_commit_range). MKW_LAZY_COMMIT=0 commits as before.
+#define LAZY_CHUNK (2ull << 20)
+static int lazy;
+
+// lock held: commits the still-reserved pages of [a, a+n) that the game owns (its heap below heap_size, the mapped
+// pages of the alias region).
+static void owned_commit_locked(uint64_t a, uint64_t n) {
+    uint64_t e = a + n, lo, hi, end;
+    lo = a > L.heap.base ? a : L.heap.base, hi = e < L.heap.base + heap_size ? e : L.heap.base + heap_size;
+    for (uint64_t x = lo; x < hi; x = end)
+        if (plat_mem_state(x, hi, &end) == PLAT_MEM_RESERVED) commit(x, end - x, "heap");
+    lo = a > L.alias.base ? a : L.alias.base, hi = e < L.alias.base + ALIAS_SIZE ? e : L.alias.base + ALIAS_SIZE;
+    for (uint64_t p = lo & ~(PAGE - 1); p < hi;) {
+        if (!alias_pages[(p - L.alias.base) / PAGE]) { p += PAGE; continue; }
+        uint64_t q = p;
+        while (q < hi && alias_pages[(q - L.alias.base) / PAGE]) q += PAGE;
+        for (uint64_t x = p; x < q; x = end)
+            if (plat_mem_state(x, q, &end) == PLAT_MEM_RESERVED) commit(x, end - x, "physical memory");
+        p = q;
+    }
+}
+
+// The platform's lazy hook (plat_mem_lazy_hook), for reads and writes: 1 when the page at a was owned and is now
+// committed, so the access is retried.
+static int lazy_fault(uint64_t a) {
+    if (!lazy || !watched(a, 1)) return 0;
+    uint64_t end, p = a & ~(PAGE - 1);
+    // only a page still reserved: a committed one faulted for another reason (a frozen region's write, a guard)
+    if (plat_mem_state(p, p + PAGE, &end) != PLAT_MEM_RESERVED) return 0;
+    plat_mutex_lock(&lock);
+    owned_commit_locked(a & ~(LAZY_CHUNK - 1), LAZY_CHUNK);
+    int st = plat_mem_state(p, p + PAGE, &end);
+    plat_mutex_unlock(&lock);
+    return st >= PLAT_PROT_NONE;   // not the game's page: still reserved, the fault goes on to the crash handler
+}
+
+void mem_commit_range(uint64_t a, uint64_t n) {
+    if (!lazy || !n) return;
+    plat_mutex_lock(&lock);
+    owned_commit_locked(a, n);
+    plat_mutex_unlock(&lock);
+}
+
 static void decommit(uint64_t a, uint64_t n, const char *what) {
     plat_mutex_lock(&frz_lock);
     thaw_range_locked(a, n, 3);
@@ -409,6 +459,11 @@ void mem_init(void) {
         .pool = pool ? strtoull(pool, NULL, 0) : DEFAULT_POOL,
     };
     if (!L.pool) rt_fatal("memory: MKW_APP_POOL is 0");
+#ifdef _WIN32
+    const char *lz = cfg_get("MKW_LAZY_COMMIT");
+    lazy = !lz || atoi(lz) != 0;
+#endif
+    plat_mem_lazy_hook(lazy_fault);   // a no-op on Linux
 }
 
 const RtGuestLayout *mem_layout(void) { return &L; }
@@ -444,7 +499,7 @@ uint32_t mem_set_heap_size(uint64_t size, uint64_t *addr) {
         plat_mutex_unlock(&lock);
         return R_INVALID_STATE;
     }
-    if (size > heap_size) commit(L.heap.base + heap_size, size - heap_size, "heap");
+    if (size > heap_size && !lazy) commit(L.heap.base + heap_size, size - heap_size, "heap");
     if (size < heap_size) decommit(L.heap.base + size, heap_size - size, "heap");
     if (size != heap_size) rt_log("mem: heap %#llx bytes at %#llx", (unsigned long long)size, (unsigned long long)L.heap.base);
     heap_size = size;
@@ -546,6 +601,8 @@ static uint32_t stack_move(int unmap, uint64_t dst, uint64_t src, uint64_t n) {
         r = R_INVALID_REGION;
         goto out;
     }
+    // the copies and protections below run under lock, where a lazy fault would wait for it: commit the source first
+    if (lazy) owned_commit_locked(src, n);
     unsigned found = nstack_maps;
     for (unsigned i = 0; i < nstack_maps; i++)
         if (stack_maps[i].dst == dst && stack_maps[i].src == src && stack_maps[i].size == n) found = i;
@@ -591,7 +648,9 @@ static void alias_runs(uint64_t first, uint64_t count, uint8_t want, int do_comm
         uint64_t j = i;
         while (j < count && alias_pages[first + j] == want) j++;
         uint64_t a = L.alias.base + (first + i) * PAGE, n = (j - i) * PAGE;
-        if (do_commit) commit(a, n, "physical memory");
+        if (do_commit) {
+            if (!lazy) commit(a, n, "physical memory");
+        }
         else decommit(a, n, "physical memory");
         memset(alias_pages + first + i, !want, j - i);
         i = j;

@@ -164,7 +164,12 @@ int mem_freeze(uint64_t a);                                // makes the 2 MiB re
 int mem_frozen(uint64_t a);                                // the 2 MiB region of a is frozen: no page in it changed
                                                            // since its freeze
 void mem_thaw(uint64_t a, uint64_t n);                     // makes the frozen regions over [a, a+n) writable again;
-                                                           // before a kernel write (file read) into guest memory
+                                                           // before a kernel write (file read) into guest memory;
+                                                           // commits the range first (mem_commit_range)
+void mem_commit_range(uint64_t a, uint64_t n);             // Windows' lazy commit (MKW_LAZY_COMMIT): the game's
+                                                           // pages of [a, a+n) committed now, before something that
+                                                           // does not fault into the handler reads or writes them
+                                                           // (the kernel, a driver import); a no-op elsewhere
 void mem_freeze_stats(uint64_t *frozen, uint64_t *freezes, uint64_t *fault_thaws, uint64_t *other_thaws);
                                                            // regions frozen now; freezes and thaws since the last call
 int mem_trap(uint64_t a, uint64_t n, const void *src);     // [a, a+n) (watched) takes the n bytes at src: the whole

@@ -68,6 +68,7 @@ void ctl_run(char *line) {
         if (sscanf(arg, "%llx %llx %399s", &a, &n, path) != 3 || !(o = fopen(path, "wb"))) {
             rt_log("ctl: mem %s: needs ADDR SIZE PATH (hex) and a writable path", arg);
         } else {
+            mem_commit_range(a, n);   // a large fwrite hands the buffer to the kernel (Windows' lazy commit)
             size_t w = fwrite((const void *)(uintptr_t)a, 1, (size_t)n, o);   // guest addresses are host addresses
             fclose(o);
             rt_log("ctl: mem %#llx: %zu bytes to %s", a, w, path);

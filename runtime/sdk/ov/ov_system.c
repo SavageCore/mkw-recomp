@@ -296,6 +296,7 @@ static void ov_show_error_variant(Cpu *c) {
 static void ov_random_bytes(Cpu *c) {
     void *out = (void *)(uintptr_t)arg_x(c, 0);
     size_t n = (size_t)arg_x(c, 1);
+    mem_commit_range((uint64_t)(uintptr_t)out, n);   // BCryptGenRandom writes it (Windows' lazy commit, memory.c)
     if (n && (!out || !plat_random(out, n))) rt_fatal("crypto: no %zu random bytes from the system", n);
 }
 

@@ -367,6 +367,7 @@ static void ov_setsockopt(Cpu *c) {
         ret_x(c, 0);
         return;
     }
+    mem_commit_range((uint64_t)(uintptr_t)v, len);   // the kernel reads these buffers (Windows' lazy commit, memory.c)
     int r = setsockopt(sl.s, hl, ho, v, (socklen_t)len);
     if (r < 0) fail(host_errno());
     ret_x(c, (uint64_t)(int64_t)r);
@@ -397,6 +398,7 @@ static void ov_recvfrom(Cpu *c) {
     }
     struct sockaddr_in a;
     socklen_t alen = sizeof a;
+    mem_commit_range(arg_x(c, 1), arg_x(c, 2));
 #ifdef _WIN32
     int n = recvfrom(sl.s, arg_p(c, 1), (int)arg_x(c, 2), hf, (struct sockaddr *)&a, &alen);
 #else
@@ -425,6 +427,7 @@ static void ov_sendto(Cpu *c) {
         to = &a;
     }
     // ponytail: a datagram send does not wait on a LAN, so MSG_DONTWAIT changes nothing here
+    mem_commit_range(arg_x(c, 1), arg_x(c, 2));
     int64_t n = sendto(sl.s, arg_p(c, 1), (int)arg_x(c, 2), hf, (struct sockaddr *)to, to ? sizeof a : 0);
     if (n < 0) fail(host_errno());
     ret_x(c, (uint64_t)n);
