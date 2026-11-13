@@ -18,6 +18,10 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
   the fix, 8 after, and no swapped labels on screen.
 - **The game's icon in the Linux taskbar** (#252 by @EdouardSence): on Wayland (KDE Plasma and other compositors with
   window icons) the game's and the start screen's windows showed a generic icon; they now carry the chequered flag.
+- **Updating a game folder to another version no longer keeps the old version's files** (#261 by @SavageCore): a
+  folder set up from 1.0.0 and then from 1.8.0 kept 1.0.0's files next to 1.8.0's, and the internal resolution was
+  built from 1.0.0's `general_format` archive. @SavageCore found it on a 23 GB install, where the setup now removed
+  203 files 1.8.0 does not have; the same cleanup also runs for `.nup` and `.nx` copies, and never in a linked folder.
 - A setup that stops before doing anything leaves a log now (#251): `logs/setup.log` is opened first, and while the
   setup runs it writes there every two minutes where it is waiting.
 - The setup compiles with more jobs where memory held it back: a compile was given 1 GB and takes at most 0.4 (a
