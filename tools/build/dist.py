@@ -180,13 +180,20 @@ def windows_crt(crt: Path) -> None:
     84 s on our 6-thread PC). They depend only on the target and zig's version: the Linux zig of the same release builds
     them."""
     host = DL / "zig-host"
-    unpack_top(fetch(*PINS["linux"]["zig"]), host)
+    archive = fetch(*PINS["linux"]["zig"])
+    stamp = host / ".from"
+    # unpacked once per zig version: a fresh unpack's file times make zig's cache build everything again (41 s)
+    if not stamp.exists() or stamp.read_text() != archive.name:
+        unpack_top(archive, host)
+        stamp.write_text(archive.name)
     shutil.rmtree(crt, ignore_errors=True)
     crt.mkdir(parents=True)
     with tempfile.TemporaryDirectory() as tmp:
         t = Path(tmp)
         (t / "probe.c").write_text("int probe(void) { return 0; }\n")
-        env = {**os.environ, "ZIG_GLOBAL_CACHE_DIR": str(t / "cache"), "ZIG_LIB_DIR": str(host / "lib"),
+        # zig's cache next to the downloads, kept between runs (release.yml caches build/dist/dl): building the C
+        # runtime was 2 of the Windows job's 4 minutes on a fresh runner, seconds when the cache has it
+        env = {**os.environ, "ZIG_GLOBAL_CACHE_DIR": str(DL / "zig-crt-cache"), "ZIG_LIB_DIR": str(host / "lib"),
                "ZIG_VERBOSE_LINK": "1"}  # fmt: skip
         r = subprocess.run([str(host / "zig"), "cc", "-target", "x86_64-windows-gnu", "-shared", "-o",
                             str(t / "probe.dll"), str(t / "probe.c")],
@@ -194,8 +201,9 @@ def windows_crt(crt: Path) -> None:
         (line,) = [ln.split() for ln in (r.stdout + r.stderr).splitlines() if ln.startswith("lld-link ")]
         flags, files = [], {}
         for arg in line[1:]:
-            p = Path(arg)
-            if p.is_absolute() and p.suffix in (".obj", ".lib"):
+            p = Path(arg)   # relative when zig's cache is under the working directory (build/dist/dl)
+            if p.suffix in (".obj", ".lib") and (p.is_absolute() or p.exists()):
+                p = p.resolve()
                 if p.stem == "probe" or files.get(p.name) == p:
                     continue
                 if p.name in files:

@@ -100,6 +100,10 @@ jobs:
         with:
           path: build/win
           key: windeps-${{ hashFiles('tools/build/windeps.py') }}
+      - uses: actions/cache@v4   # the setup's downloads (checked by sha256) and zig's build of the Windows C runtime
+        with:
+          path: build/dist/dl
+          key: dist-dl-windows-${{ hashFiles('tools/build/dist.py') }}
       - name: llvm-mingw and the Windows libraries
         run: uv run tools/build/windeps.py
       - name: mkw.exe
