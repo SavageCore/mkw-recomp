@@ -544,9 +544,15 @@ static void ov_eventfd_write(Cpu *c) {
 
 // ---- the LAN address nifm reports (ov_net.c): MKW_LAN_IP, else the first interface that is up with a local network
 // address (lan_only, not loopback), read from the system's interface list (nothing is sent), with its mask. Pia
-// builds its broadcast from both.
+// builds its broadcast from both. An address with a /32 mask (a VPN such as Tailscale gives one) comes only after
+// every other: Pia refuses it with error 2318-0007 (#148, reproduced with tools/run/lan2.sh at LAN2_PREFIX=32).
 static int lan_pick(struct in_addr a, struct in_addr want) {
     return want.s_addr ? a.s_addr == want.s_addr : (ntohl(a.s_addr) >> 24) != 127 && lan_only(a) && a.s_addr;
+}
+// keeps x/xm in a/m unless a already holds an address with a real network; returns 1 once it does
+static int lan_take(struct in_addr *a, struct in_addr *m, struct in_addr x, struct in_addr xm) {
+    if (!a->s_addr || (m->s_addr == 0xffffffffu && xm.s_addr != 0xffffffffu)) *a = x, *m = xm;
+    return m->s_addr != 0xffffffffu;
 }
 
 int ov_lan_address(uint8_t ip[4], uint8_t mask[4]) {
@@ -566,23 +572,27 @@ int ov_lan_address(uint8_t ip[4], uint8_t mask[4]) {
                                          GAA_FLAG_SKIP_DNS_SERVER, NULL, list, &size) != NO_ERROR)
             free(list), list = NULL;
     }
-    for (IP_ADAPTER_ADDRESSES *i = list; i && !a.s_addr; i = i->Next) {
+    int done = 0;
+    for (IP_ADAPTER_ADDRESSES *i = list; i && !done; i = i->Next) {
         if (i->OperStatus != IfOperStatusUp || i->IfType == IF_TYPE_SOFTWARE_LOOPBACK) continue;
-        for (IP_ADAPTER_UNICAST_ADDRESS *u = i->FirstUnicastAddress; u && !a.s_addr; u = u->Next) {
-            struct in_addr x = ((struct sockaddr_in *)u->Address.lpSockaddr)->sin_addr;
+        for (IP_ADAPTER_UNICAST_ADDRESS *u = i->FirstUnicastAddress; u && !done; u = u->Next) {
+            struct in_addr x = ((struct sockaddr_in *)u->Address.lpSockaddr)->sin_addr, xm;
             if (!lan_pick(x, want)) continue;
             uint8_t bits = u->OnLinkPrefixLength > 32 ? 24 : u->OnLinkPrefixLength;
-            a = x, m.s_addr = htonl(bits ? 0xffffffffu << (32 - bits) : 0);
+            xm.s_addr = htonl(bits ? 0xffffffffu << (32 - bits) : 0);
+            done = lan_take(&a, &m, x, xm);
         }
     }
     free(list);
 #else
     struct ifaddrs *list, *i;
     if (!getifaddrs(&list)) {
-        for (i = list; i && !a.s_addr; i = i->ifa_next)
+        for (i = list; i; i = i->ifa_next)
             if (i->ifa_addr && i->ifa_netmask && i->ifa_addr->sa_family == AF_INET && (i->ifa_flags & IFF_UP) &&
-                lan_pick(((struct sockaddr_in *)i->ifa_addr)->sin_addr, want))
-                a = ((struct sockaddr_in *)i->ifa_addr)->sin_addr, m = ((struct sockaddr_in *)i->ifa_netmask)->sin_addr;
+                lan_pick(((struct sockaddr_in *)i->ifa_addr)->sin_addr, want) &&
+                lan_take(&a, &m, ((struct sockaddr_in *)i->ifa_addr)->sin_addr,
+                         ((struct sockaddr_in *)i->ifa_netmask)->sin_addr))
+                break;
         freeifaddrs(list);
     }
 #endif
@@ -590,6 +600,13 @@ int ov_lan_address(uint8_t ip[4], uint8_t mask[4]) {
     if (!a.s_addr) {
         rt_log("nifm: no network interface with a local network address: no LAN");
         return -1;
+    }
+    static int warned;
+    if (m.s_addr == 0xffffffffu && !warned++) {
+        char t[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &a, t, sizeof t);
+        rt_log("nifm: %s has a /32 mask and no other interface has a local network address: the game refuses it "
+               "(error 2318-0007); LAN play needs a network with a broadcast address", t);
     }
     memcpy(ip, &a, 4);
     memcpy(mask, &m, 4);
