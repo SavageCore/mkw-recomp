@@ -424,6 +424,11 @@ def main() -> None:
     sys.stderr = open(game / "logs/setup.log", "w", encoding="utf-8", buffering=1)  # noqa: SIM115
     print(f"setup: {' '.join(sys.argv)}", file=sys.stderr)
     jobs = args.jobs or max(1, min(os.cpu_count() or 1, int(mem_gb() * 0.6)))
+    # setup.log only (stderr): what the machine gave the setup, and below each step's time, so two setups (Linux and
+    # Windows, or a player's and ours) compare step by step (Adrià 13/11/2026: "los logs de preparación deberían
+    # guardar tiempos"; 0.1.10's Windows setup took twice the Linux one and nothing said where)
+    print(f"machine: {os.cpu_count()} threads, {mem_gb():.1f} GB, {jobs} jobs, {sys.platform}", file=sys.stderr)
+    t_all, step, t_step = time.monotonic(), "check", time.monotonic()
     glslc = args.glslc or default_glslc(game)
     work = game / "setup-work"
     try:
@@ -467,6 +472,7 @@ def main() -> None:
                 emit("skip", step)
                 continue
             emit("step", step)
+            t_step = time.monotonic()
             if step == "exefs":
                 if is_nx(exefs_src):
                     unpack(game, exefs_src, game, "exefs")
@@ -506,8 +512,11 @@ def main() -> None:
                 shutil.rmtree(work / "pack", ignore_errors=True)
             state["done"][step] = key
             save_state(game, state)
+            print(f"time: {step} {time.monotonic() - t_step:.1f} s", file=sys.stderr)
+        print(f"time: setup {time.monotonic() - t_all:.1f} s", file=sys.stderr)
         emit("done")
     except Failed as e:
+        print(f"time: {step} failed after {time.monotonic() - t_step:.1f} s", file=sys.stderr)
         print(f"failed: {e}", file=sys.stderr)
         emit("error", e.code, e.detail)
         sys.exit(1)
