@@ -1823,7 +1823,9 @@ msgstr "faltan as ferramentas de preparación (setup/ xunto ao programa): extrae
 #. %s: the folder of the last setup's game files, which no longer exists.
 msgctxt "UI_SETUP_ERR_MOVED"
 msgid "your game files are no longer in %s: if you moved or renamed that folder, choose it again"
-msgstr "os ficheiros do xogo xa non están en %s: se moviches ou renomeaches ese cartafol, escóllelo de novo"
+msgstr ""
+"os ficheiros do xogo xa non están en %s: se moviches ou renomeaches ese cartafol, escóllelo de "
+"novo"
 
 msgctxt "UI_LAUNCH_STEP_CHECK"
 msgid "Check the copy"

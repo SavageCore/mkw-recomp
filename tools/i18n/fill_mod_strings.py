@@ -7,7 +7,6 @@ entries stay, fuzzy stays fuzzy).
 """
 
 import re
-import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -383,6 +382,38 @@ T = {
         "uk": "Конфлікти: натисніть на переможця, щоб змінити його",
     },
 }
+
+
+# Thai (th.po came to main after these strings were written)
+TH = {
+    "UI_LAUNCH_MODS": "ม็อด",
+    "UI_LAUNCH_MODS_EMPTY": "ยังไม่มีม็อด: นำเข้าไฟล์ zip หรือโฟลเดอร์ด้านล่าง",
+    "UI_MOD_IMPORT_ZIP": "นำเข้า zip...",
+    "UI_MOD_IMPORT_FOLDER": "นำเข้าโฟลเดอร์...",
+    "UI_MOD_NAME": "ชื่อ",
+    "UI_MOD_IMPORT": "นำเข้า",
+    "UI_MOD_DELETE": "ลบ",
+    "UI_MOD_CONFIRM": "ลบ %s ไหม?",
+    "UI_MOD_ROMFS": "%d ไฟล์",
+    "UI_MOD_ROMFS_1": "1 ไฟล์",
+    "UI_MOD_CODE_BUILD": "โค้ด: สร้างสำหรับ %s",
+    "UI_MOD_CODE_PORT": "โค้ด: ต้องใช้บิลด์ที่พอร์ตแล้ว",
+    "UI_MOD_CODE_SWITCHES": "โค้ด: %d สวิตช์",
+    "UI_MOD_CODE_SWITCH_1": "โค้ด: 1 สวิตช์",
+    "UI_MOD_MERGING": "กำลังรวมม็อด...",
+    "UI_MOD_CONFLICTS": "ขัดแย้งกัน: คลิกตัวที่ชนะเพื่อเปลี่ยน",
+    "UI_MOD_VANILLA": "ต้นฉบับ",
+    "UI_MOD_IMPORTED": "นำเข้า %s แล้ว",
+    "UI_MOD_RESOLVE": "แก้ไขความขัดแย้ง",
+    "UI_MOD_OK": "ตกลง",
+    "UI_MOD_ERR_LAYOUT": "ไม่ใช่ม็อด: ไม่มี romfs/ หรือ exefs/ ข้างใน",
+    "UI_MOD_ERR_NAME": "ชื่อนี้ถูกใช้แล้วหรือว่างเปล่า",
+    "UI_MOD_ERR_IO": "คัดลอกไฟล์ไม่ได้",
+    "UI_MOD_ERR_NOPORT": "ยังไม่ได้พอร์ต: ไม่มีแพตช์โค้ดสำหรับเกมนี้",
+    "UI_MOD_ERR_NOGAME": "ยังไม่ได้ตั้งค่าไฟล์เกม: ทำในหน้าไฟล์เกมก่อน",
+}
+for _ctx, _text in TH.items():
+    T.setdefault(_ctx, {})["th"] = _text
 
 
 def main():

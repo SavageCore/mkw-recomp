@@ -1836,7 +1836,9 @@ msgstr "de installatietools ontbreken (setup/ naast het programma): pak de relea
 #. %s: the folder of the last setup's game files, which no longer exists.
 msgctxt "UI_SETUP_ERR_MOVED"
 msgid "your game files are no longer in %s: if you moved or renamed that folder, choose it again"
-msgstr "je spelbestanden staan niet meer in %s: als je die map hebt verplaatst of hernoemd, kies hem opnieuw"
+msgstr ""
+"je spelbestanden staan niet meer in %s: als je die map hebt verplaatst of hernoemd, kies hem "
+"opnieuw"
 
 msgctxt "UI_LAUNCH_STEP_CHECK"
 msgid "Check the copy"

@@ -1834,7 +1834,9 @@ msgstr "die Einrichtungs-Tools fehlen (setup/ neben dem Programm): entpacke das 
 #. %s: the folder of the last setup's game files, which no longer exists.
 msgctxt "UI_SETUP_ERR_MOVED"
 msgid "your game files are no longer in %s: if you moved or renamed that folder, choose it again"
-msgstr "deine Spieldateien liegen nicht mehr in %s: Wenn du den Ordner verschoben oder umbenannt hast, wähle ihn erneut"
+msgstr ""
+"deine Spieldateien liegen nicht mehr in %s: Wenn du den Ordner verschoben oder umbenannt hast, "
+"wähle ihn erneut"
 
 msgctxt "UI_LAUNCH_STEP_CHECK"
 msgid "Check the copy"
