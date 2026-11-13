@@ -98,3 +98,8 @@ issue = 222
 all = ["max_workers must be <= 61"]
 fixed = "v0.1.10"
 what = "the setup's shader step failed on Windows PCs with more than 61 CPU threads"
+
+[[signature]]
+issue = 220
+all = ["AMD proprietary driver", "61fb5ce38233a3f7", "d50d2bc0a9bdca54"]
+what = "AMD's Windows driver loses the device right after the same pair of programs (61fb5ce3… / d50d2bc0…), at the title or in the setup's warm-up"
