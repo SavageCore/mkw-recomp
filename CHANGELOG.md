@@ -49,6 +49,10 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
 - With Settings > Game > Language on Automatic, the game follows the language chosen in Settings > Menu > Language
   when the game has it (discussion #193): picking Thai there gives the game in Thai too after a restart, instead of
   the system's language. A menu language the game lacks (Turkish, Ukrainian) still leaves it to the system.
+- **Terrain on GPUs whose sparse textures take other memory than buffers** (#215, GTX 750 Ti): the terrain's texture
+  tiles came from memory shared with a buffer used to clear them, and on that card no memory type serves both, so not
+  one tile could be made and the driver then lost the device at the loading screen. Those tiles now take the
+  texture's own memory type, without the clearing buffer. Checked on our cards by forcing that path (same images).
 
 ## 0.1.10
 

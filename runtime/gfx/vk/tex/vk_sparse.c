@@ -38,7 +38,7 @@
 #define SMALL_SPARSE (4u << 20)   // storage of an image that gets slots past MKW_SPARSE_MIB
 
 typedef struct SlotBlock {
-    VkBuffer buf;                 // over the whole block, for the zero fill
+    VkBuffer buf;                 // over the whole block, for the zero fill; none when no memory type serves both (#215)
     VmaAllocation alloc;
     VkDeviceMemory mem;
     VkDeviceSize base;            // offset of the block in mem
@@ -174,6 +174,22 @@ static SlotBlock *new_block(VkCtx *c, uint32_t type_bits, VkDeviceSize slot_size
     vkGetBufferMemoryRequirements(c->device, b->buf, &rb);
     VkMemoryRequirements req = {.size = slot_size * BLOCK_SLOTS, .alignment = slot_size > rb.alignment ? slot_size : rb.alignment,
                                 .memoryTypeBits = rb.memoryTypeBits & type_bits};
+    // #215 (GTX 750 Ti, 0.1.10): buffer types 0xe81, sparse image types 0x104, none in common, so every block failed
+    // and the terrain had no tile at all. Then the block takes the image's types alone and has no buffer: its slots
+    // start as the driver hands the memory out (not zero-filled here) and a reused slot keeps its last texels until
+    // the game writes it. MKW_SPARSE_NO_BUFFER=1 takes that path on any GPU, to test it where the types meet.
+    static int no_buf_env = -1;
+    if (no_buf_env < 0) no_buf_env = cfg_get("MKW_SPARSE_NO_BUFFER") && atoi(cfg_get("MKW_SPARSE_NO_BUFFER"));
+    if (!req.memoryTypeBits || no_buf_env) {
+        static int logged;
+        if (!logged++)
+            rt_log("vk: sparse: tile blocks without a buffer (buffer types %#x, image types %#x%s): slots not zero-filled",
+                   rb.memoryTypeBits, type_bits, no_buf_env ? ", MKW_SPARSE_NO_BUFFER" : "");
+        vkDestroyBuffer(c->device, b->buf, NULL);
+        b->buf = VK_NULL_HANDLE;
+        req.memoryTypeBits = type_bits;
+        req.alignment = slot_size;
+    }
     VmaAllocationInfo info;
     VkResult r = alloc_local_or_any(c, &req, &b->alloc, &info);
     if (r != VK_SUCCESS) {
@@ -189,9 +205,9 @@ static SlotBlock *new_block(VkCtx *c, uint32_t type_bits, VkDeviceSize slot_size
                    (unsigned long long)(req.size >> 10), r, rb.memoryTypeBits, type_bits, req.memoryTypeBits);
         }
     }
-    if (r != VK_SUCCESS || vmaBindBufferMemory(c->vma, b->alloc, b->buf) != VK_SUCCESS) {
+    if (r != VK_SUCCESS || (b->buf && vmaBindBufferMemory(c->vma, b->alloc, b->buf) != VK_SUCCESS)) {
         if (b->alloc) vmaFreeMemory(c->vma, b->alloc);
-        vkDestroyBuffer(c->device, b->buf, NULL);
+        if (b->buf) vkDestroyBuffer(c->device, b->buf, NULL);
         free(b);
         return NULL;
     }
@@ -232,6 +248,7 @@ static Slot *slot_get(VkCtx *c, const SparseImg *s, uint64_t pa, uint32_t sub) {
     sl->key = k, sl->blk = b, sl->idx = i;
     nvn_hm_put(&slots, &k, sl);
     n_slots++;
+    if (!b->buf) return sl;   // no buffer to fill through (new_block): neither zeros nor a capture's texels
     VkCommandBuffer cb = vk_upload_begin();   // pool memory starts zeroed; the queue order puts it before its use
     vkCmdFillBuffer(cb, b->buf, (VkDeviceSize)i * s->slot_size, s->slot_size, 0);
     VkMemoryBarrier2 mb = {.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2, .srcStageMask = VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
@@ -702,7 +719,7 @@ uint64_t vk_sparse_dump(void (*emit)(const void *key, uint32_t klen, const void 
     uint64_t bytes = 0;
     for (uint32_t i = 0; i < slots.cap; i++) {
         Slot *sl = slots.vals ? slots.vals[i] : NULL;
-        if (!sl || !sl->written) continue;
+        if (!sl || !sl->written || !sl->blk->buf) continue;
         VkDeviceSize n = sl->blk->slot_size;
         VkBuffer sb;
         VmaAllocation sa;
