@@ -18,7 +18,6 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
   `ShadowPrePass`. The second pool now comes from memory the runtime reserves beside the game's heap, sized by the
   resolution and the shadow map, so it fits at any resolution without taking memory from the game. The game logic is
   checked; the 2160 picture itself still needs a GPU with memory for it (the developer's Radeon 660M runs out).
-
 - **Play no longer hangs after many mod changes**: before the first start with a new set of mods the launcher copies
   the save to `save-before-mods` and keeps the newest 10 copies, but it was not allowed to delete the older ones and
   tried again forever, so the 11th change of mods froze the launcher on Play. The old copies are now deleted (only
