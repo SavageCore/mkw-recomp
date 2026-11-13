@@ -30,6 +30,7 @@ typedef struct {
     VkFormat color[8], depth;
     const char *what;   // VK_CRUMB_OP
     uint8_t key[2][32], has_fs;   // VK_CRUMB_DRAW: the program's vertex and fragment keys
+    uint64_t ind, ind_count;      // VK_CRUMB_DRAW, indirect: guest addresses of the arguments and of the count (0 none)
 } Mark;
 
 static PFN_vkCmdWriteBufferMarkerAMD write_marker;
@@ -115,8 +116,18 @@ uint32_t vk_crumb_op(VkCommandBuffer cb, const char *what, uint32_t w, uint32_t 
 // Why: issues #22, #33, #34, #37 and #40 (NVIDIA RTX, 617-621 drivers) lost the device with "instruction pointer
 // invalid" inside the frame's main 3D pass, which holds hundreds of draws. A draw's end is marked at the next draw
 // recorded into the same command buffer (or never, if the pass ends first): the last finished mark lags one draw.
-void vk_crumb_draw(VkCommandBuffer cb, const uint8_t *vs, const uint8_t *fs) {
-    static _Thread_local uint32_t prev;
+static _Thread_local uint32_t prev;   // this thread's last draw mark
+
+// The last draw mark of this thread was an indirect draw: where its arguments are and how many at most. Two hangs
+// (13/11/2026, Xid 109) stopped in a run of draws of one program without loops: the suspect is the work the draw is
+// given, which for an indirect draw only the argument buffer says.
+void vk_crumb_draw_ind(uint64_t ind, uint64_t count, uint32_t max) {
+    if (!draws || !prev) return;
+    Mark *m = &ring[prev % RING];
+    if (m->id == prev) m->ind = ind, m->ind_count = count, m->h = max;
+}
+
+void vk_crumb_draw(VkCommandBuffer cb, const uint8_t *vs, const uint8_t *fs, uint32_t count) {
     static _Thread_local VkCommandBuffer prev_cb;
     if (!draws) return;
     if (prev && prev_cb == cb) vk_crumb_end(cb, VK_CRUMB_DRAW, prev);
@@ -125,8 +136,14 @@ void vk_crumb_draw(VkCommandBuffer cb, const uint8_t *vs, const uint8_t *fs) {
         Mark *m = &ring[id % RING];
         memcpy(m->key[0], vs, 32);
         if ((m->has_fs = fs != NULL)) memcpy(m->key[1], fs, 32);
+        m->w = count;   // vertices; 0x7fffffff: indirect
     }
     prev = id, prev_cb = cb;
+}
+
+// The compute program of a dispatch mark: a hang inside a dispatch names its shader as a draw's does.
+void vk_crumb_cs(uint32_t id, const uint8_t *cs) {
+    if (id && cs) memcpy(ring[id % RING].key[0], cs, 32), ring[id % RING].has_fs = 1;
 }
 
 void vk_crumb_end(VkCommandBuffer cb, int kind, uint32_t id) {
@@ -150,13 +167,20 @@ static void describe(uint32_t id, char *o, size_t size) {
         for (int k = 0; k < 32; k++) snprintf(a + 2 * k, 3, "%02x", m->key[0][k]);
         if (m->has_fs)
             for (int k = 0; k < 32; k++) snprintf(b + 2 * k, 3, "%02x", m->key[1][k]);
-        snprintf(o, size, "%u, draw in frame %llu: vs %s fs %s", id, (unsigned long long)m->frame, a, b);
+        size_t n = (size_t)snprintf(o, size, "%u, draw in frame %llu: vs %.16s fs %.16s, ", id, (unsigned long long)m->frame, a, b);
+        if (n >= size) return;
+        if (m->ind) snprintf(o + n, size - n, "indirect, arguments at %#llx, count at %#llx, at most %u",
+                             (unsigned long long)m->ind, (unsigned long long)m->ind_count, m->h);
+        else snprintf(o + n, size - n, "%u vertices%s", m->w, m->w == 0x7fffffff ? " (indirect, no note)" : "");
     } else if (m->kind == VK_CRUMB_OP) {
         snprintf(o, size, "%u, %s in frame %llu: %ux%u", id, m->what ? m->what : "?", (unsigned long long)m->frame, m->w,
                  m->h);
     } else if (m->kind == VK_CRUMB_DISPATCH) {
-        snprintf(o, size, "%u, dispatch in frame %llu: %ux%ux%u groups%s", id, (unsigned long long)m->frame, m->w, m->h,
-                 m->d, m->w ? "" : " (indirect)");
+        char a[65] = "?";
+        if (m->has_fs)
+            for (int k = 0; k < 32; k++) snprintf(a + 2 * k, 3, "%02x", m->key[0][k]);
+        snprintf(o, size, "%u, dispatch in frame %llu: %ux%ux%u groups%s, cs %s", id, (unsigned long long)m->frame, m->w,
+                 m->h, m->d, m->w ? "" : " (indirect)", a);
     } else {
         size_t n = (size_t)snprintf(o, size, "%u, render pass in frame %llu: %ux%u, %u layers, colour formats", id,
                                     (unsigned long long)m->frame, m->w, m->h, m->d);
@@ -190,13 +214,25 @@ static void nv_report(void) {
     }
 }
 
+static void marker_report(void);
+
 void vk_crumbs_report(void) {
     static int done;
     if (!active || __atomic_exchange_n(&done, 1, __ATOMIC_ACQ_REL)) return;
-    if (set_checkpoint) {
-        nv_report();
-        return;
-    }
+    if (set_checkpoint) nv_report();
+    else marker_report();
+}
+
+// A hang without a device loss (vk_sync.c's completion thread): the marker words are host memory and can be read at
+// any time; NVIDIA's checkpoints only once the device is lost (vkGetQueueCheckpointDataNV), so they are left for then.
+// Does not use up vk_crumbs_report: a loss reported later still gets its own.
+void vk_crumbs_report_hang(void) {
+    if (!active) return;
+    if (set_checkpoint) rt_log("vk: GPU breadcrumbs are NVIDIA checkpoints here: readable only after a device loss");
+    else marker_report();
+}
+
+static void marker_report(void) {
     static const char *const what[2] = {"upload batches", "replay passes and dispatches"};
     rt_log("vk: GPU breadcrumbs (%u marks made): the hang lies after the last finished mark and up to the last started",
            __atomic_load_n(&seq, __ATOMIC_RELAXED));
@@ -206,5 +242,12 @@ void vk_crumbs_report(void) {
         describe(words[2 * k + 1], b, sizeof b);
         rt_log("vk:   %s: last started %s", what[k], a);
         rt_log("vk:   %s: last finished %s", what[k], b);
+        // every mark between them: the first not finished is the suspect (13/11/2026: 79 marks apart, only the two
+        // ends were named)
+        uint32_t fin = words[2 * k + 1], st = words[2 * k];
+        for (uint32_t id = fin + 1; fin && id < st && id - fin <= 200; id++) {
+            describe(id, a, sizeof a);
+            rt_log("vk:     between: %s", a);
+        }
     }
 }

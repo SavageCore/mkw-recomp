@@ -612,7 +612,7 @@ int prepare_draw_ex(VkExec *ex, int prim, int32_t count, int restart, int mesh) 
     PD_MARK(PD_PIPE);
     bind_pipeline(ex, VK_PIPELINE_BIND_POINT_GRAPHICS, p);
     recent_note(vs, fs);
-    vk_crumb_draw(ex->cb, gfx_shader_key(vs), fs ? gfx_shader_key(fs) : NULL);
+    vk_crumb_draw(ex->cb, gfx_shader_key(vs), fs ? gfx_shader_key(fs) : NULL, (uint32_t)count);
     if (!B.st_valid || memcmp(&B.st, &s, sizeof s)) {
         vk_pipeline_set_dynamic(ex->cb, &s);
         ex->recorded++;

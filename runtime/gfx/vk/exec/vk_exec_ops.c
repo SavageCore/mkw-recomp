@@ -200,6 +200,7 @@ static void op_draw_idx_ind(VkExec *ex, const p_draw_idx_ind *d) {
         return warn_once(W_INDEX, "index buffer %#llx is not backed or not aligned: indirect draws skipped", (unsigned long long)d->ibuf);
     if (!prepare_draw(ex, d->prim, 0x7fffffff, indexed ? restart_for(ex, d->prim, d->itype) : 0)) return;
     vk_exec_frame.draws++;
+    vk_crumb_draw_ind(d->ind, d->count, max);
     vk_ind_note_pass();
     ind_trace(ex, d, &ip, &cp, max, stride);
     if (lost_on_draw()) {
@@ -284,6 +285,7 @@ static void op_dispatch(VkExec *ex, const p_dispatch *d) {
     else if (pt) vk_pt_mark(ex->cb, 1u << 31 | (uint32_t)(ex->prog->serial & 0x7fffffff));
     vk_cs_hash(ex, d->caller, 0, 0);   // MKW_CS_HASH (diag/vk_cs_hash.c)
     uint32_t crumb = vk_crumb_begin(ex->cb, VK_CRUMB_DISPATCH, (uint32_t)d->x, (uint32_t)d->y, (uint32_t)d->z, 0, NULL, 0);
+    vk_crumb_cs(crumb, gfx_shader_key(cs));
     vkCmdDispatch(ex->cb, (uint32_t)d->x, (uint32_t)d->y, (uint32_t)d->z);
     vk_crumb_end(ex->cb, VK_CRUMB_DISPATCH, crumb);
     vk_cs_hash(ex, d->caller, 0, 1);
@@ -333,6 +335,7 @@ static void op_dispatch_ind(VkExec *ex, const p_dispatch_ind *d) {
     vk_ubo_watch(ex, NVN_STAGE_CS);   // MKW_UBO_WATCH: uw1/uw2 missed the culling dispatch, an indirect one
     vk_cs_hash(ex, d->caller, d->ind, 0);   // MKW_CS_HASH (diag/vk_cs_hash.c)
     uint32_t crumb = vk_crumb_begin(ex->cb, VK_CRUMB_DISPATCH, 0, 0, 0, 0, NULL, 0);
+    vk_crumb_cs(crumb, gfx_shader_key(cs));
     vkCmdDispatchIndirect(ex->cb, ip.buffer, ip.offset);
     vk_crumb_end(ex->cb, VK_CRUMB_DISPATCH, crumb);
     vk_cs_hash(ex, d->caller, 0, 1);
