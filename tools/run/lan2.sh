@@ -8,12 +8,13 @@
 # NAME-b.{log,ctl}; B's profile is build/profile-b, copied from build/profile the first time (same account, so the
 # same save; the pipeline cache is not shared between two writers).
 # Usage: tools/run/lan2.sh NAME [SECONDS]   (default 900; then both are killed). Extra env (MKW_*) passes through.
+# LAN2_PREFIX=32 gives both addresses a /32 mask, as a VPN such as Tailscale does (the game refuses it: #148).
 # Presses: tools/run/ctl.sh NAME-a press 5 A, ctl.sh NAME-b ...; stop both: tools/run/ctl.sh NAME stop.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 if [ "${1:-}" = --inner ]; then   # in the user namespace and network namespace A (job unit below)
-  n=$2 secs=$3 r=build/run/$2
+  n=$2 secs=$3 r=build/run/$2 p=${LAN2_PREFIX:-24}
   ip link set lo up
   # B: its own network namespace; it says when it is inside, then waits for its link before starting the game
   unshare -n bash -c 'ip link set lo up; touch "$1-b.ns"; while [ ! -e "$1-b.go" ]; do sleep 0.1; done
@@ -22,9 +23,9 @@ if [ "${1:-}" = --inner ]; then   # in the user namespace and network namespace 
   b=$!
   while [ ! -e "$r-b.ns" ]; do sleep 0.05; done
   ip link add vA type veth peer name vB netns "$b"
-  ip addr add 10.77.0.1/24 dev vA
+  ip addr add 10.77.0.1/$p dev vA
   ip link set vA up
-  nsenter -t "$b" -n --preserve-credentials sh -c 'ip addr add 10.77.0.2/24 dev vB && ip link set vB up'
+  nsenter -t "$b" -n --preserve-credentials sh -c 'ip addr add 10.77.0.2/'"$p"' dev vB && ip link set vB up'
   touch "$r-b.go"
   MKW_CTL=$PWD/$r-a.ctl MKW_LAN_IP=10.77.0.1 timeout -s KILL "$secs" build/mkw > "$r-a.log" 2>&1 &
   wait
@@ -54,5 +55,5 @@ export MKW_FULLSCREEN=${MKW_FULLSCREEN:-0} MKW_WINDOW_SIZE=${MKW_WINDOW_SIZE:-12
 export MKW_BACKGROUND_WINDOW=${MKW_BACKGROUND_WINDOW:-1} MKW_ASSUME_FOCUS=${MKW_ASSUME_FOCUS:-1}
 tools/run/kwin-rule.sh --ensure >/dev/null
 mapfile -t vars < <(env | grep -E '^MKW_' | grep -v '^MKW_RUN_WHY=')
-JOB_MEM=${JOB_MEM:-14G} tools/run/job.sh start "$n" env "${vars[@]}" unshare -Ur -n bash tools/run/lan2.sh --inner "$n" "$secs"
+JOB_MEM=${JOB_MEM:-14G} tools/run/job.sh start "$n" env "${vars[@]}" LAN2_PREFIX="${LAN2_PREFIX:-24}" unshare -Ur -n bash tools/run/lan2.sh --inner "$n" "$secs"
 echo "lan2: $n up: A 10.77.0.1 (ctl.sh $n-a ...), B 10.77.0.2 (ctl.sh $n-b ...); stop: ctl.sh $n stop"
