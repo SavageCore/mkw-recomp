@@ -106,7 +106,7 @@ jobs:
     container: archlinux:latest
     steps:
       - name: Tools
-        run: pacman -Syu --noconfirm --needed git ccache ninja binutils uv python
+        run: pacman -Syu --noconfirm --needed git ccache ninja cmake binutils uv python
       - uses: actions/checkout@v5
       - name: ccache in the checkout, kept between runs (build.py compiles through it when installed)
         run: echo "CCACHE_DIR=$PWD/.ccache" >> "$GITHUB_ENV"

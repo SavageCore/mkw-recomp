@@ -127,11 +127,27 @@ Beyond the console, all optional and off (or at the console's value) by default:
 - **Sound**: 5.1 surround.
 - **Controls**: every key and button rebindable, mouse camera, Nintendo, Xbox or PlayStation button icons, motion
   steering, vibration strength; local multiplayer with one controller each.
+  Switch 2 controllers (Pro Controller, Joy-Con, GameCube) work over Bluetooth and, on Linux, over USB; on Windows
+  USB needs a one-time driver step, below.
 - **Hacks**: turbo (hold or toggle F2), skip movies, unlock everything, the same randomness every time, straight to
   time trial or free roam.
 - **Languages**: the menus in 20 languages; the game itself also in Catalan, Galician and Basque.
 - **Game files**: a dump as folders or as one `.nup` or `.nx` file, used where it is; updates from the start screen.
 - **Performance overlay** (FPS, or CPU, GPU and memory in full) and a one-click system info for bug reports.
+
+### Switch 2 controllers over USB on Windows
+
+These controllers only start after a command sent to their second USB interface, which Windows leaves without a
+driver an app can use. Once per controller, with [Zadig](https://zadig.akeo.ie/):
+
+1. Plug the controller in with a USB-C cable and open Zadig.
+2. **Options → List All Devices**, then pick the controller's **Interface 1** (USB ID `057E` and `2069` for the Pro
+   Controller, `2066`/`2067` for the right/left Joy-Con, `2073` for the GameCube controller). Not Interface 0: that
+   one is the controller's normal input, and replacing it hides the controller from every other app.
+3. Driver **WinUSB**, then **Replace Driver** (or **Install Driver**).
+
+The same steps apply to a virtual controller that shows up with those USB IDs (Switch2Connect's USB/IP mode). To undo
+it, uninstall that interface's device in Device Manager with "delete the driver" ticked.
 
 ## Mods
 

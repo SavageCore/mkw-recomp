@@ -1,20 +1,25 @@
 """Fetch what the Windows build needs into build/win: llvm-mingw (clang + lld for x86_64-w64-mingw32, UCRT) and the
-headers, import libraries and DLLs of SDL3, Opus, libvpx, zstd, Vulkan, VMA and xxHash.
+headers, import libraries and DLLs of SDL3, libusb, Opus, libvpx, zstd, Vulkan, VMA and xxHash.
 
 Why: the Windows exe is cross-compiled from Linux (tools/build/build.py --target windows) the way totk-pc-recomp builds
 its installer with --toolchain: llvm-mingw plus the MSYS2 UCRT64 packages (pins taken from its tools/make_release.py,
-MIT), and the upstream SDL3 mingw development package. Every download is checked against its sha256; a mismatch stops.
+MIT). SDL3 is built here from its source release with that toolchain: the upstream mingw package (and MSYS2's) has no
+libusb, and SDL starts the Switch 2 controllers over USB only through it (it sends their start-up commands on the
+second, non-HID interface; discussion #113). Built with SDL_HIDAPI_LIBUSB_SHARED, SDL3.dll loads libusb-1.0.dll (MSYS2,
+LGPL-2.1, beside it) when present. Every download is checked against its sha256; a mismatch stops.
 
 Layout:
     build/win/llvm-mingw/   the toolchain (bin/x86_64-w64-mingw32-clang)
     build/win/deps/         include/, lib/ (import and static libraries), bin/ (the DLLs mkw.exe loads)
 
-Usage: uv run tools/build/windeps.py [--dry-run]   (downloads cached in build/win/dl; ~250 MB unpacked)
+Usage: uv run tools/build/windeps.py [--dry-run]   (downloads cached in build/win/dl; ~250 MB unpacked; SDL needs cmake
+and ninja, ~10 s on 16 threads)
 """
 
 import argparse
 import hashlib
 import shutil
+import subprocess
 import sys
 import tarfile
 import urllib.request
@@ -35,9 +40,13 @@ PINS = {
         ),
         "55064b60b991a1e1e8090b8c2f84e82b22cfe5903d12c159d65064cf5e8ae335",
     ),
-    "sdl3": (
-        f"https://github.com/libsdl-org/SDL/releases/download/release-{SDL_VERSION}/SDL3-devel-{SDL_VERSION}-mingw.tar.gz",
-        "049b9dd711e3fb3f8d84feb998dfec54a75e17cf539c4a80ff4d058d839771cf",
+    "sdl3-src": (
+        f"https://github.com/libsdl-org/SDL/releases/download/release-{SDL_VERSION}/SDL3-{SDL_VERSION}.tar.gz",
+        "9c75cf16330322c217dedd2e0609f1124f1b54b8633e763467b4684d0f4334a3",
+    ),
+    "libusb": (
+        MSYS2 + "mingw-w64-ucrt-x86_64-libusb-1.0.30-1-any.pkg.tar.zst",
+        "20106e6ff31b4581bb111b28a68b6b79a50dc3e5fc3033944e1c4b3ff8cd812e",
     ),
     "opus": (
         MSYS2 + "mingw-w64-ucrt-x86_64-opus-1.6.1-2-any.pkg.tar.zst",
@@ -116,12 +125,12 @@ def unpack_llvm(archive: Path) -> None:
 
 
 def unpack_deps(archives: dict[str, Path]) -> None:
-    """Each package's include/, lib/, bin/*.dll and share/licenses/ into build/win/deps (MSYS2: ucrt64/..., SDL:
-    x86_64-w64-mingw32/...); the licences go into the release zip (tools/build/release.py)."""
+    """Each MSYS2 package's include/, lib/, bin/*.dll and share/licenses/ (under ucrt64/) into build/win/deps; the
+    licences go into the release zip (tools/build/release.py)."""
     dst = WIN / "deps"
     shutil.rmtree(dst, ignore_errors=True)
-    for name, archive in archives.items():
-        prefix = "x86_64-w64-mingw32/" if name == "sdl3" else "ucrt64/"
+    prefix = "ucrt64/"
+    for archive in archives.values():
         with tarfile.open(archive) as t:
             for m in t.getmembers():
                 rel = m.name.split(prefix, 1)[1] if prefix in m.name else ""
@@ -136,6 +145,36 @@ def unpack_deps(archives: dict[str, Path]) -> None:
                     shutil.copyfileobj(src, f)
 
 
+def build_sdl(source: Path) -> None:
+    """SDL3.dll, its import library, headers and licence into build/win/deps, built with llvm-mingw against the libusb
+    package already unpacked there."""
+    work = WIN / "sdl"
+    shutil.rmtree(work, ignore_errors=True)
+    work.mkdir(parents=True)
+    with tarfile.open(source) as t:
+        t.extractall(work, filter="tar")
+    deps, cc = WIN / "deps", WIN / "llvm-mingw/bin/x86_64-w64-mingw32-"
+    src = work / f"SDL3-{SDL_VERSION}"
+    configure = [
+        "cmake", "-S", str(src), "-B", str(work / "build"), "-G", "Ninja", "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_SYSTEM_NAME=Windows", "-DCMAKE_SYSTEM_PROCESSOR=x86_64", f"-DCMAKE_C_COMPILER={cc}clang",
+        f"-DCMAKE_CXX_COMPILER={cc}clang++", f"-DCMAKE_RC_COMPILER={cc}windres", f"-DCMAKE_INSTALL_PREFIX={deps}",
+        "-DSDL_STATIC=OFF", "-DSDL_TEST_LIBRARY=OFF", "-DSDL_TESTS=OFF", "-DSDL_EXAMPLES=OFF",
+        "-DSDL_HIDAPI_LIBUSB=ON", "-DSDL_HIDAPI_LIBUSB_SHARED=ON",
+        f"-DLibUSB_LIBRARY={deps / 'lib/libusb-1.0.dll.a'}", f"-DLibUSB_INCLUDE_PATH={deps / 'include/libusb-1.0'}",
+    ]  # fmt: skip
+    subprocess.run(configure, check=True, stdout=subprocess.DEVNULL)
+    subprocess.run(["cmake", "--build", str(work / "build"), "--target", "install"], check=True,
+                   stdout=subprocess.DEVNULL)  # fmt: skip
+    config = (work / "build/include-config-release/build_config/SDL_build_config.h").read_text()
+    if '#define SDL_LIBUSB_DYNAMIC "libusb-1.0.dll"' not in config:
+        sys.exit("SDL3 built without libusb: the Switch 2 controllers would not start over USB")
+    licence = deps / "share/licenses/SDL3"
+    licence.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(src / "LICENSE.txt", licence / "LICENSE.txt")
+    shutil.rmtree(work)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--dry-run", action="store_true", help="list the pinned downloads and stop")
@@ -148,7 +187,9 @@ def main() -> None:
     paths = {name: fetch(name) for name in PINS}
     unpack_llvm(paths.pop("llvm-mingw"))
     vpx_license = paths.pop("libvpx-license")
+    sdl_source = paths.pop("sdl3-src")
     unpack_deps(paths)
+    build_sdl(sdl_source)
     (WIN / "deps/share/licenses/libvpx").mkdir(parents=True, exist_ok=True)
     shutil.copy2(vpx_license, WIN / "deps/share/licenses/libvpx/LICENSE")
     dlls = sorted(p.name for p in (WIN / "deps/bin").glob("*.dll"))

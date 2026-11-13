@@ -115,7 +115,7 @@ SOURCES = ["recomp", "sm86", "tools/build/build.py", "tools/prepare", "tools/mod
            "runtime/cpu",
            "runtime/core/boot/gamelib.h"]  # fmt: skip
 # Windows DLLs mkw.exe needs beside it (build/win/deps/bin, tools/build/windeps.py); vulkan-1.dll is the driver's.
-WIN_DLLS = ["SDL3.dll", "libopus-0.dll"]
+WIN_DLLS = ["SDL3.dll", "libopus-0.dll", "libusb-1.0.dll"]   # libusb: SDL3.dll loads it (windeps.py)
 
 
 def sha256(path: Path) -> str:
