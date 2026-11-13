@@ -34,16 +34,35 @@ Without --source (the launcher after an update, tools/prepare/update.py): the co
 setup in --game, from its setup-state.json; only the steps whose key changed run again.
 """
 
-import argparse
-import hashlib
+import faulthandler
+import sys
+from pathlib import Path
+
+
+def _early_log() -> None:
+    """logs/setup.log opened before anything else runs, and every two minutes the Python stack of each thread written
+    to it: a setup that sat at 0 % CPU before writing a line left no log at all, so nothing said where it waited
+    (#251, Windows, 0.1.10). Rewritten at every setup; main() keeps writing to the same file."""
+    try:
+        game = Path(sys.argv[sys.argv.index("--game") + 1]).resolve()  # as main()'s, so it keeps this file
+        (game / "logs").mkdir(parents=True, exist_ok=True)
+        sys.stderr = open(game / "logs/setup.log", "w", encoding="utf-8", buffering=1)  # noqa: SIM115
+    except ValueError, IndexError, OSError:
+        return
+    print(f"setup: started, Python {sys.version.split()[0]}, {sys.executable}", file=sys.stderr)
+    faulthandler.dump_traceback_later(120, repeat=True, file=sys.stderr)
+
+
+_early_log()
+
+import argparse  # noqa: E402
+import hashlib  # noqa: E402
 import json
 import os
 import shutil
 import subprocess
-import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]  # the repository, or the package's setup/src
 sys.path.insert(0, str(ROOT / "tools/build"))
@@ -69,6 +88,7 @@ import update  # (ca_file)
 
 PREP_VERSION = 1  # bump when a step's output changes meaning: every step runs again
 from versions import Version, build_id_of, detect_id  # (build build.py put recomp/ on the path)
+
 ROMFS_MARGIN = 0.95  # a few short still passes: some dumping tools skip empty files
 SHADER_DIRS = ("Effect", "Layout", "Lib")  # extract.py's SHADER_DIRS: with Shader/, the RomFS folders it reads
 STEPS = ("check", "exefs", "romfs", "generate", "compile", "shaders", "warm", "cleanup")
@@ -225,7 +245,7 @@ def code_mods(game: Path) -> tuple[list[dict], str]:
     for mj in sorted(mods.glob("*/mod.json")) if mods.is_dir() else []:
         try:
             meta = json.loads(mj.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
+        except OSError, ValueError:
             continue
         if meta.get("patches"):
             switchable[mj.parent.name] = meta["patches"]
@@ -256,7 +276,7 @@ def generate(exefs: Path, work: Path, jobs: int, v: Version, image: list[dict]) 
     gen = work / "generated"
     cmd = [sys.executable, str(ROOT / "recomp/gen.py"), "--exefs", str(exefs), "--out", str(gen), "--jobs", str(jobs),
            "--patches", str(v.patches), "--mods", str(exefs.parent / "mods")]  # fmt: skip
-    if image:   # the enabled code mods' bytes, lifted in place
+    if image:  # the enabled code mods' bytes, lifted in place
         (work / "image.json").write_text(json.dumps(image), encoding="utf-8")
         cmd += ["--image", str(work / "image.json")]
     run(cmd)
@@ -286,7 +306,10 @@ def regenerate_if_cleaned(state: dict, keys: dict[str, str], work: Path) -> None
         state["done"].pop("generate", None)
 
 
-GENERATOR = [*sorted((ROOT / "recomp").glob("*.py")), *sorted((ROOT / "recomp").glob("patches-mkw*.txt"))]  # each version's table
+GENERATOR = [
+    *sorted((ROOT / "recomp").glob("*.py")),
+    *sorted((ROOT / "recomp").glob("patches-mkw*.txt")),
+]  # each version's table
 COMPILER = [*GENERATOR, ROOT / "tools/build/build.py", Path(__file__).with_name("gamecode.py")]
 
 
@@ -395,7 +418,9 @@ def main() -> None:
     ap.add_argument("--cc", help="the C compiler command (default: the package's zig cc, else clang)")
     ap.add_argument("--glslc", help="(default: the package's, else glslc on PATH)")
     ap.add_argument("--target", choices=("linux", "windows"), default="windows" if os.name == "nt" else "linux")
-    ap.add_argument("--port", default="", help="the port version this setup is for (the start screen's): kept in the state")
+    ap.add_argument(
+        "--port", default="", help="the port version this setup is for (the start screen's): kept in the state"
+    )
     args = ap.parse_args()
     own_children()
     if ca := update.ca_file():  # spec.py downloads NVIDIA's redistributables with this Python (issue #102, NixOS)
@@ -421,8 +446,10 @@ def main() -> None:
     # The start screen reads only stdout: the tools' output and the timings go to logs/setup.log, the file a report
     # attaches (issue #2 had none to give).
     (game / "logs").mkdir(parents=True, exist_ok=True)
-    sys.stderr = open(game / "logs/setup.log", "w", encoding="utf-8", buffering=1)  # noqa: SIM115
+    if getattr(sys.stderr, "name", "") != str(game / "logs/setup.log"):  # _early_log opened it unless --game was odd
+        sys.stderr = open(game / "logs/setup.log", "w", encoding="utf-8", buffering=1)  # noqa: SIM115
     print(f"setup: {' '.join(sys.argv)}", file=sys.stderr)
+
     # Within 60 % of the RAM, by what one job was measured to take (13/11/2026, 12 at once): a compile 0.5 GB (peaks
     # 266-409 MB, build.py --job-mem-gb), a generate worker 0.7 GB (gen.py: 5 065 MB for 12, one up to 608 MB). 1 GB for
     # both kept a 12-thread PC with 13 GB at 8 compiles and an 8 GB one at 4
@@ -433,8 +460,11 @@ def main() -> None:
     # setup.log only (stderr): what the machine gave the setup, and below each step's time, so two setups (Linux and
     # Windows, or a player's and ours) compare step by step (Adrià 13/11/2026: "los logs de preparación deberían
     # guardar tiempos"; 0.1.10's Windows setup took twice the Linux one and nothing said where)
-    print(f"machine: {os.cpu_count()} threads, {mem_gb():.1f} GB, {jobs} compile and {gen_jobs} generate jobs, "
-          f"{sys.platform}", file=sys.stderr)
+    print(
+        f"machine: {os.cpu_count()} threads, {mem_gb():.1f} GB, {jobs} compile and {gen_jobs} generate jobs, "
+        f"{sys.platform}",
+        file=sys.stderr,
+    )
     t_all, step, t_step = time.monotonic(), "check", time.monotonic()
     glslc = args.glslc or default_glslc(game)
     work = game / "setup-work"
