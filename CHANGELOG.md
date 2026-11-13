@@ -91,8 +91,11 @@ controllers over Bluetooth, AMD cards on Linux past the title, Intel GPUs past t
 
 From these packages, before publishing:
 
-- The whole setup on Linux (Radeon 660M, RADV) and on Windows 11 (GTX 1050 Ti), with its one-minute warm-up.
-- A mod of each kind on Windows: a skin from GameBanana's tab and Classic Grand Prix (`.ips`), built in and raced.
+- The whole setup on Linux (Radeon 660M, RADV) in 16 minutes, its warm-up 993 frames with the task and mesh programs
+  drawn as compute passes (the new default on RADV), and on Windows 11 (GTX 1050 Ti) in 31 minutes, its warm-up to
+  the end without a fault.
+- Before the tag, on `main`: a mod of each kind on Windows, a skin from GameBanana's tab and Classic Grand Prix
+  (`.ips`), built into the game and raced; the GameBanana tab and its 1-Click link on Windows.
 - The AArch64 AppImage on an AYN Odin 2 (Adreno 740, Turnip) by @titooo7, with 0.1.9 (#176).
 
 ### Known issues
