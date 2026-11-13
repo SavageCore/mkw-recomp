@@ -37,6 +37,9 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
 - The start screen in Thai, Japanese, Korean or Chinese (discussion #193): its title, Play button and page names showed
   `?` for every letter, as only the small text took the system font with that script; they all do now. The log also
   says which language the game was given and whether the setting or the system's locale chose it.
+- With Settings > Game > Language on Automatic, the game follows the language chosen in Settings > Menu > Language
+  when the game has it (discussion #193): picking Thai there gives the game in Thai too after a restart, instead of
+  the system's language. A menu language the game lacks (Turkish, Ukrainian) still leaves it to the system.
 
 ## 0.1.10
 

@@ -104,12 +104,19 @@ static const char *rebuilt_base(const char *code) {
     return NULL;
 }
 
-// The locale tag MKW_LANG falls back to: MKW_LOCALE, else the system's user locale.
+// The locale tag MKW_LANG falls back to: a menu language chosen in Settings > Menu > Language that the game ships (or
+// rebuilds), so a player who picks Thai there gets the game in Thai too (discussion #193); else MKW_LOCALE, else the
+// system's user locale. The menu's "en" keeps an English locale's region (en-GB).
 static const char *locale_tag(char *buf, size_t cap) {
     const char *tag = cfg_get("MKW_LOCALE");
-    if (tag && *tag) return tag;
-    snprintf(buf, cap, "%s", *plat_user_locale() ? plat_user_locale() : "en-US");
-    return buf;
+    if (!tag || !*tag) {
+        snprintf(buf, cap, "%s", *plat_user_locale() ? plat_user_locale() : "en-US");
+        tag = buf;
+    }
+    const char *menu = cfg_get("MKW_MENU_LANG");
+    if (!menu || !*menu || (!strcmp(menu, "en") && !strncmp(tag, "en", 2))) return tag;
+    if (strcmp(menu, "en") && !strcmp(switch_language(menu), "en-US")) return tag;   // tr, uk; pl, th before 1.5/1.7
+    return menu;
 }
 
 const char *ov_text_language(void) {
@@ -149,7 +156,7 @@ static void ov_desired_language(Cpu *c) {
         const char *set = cfg_get("MKW_LANG");
         char sys[85];
         if (set && *set) rt_log("oe: game language %s (Settings > Game > Language: %s)", code, set);
-        else rt_log("oe: game language %s (automatic, from the locale %s)", code, locale_tag(sys, sizeof sys));
+        else rt_log("oe: game language %s (automatic, from %s)", code, locale_tag(sys, sizeof sys));
     }
     uint64_t v = 0;
     memcpy(&v, code, strlen(code));

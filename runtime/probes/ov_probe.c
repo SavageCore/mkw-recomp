@@ -280,6 +280,8 @@ static void set_env(const char *name, const char *value) { plat_setenv(name, val
 static void probe_oe(void) {
     char *keep_lang = cfg_get("MKW_LANG") ? strdup(cfg_get("MKW_LANG")) : NULL;
     char *keep_locale = cfg_get("MKW_LOCALE") ? strdup(cfg_get("MKW_LOCALE")) : NULL;
+    char *keep_menu = cfg_get("MKW_MENU_LANG") ? strdup(cfg_get("MKW_MENU_LANG")) : NULL;
+    set_env("MKW_MENU_LANG", NULL);   // the locale cases: a menu language from mkw.ini would decide instead
     static const struct { const char *lang, *locale, *want; } cases[] = {
         {NULL, "en-US", "en-US"}, {NULL, "be-BY", "en-US"}, {NULL, "xx", "en-US"},     {NULL, "ja-JP", "ja"},
         {NULL, "fr-CA", "fr-CA"}, {NULL, "es-MX", "es-419"}, {NULL, "es_ES", "es"},     {NULL, "zh-Hant-TW", "zh-Hant"},
@@ -296,6 +298,22 @@ static void probe_oe(void) {
                    cases[i].locale ? cases[i].locale : "", got, cases[i].want);
         }
     }
+    // Automatic follows a menu language the game ships; the menu's "en" keeps the locale's English
+    static const struct { const char *menu, *locale, *want; } menus[] = {
+        {"ja", "en-US", "ja"}, {"en", "en-GB", "en-GB"}, {"en", "de-DE", "en-US"}, {"tr", "de-DE", "de"},
+        {"zh-Hant", "en-US", "zh-Hant"}, {"pt-BR", "pt-PT", "pt-BR"}, {"ca", "en-US", "es"}};
+    set_env("MKW_LANG", NULL);
+    for (size_t i = 0; i < sizeof menus / sizeof *menus; i++) {
+        set_env("MKW_MENU_LANG", menus[i].menu);
+        set_env("MKW_LOCALE", menus[i].locale);
+        const char *got = lang();
+        if (strcmp(got, menus[i].want)) {
+            bad++;
+            printf("  FAIL: language for MKW_MENU_LANG=%s MKW_LOCALE=%s is %s, not %s\n", menus[i].menu,
+                   menus[i].locale, got, menus[i].want);
+        }
+    }
+    set_env("MKW_MENU_LANG", NULL);
     set_env("MKW_LANG", NULL);
     set_env("MKW_LOCALE", NULL);
     char sys[16];
@@ -305,12 +323,14 @@ static void probe_oe(void) {
     snprintf(def, sizeof def, "%s", lang());
     set_env("MKW_LANG", keep_lang);
     set_env("MKW_LOCALE", keep_locale);
+    set_env("MKW_MENU_LANG", keep_menu);
     free(keep_lang);
     free(keep_locale);
+    free(keep_menu);
     checks++;
     failures += bad > 0;
-    printf("oe: language %s by default (en-US locale), %s for this Windows user locale; %d locale/MKW_LANG cases %s\n",
-           def, sys, (int)(sizeof cases / sizeof *cases), bad ? "FAILED" : "ok");
+    printf("oe: language %s by default (en-US locale), %s for this Windows user locale; %d locale, MKW_LANG and menu cases %s\n",
+           def, sys, (int)(sizeof cases / sizeof *cases + sizeof menus / sizeof *menus), bad ? "FAILED" : "ok");
 
     CALL("oe.Initialize", 0);
     CALL("oe.SetCpuBoostMode", 0);
