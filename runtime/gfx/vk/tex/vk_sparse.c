@@ -45,6 +45,7 @@ typedef struct SlotBlock {
     VkDeviceSize slot_size;       // bytes of each of its slots
     uint32_t type_bits;           // memory types of the images it serves
     uint32_t used;
+    uint32_t top;                 // slots handed out in order to lanes (lane_get); below it, holes are reused
     uint8_t busy[BLOCK_SLOTS];
     struct SlotBlock *next;
 } SlotBlock;
@@ -218,12 +219,43 @@ static SlotBlock *new_block(VkCtx *c, uint32_t type_bits, VkDeviceSize slot_size
 }
 
 // The slot of a physical page's block for an image, made (zeroed) on first use. NULL when it does not fit.
-static Slot *slot_get(VkCtx *c, const SparseImg *s, uint64_t pa, uint32_t sub) {
+// A lane: one row of Vulkan blocks of a level (layer, level, row of NVN tiles ty, row sy inside the tile) being bound
+// left to right (bind_page runs x first). Its slots come in order from one span of a block, so the row binds as one
+// (make_bind's runs): with slots taken first-free, a 2x2 tile's sub-blocks were consecutive and the next tile's came
+// 4 later, runs of 2 (merge-on1: 11 471 blocks as 4 691 binds, 427 ms). The last few lanes, round robin.
+static int merge_on(void);
+typedef struct { const SparseImg *s; uint32_t layer, l, ty, sy; SlotBlock *b; uint32_t next, end; } Lane;
+#define LANES 8
+static Lane lanes[LANES];
+static unsigned lane_at;
+
+static Lane *lane_get(const SparseImg *s, uint32_t layer, uint32_t l, uint32_t ty, uint32_t sy) {
+    for (int i = 0; i < LANES; i++)
+        if (lanes[i].s == s && lanes[i].layer == layer && lanes[i].l == l && lanes[i].ty == ty && lanes[i].sy == sy)
+            return &lanes[i];
+    Lane *L = &lanes[lane_at++ % LANES];
+    *L = (Lane){s, layer, l, ty, sy, NULL, 0, 0};
+    return L;
+}
+
+// The slot of a physical page's block for an image, made (zeroed) on first use. NULL when it does not fit. L: the
+// lane the block is in and want the blocks left in its row, for a span of consecutive slots (NULL: first free).
+static Slot *slot_get(VkCtx *c, const SparseImg *s, uint64_t pa, uint32_t sub, Lane *L, uint32_t want) {
     SlotKey k = {pa, sub, (int32_t)s->fmt};
     Slot *sl = nvn_hm_get(&slots, &k);
     if (sl) return sl;
-    SlotBlock *b = blocks;
-    while (b && (b->used == BLOCK_SLOTS || b->type_bits != s->type_bits)) b = b->next;
+    SlotBlock *b = NULL;
+    uint32_t i = 0;
+    int lane_ok = L && L->b && L->next < L->end && !L->b->busy[L->next];
+    if (lane_ok) {
+        b = L->b, i = L->next;
+    } else if (L && merge_on()) {   // a block with room above its top, for a span of this row
+        for (b = blocks; b && (b->top == BLOCK_SLOTS || b->type_bits != s->type_bits); b = b->next) {}
+    }
+    if (!b) {
+        b = blocks;
+        while (b && (b->used == BLOCK_SLOTS || b->type_bits != s->type_bits)) b = b->next;
+    }
     // Small images are outside the cap: it is there for the 8192x8192x68 arrays, which fill it before the 512x512 ones
     // the game makes later (foliage maps, r8sn) get a slot, and those read as zero drew the bushes black (01/11/2026).
     // The live slots count too: a block opened past the cap for a small image is not for the arrays to fill (m3).
@@ -241,9 +273,18 @@ static Slot *slot_get(VkCtx *c, const SparseImg *s, uint64_t pa, uint32_t sub) {
                    (long long)n_slots);
         return NULL;
     }
-    uint32_t i = 0;
-    while (b->busy[i]) i++;
+    if (!lane_ok) {
+        if (L && merge_on() && b->top < BLOCK_SLOTS) {
+            uint32_t span = want < BLOCK_SLOTS - b->top ? want : BLOCK_SLOTS - b->top;
+            i = b->top, b->top += span;
+            L->b = b, L->next = i, L->end = i + span;
+        } else {
+            while (b->busy[i]) i++;
+        }
+    }
+    if (L && L->b == b && L->next == i) L->next++;
     b->busy[i] = 1, b->used++;
+    if (i >= b->top) b->top = i + 1;
     if (!(sl = calloc(1, sizeof *sl))) rt_fatal("vk: out of memory (sparse slot)");
     sl->key = k, sl->blk = b, sl->idx = i;
     nvn_hm_put(&slots, &k, sl);
@@ -301,20 +342,58 @@ static void mark_dirty(SparseImg *s, size_t i) {
     s->dl[s->ndl++] = (uint32_t)i;
 }
 
-// The bind of block i of s to what bound[] names now.
-static VkSparseImageMemoryBind make_bind(const SparseImg *s, uint32_t i) {
-    uint32_t layer = i / s->nblk, r = i % s->nblk, l = 0;
-    while (l + 1 < s->nlev && r >= s->blk0[l + 1]) l++;
-    r -= s->blk0[l];
-    uint32_t x = r % s->bx[l] * s->gw, y = r / s->bx[l] * s->gh;
+// Block i of s: its layer, level and position in blocks.
+static void blk_pos(const SparseImg *s, uint32_t i, uint32_t *layer, uint32_t *l, uint32_t *bx, uint32_t *by) {
+    uint32_t r = i % s->nblk, lv = 0;
+    *layer = i / s->nblk;
+    while (lv + 1 < s->nlev && r >= s->blk0[lv + 1]) lv++;
+    r -= s->blk0[lv];
+    *l = lv, *bx = r % s->bx[lv], *by = r / s->bx[lv];
+}
+
+// The bind of blocks i..i+run-1 of s (one row; run 1 without MKW_SPARSE_MERGE) to what bound[] names now. The blocks
+// of one bind are laid out in its memory x first (Vulkan 1.3 §33.4.4), so a run of slots contiguous in one block binds
+// as one. RADV makes one VA update (a GEM_VA ioctl, ~50 us, plus the kernel's wait for the VM) per row of blocks of
+// each bind: bind 2 of the boot, 11 471 blocks of the 8192x8192x68 arrays one by one, took 576-995 ms in
+// vkQueueBindSparse on the replay thread, the 1.5 s frame of the logo (carga-tl1, carga-io2, 14/11/2026).
+static VkSparseImageMemoryBind make_bind(const SparseImg *s, uint32_t i, uint32_t run) {
+    uint32_t layer, l, bx, by;
+    blk_pos(s, i, &layer, &l, &bx, &by);
+    uint32_t x = bx * s->gw, y = by * s->gh, w = run * s->gw;
     uint32_t lw = s->w >> l ? s->w >> l : 1, lh = s->h >> l ? s->h >> l : 1;
     const Slot *sl = s->bound[i];
     return (VkSparseImageMemoryBind){
         .subresource = {s->aspect, l, layer},
         .offset = {(int32_t)x, (int32_t)y, 0},
-        .extent = {lw - x < s->gw ? lw - x : s->gw, lh - y < s->gh ? lh - y : s->gh, 1},
+        .extent = {lw - x < w ? lw - x : w, lh - y < s->gh ? lh - y : s->gh, 1},
         .memory = sl ? sl->blk->mem : VK_NULL_HANDLE,
         .memoryOffset = sl ? sl->blk->base + (VkDeviceSize)sl->idx * s->slot_size : 0};
+}
+
+// MKW_SPARSE_MERGE (default 1; 0: one bind per block, as before 14/11/2026; "ab": in the B blocks only).
+static int merge_on(void) {
+    static int v = -1;
+    if (v < 0) v = rt_knob("SPARSE_MERGE", "1");
+    return RT_KNOB_ON(v);
+}
+
+static int by_u32(const void *a, const void *b) {
+    uint32_t x = *(const uint32_t *)a, y = *(const uint32_t *)b;
+    return x < y ? -1 : x > y;
+}
+
+// How many blocks from dl[k] (sorted) on make one row run bound to contiguous slots, or all unbound: one bind.
+static int run_len(const SparseImg *s, int k) {
+    uint32_t i = s->dl[k], layer, l, bx, by;
+    blk_pos(s, i, &layer, &l, &bx, &by);
+    const Slot *sl = s->bound[i];
+    int run = 1;
+    while (k + run < s->ndl && s->dl[k + run] == i + (uint32_t)run && bx + (uint32_t)run < s->bx[l]) {
+        const Slot *nx = s->bound[i + (uint32_t)run];
+        if (sl ? !(nx && nx->blk == sl->blk && nx->idx == sl->idx + (uint32_t)run) : nx != NULL) break;
+        run++;
+    }
+    return run;
 }
 
 // Binds the Vulkan blocks inside page p of s to what the page maps now (sp_lock held).
@@ -328,18 +407,20 @@ static void bind_page(VkCtx *c, SparseImg *s, uint64_t p) {
     uint64_t pa = 0;
     int mapped = vk_mem_virt_phys(s->addr + p * PAGE, &pa);
 
-    for (uint32_t sy = 0; sy < s->nth / s->gh; sy++)
+    for (uint32_t sy = 0; sy < s->nth / s->gh; sy++) {
+        Lane *L = mapped ? lane_get(s, layer, l, ty, sy) : NULL;
         for (uint32_t sx = 0; sx < s->ntw / s->gw; sx++) {
             uint32_t x = tx * s->ntw + sx * s->gw, y = ty * s->nth + sy * s->gh;
             if (x >= lw || y >= lh) continue;
             size_t i = (size_t)layer * s->nblk + s->blk0[l] + (y / s->gh) * s->bx[l] + x / s->gw;
-            Slot *want = mapped ? slot_get(c, s, pa, sy * (s->ntw / s->gw) + sx) : NULL;
+            Slot *want = mapped ? slot_get(c, s, pa, sy * (s->ntw / s->gw) + sx, L, s->bx[l] - x / s->gw) : NULL;
             if (want == s->bound[i]) continue;
             if (want) want->refs++;
             if (s->bound[i]) slot_unref(s->bound[i]);
             s->bound[i] = want;
             mark_dirty(s, i);
         }
+    }
 }
 
 static void bind_range(VkCtx *c, SparseImg *s, uint64_t lo, uint64_t hi) {
@@ -656,11 +737,20 @@ VkSparseOrder vk_sparse_order(uint64_t fence, int binds) {
             s->tail_pending = 0;
         }
         ntail_pending = 0;
+        int blocks = 0, merge = merge_on();
         for (SparseImg *s = images; s; s = s->next) {
             if (!s->ndl) continue;
-            ib[ni++] = (VkSparseImageMemoryBindInfo){.image = s->img, .bindCount = (uint32_t)s->ndl, .pBinds = bb + nb};
+            if (merge) qsort(s->dl, (size_t)s->ndl, sizeof *s->dl, by_u32);
+            int nb0 = nb;
             s->bind_fence = fence;   // submission `fence` waits for this bind (bind_sem, or order_tl)
-            for (int k = 0; k < s->ndl; k++) bb[nb++] = make_bind(s, s->dl[k]), s->dirty[s->dl[k]] = 0;
+            for (int k = 0; k < s->ndl;) {
+                int run = merge ? run_len(s, k) : 1;
+                bb[nb++] = make_bind(s, s->dl[k], (uint32_t)run);
+                for (int j = 0; j < run; j++) s->dirty[s->dl[k + j]] = 0;
+                k += run;
+            }
+            ib[ni++] = (VkSparseImageMemoryBindInfo){.image = s->img, .bindCount = (uint32_t)(nb - nb0), .pBinds = bb + nb0};
+            blocks += s->ndl;
             s->ndl = 0;
         }
         ndirty = 0;
@@ -686,14 +776,14 @@ VkSparseOrder vk_sparse_order(uint64_t fence, int binds) {
             if (r == VK_ERROR_DEVICE_LOST) vk_exec_recent_log();
             rt_fatal("vk: vkQueueBindSparse of %d binds failed (%d)", nb, (int)r);
         }
-        n_binds += nb;
+        n_binds += blocks;
         int64_t calls = 0;
         static int64_t ncalls;
         static uint64_t bind_ns;   // time in vkQueueBindSparse: the driver may update the page tables in the call
         calls = ++ncalls, bind_ns += dt;
         if (calls <= 4 || !(calls & (calls - 1)))
-            rt_log("vk: sparse bind %lld: %d blocks in %d images (%lld blocks so far, %lld slots live, %lld MiB, "
-                   "%lld written), %.1f ms in the call (%.1f so far)", (long long)calls, nb, ni, (long long)n_binds,
+            rt_log("vk: sparse bind %lld: %d blocks in %d images as %d binds (%lld blocks so far, %lld slots live, %lld MiB, "
+                   "%lld written), %.1f ms in the call (%.1f so far)", (long long)calls, blocks, ni, nb, (long long)n_binds,
                    (long long)n_slots, (long long)(n_slots * 65536 >> 20), (long long)n_written, dt / 1e6,
                    bind_ns / 1e6);
         free(ib);
