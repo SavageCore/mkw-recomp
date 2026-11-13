@@ -133,6 +133,10 @@ int tracing(uint64_t addr);
 
 // vk_tex_alias.c: aliases (MKW_TEX_ALIAS) and GPU writes into mirrored storage
 enum { WB_SMALL = 64 << 10 };
+// What goes back to its storage when the CPU waits for a fence (vk_texture_write_back_small): targets up to WB_SMALL
+// bytes, and pitch (LINEAR, LINEAR_RENDER_TARGET) textures of any size: that layout is asked for so that the CPU reads
+// the texels in place.
+static inline int wb_at_fence(const nvn_texdesc *d, uint64_t size) { return size <= WB_SMALL || nvn_tex_is_linear(d); }
 extern int small_pending;
 Tex *entry_of(const tex_t *t);
 Tex *entries_at(uint64_t addr);   // the first entry at that storage address; the rest by next_at
