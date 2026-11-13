@@ -46,7 +46,7 @@ typedef struct SlotBlock {
     uint32_t type_bits;           // memory types of the images it serves
     uint32_t used;
     uint32_t top;                 // slots handed out in order to lanes (lane_get); below it, holes are reused
-    uint8_t busy[BLOCK_SLOTS];
+    uint8_t busy[BLOCK_SLOTS];    // 0 never used (zero from the block's fill), 1 in use, 2 freed (its texels stay)
     struct SlotBlock *next;
 } SlotBlock;
 
@@ -165,6 +165,15 @@ static VkResult alloc_local_or_any(VkCtx *c, const VkMemoryRequirements *req, Vm
     return r;
 }
 
+// After a fill of slot memory, before anything reads or binds it (the queue order puts the upload batch first).
+static const VkMemoryBarrier2 fill_mb = {.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
+                                         .srcStageMask = VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
+                                         .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                                         .dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                                         .dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT};
+static const VkDependencyInfo fill_dep = {.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO, .memoryBarrierCount = 1,
+                                          .pMemoryBarriers = &fill_mb};
+
 static SlotBlock *new_block(VkCtx *c, uint32_t type_bits, VkDeviceSize slot_size) {
     SlotBlock *b = calloc(1, sizeof *b);
     if (!b) rt_fatal("vk: out of memory (sparse block)");
@@ -215,6 +224,12 @@ static SlotBlock *new_block(VkCtx *c, uint32_t type_bits, VkDeviceSize slot_size
     b->mem = info.deviceMemory, b->base = info.offset, b->type_bits = type_bits, b->slot_size = slot_size;
     n_blocks++;
     b->next = blocks, blocks = b;
+    if (b->buf) {   // pool memory starts zeroed: the whole block once, instead of a fill and a barrier per slot (12 288
+        VkCommandBuffer cb = vk_upload_begin();   // of them in the logo's 1 s frame, merge-on2 14/11/2026)
+        vkCmdFillBuffer(cb, b->buf, 0, VK_WHOLE_SIZE, 0);
+        vkCmdPipelineBarrier2(cb, &fill_dep);
+        vk_upload_end();
+    }
     return b;
 }
 
@@ -246,7 +261,7 @@ static Slot *slot_get(VkCtx *c, const SparseImg *s, uint64_t pa, uint32_t sub, L
     if (sl) return sl;
     SlotBlock *b = NULL;
     uint32_t i = 0;
-    int lane_ok = L && L->b && L->next < L->end && !L->b->busy[L->next];
+    int lane_ok = L && L->b && L->next < L->end && L->b->busy[L->next] != 1;
     if (lane_ok) {
         b = L->b, i = L->next;
     } else if (L && merge_on()) {   // a block with room above its top, for a span of this row
@@ -279,10 +294,11 @@ static Slot *slot_get(VkCtx *c, const SparseImg *s, uint64_t pa, uint32_t sub, L
             i = b->top, b->top += span;
             L->b = b, L->next = i, L->end = i + span;
         } else {
-            while (b->busy[i]) i++;
+            while (b->busy[i] == 1) i++;
         }
     }
     if (L && L->b == b && L->next == i) L->next++;
+    int reused = b->busy[i] == 2;   // a freed slot keeps its last texels: zeroed again here
     b->busy[i] = 1, b->used++;
     if (i >= b->top) b->top = i + 1;
     if (!(sl = calloc(1, sizeof *sl))) rt_fatal("vk: out of memory (sparse slot)");
@@ -290,25 +306,22 @@ static Slot *slot_get(VkCtx *c, const SparseImg *s, uint64_t pa, uint32_t sub, L
     nvn_hm_put(&slots, &k, sl);
     n_slots++;
     if (!b->buf) return sl;   // no buffer to fill through (new_block): neither zeros nor a capture's texels
-    VkCommandBuffer cb = vk_upload_begin();   // pool memory starts zeroed; the queue order puts it before its use
-    vkCmdFillBuffer(cb, b->buf, (VkDeviceSize)i * s->slot_size, s->slot_size, 0);
-    VkMemoryBarrier2 mb = {.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2, .srcStageMask = VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
-                           .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT, .dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-                           .dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT};
-    VkDependencyInfo dep = {.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO, .memoryBarrierCount = 1, .pMemoryBarriers = &mb};
-    vkCmdPipelineBarrier2(cb, &dep);
     // A capture being replayed (runtime/gfx/cap) holds this slot's texels: they replace the zeros, each time the slot is
     // made (a slot no binding names is freed once the GPU is past it, which depends on timing, and may come back).
     uint8_t *saved = cap_pending.n ? nvn_hm_get(&cap_pending, &k) : NULL;
+    if (!reused && !saved) return sl;   // zero from the block's fill (new_block)
+    VkCommandBuffer cb = vk_upload_begin();
     if (saved) {
         VkBuffer sb;
         uint8_t *map = vk_staging(s->slot_size, &sb, NULL);
         memcpy(map, saved, s->slot_size);
         VkBufferCopy cp = {0, (VkDeviceSize)i * s->slot_size, s->slot_size};
         vkCmdCopyBuffer(cb, sb, b->buf, 1, &cp);
-        vkCmdPipelineBarrier2(cb, &dep);
         sl->written = 1;
+    } else {
+        vkCmdFillBuffer(cb, b->buf, (VkDeviceSize)i * s->slot_size, s->slot_size, 0);
     }
+    vkCmdPipelineBarrier2(cb, &fill_dep);
     vk_upload_end();
     return sl;
 }
@@ -326,7 +339,7 @@ static void slot_reap(void *arg) {
     plat_mutex_lock(&sp_lock);
     if (!--sl->reaps && !sl->refs) {
         nvn_hm_del(&slots, &sl->key);
-        sl->blk->busy[sl->idx] = 0, sl->blk->used--;
+        sl->blk->busy[sl->idx] = 2, sl->blk->used--;
         n_slots--;
         n_written -= sl->written;
         free(sl);
@@ -737,7 +750,7 @@ VkSparseOrder vk_sparse_order(uint64_t fence, int binds) {
             s->tail_pending = 0;
         }
         ntail_pending = 0;
-        int blocks = 0, merge = merge_on();
+        int blocks = 0, merge = merge_on(), run1 = 0, run_max = 0;
         for (SparseImg *s = images; s; s = s->next) {
             if (!s->ndl) continue;
             if (merge) qsort(s->dl, (size_t)s->ndl, sizeof *s->dl, by_u32);
@@ -745,6 +758,7 @@ VkSparseOrder vk_sparse_order(uint64_t fence, int binds) {
             s->bind_fence = fence;   // submission `fence` waits for this bind (bind_sem, or order_tl)
             for (int k = 0; k < s->ndl;) {
                 int run = merge ? run_len(s, k) : 1;
+                run1 += run == 1, run_max = run > run_max ? run : run_max;
                 bb[nb++] = make_bind(s, s->dl[k], (uint32_t)run);
                 for (int j = 0; j < run; j++) s->dirty[s->dl[k + j]] = 0;
                 k += run;
@@ -782,10 +796,10 @@ VkSparseOrder vk_sparse_order(uint64_t fence, int binds) {
         static uint64_t bind_ns;   // time in vkQueueBindSparse: the driver may update the page tables in the call
         calls = ++ncalls, bind_ns += dt;
         if (calls <= 4 || !(calls & (calls - 1)))
-            rt_log("vk: sparse bind %lld: %d blocks in %d images as %d binds (%lld blocks so far, %lld slots live, %lld MiB, "
-                   "%lld written), %.1f ms in the call (%.1f so far)", (long long)calls, blocks, ni, nb, (long long)n_binds,
-                   (long long)n_slots, (long long)(n_slots * 65536 >> 20), (long long)n_written, dt / 1e6,
-                   bind_ns / 1e6);
+            rt_log("vk: sparse bind %lld: %d blocks in %d images as %d binds (%d single, longest %d; %lld blocks so far, "
+                   "%lld slots live, %lld MiB, %lld written), %.1f ms in the call (%.1f so far)", (long long)calls, blocks,
+                   ni, nb, run1, run_max, (long long)n_binds, (long long)n_slots, (long long)(n_slots * 65536 >> 20),
+                   (long long)n_written, dt / 1e6, bind_ns / 1e6);
         free(ib);
         free(bb);
         free(ob);

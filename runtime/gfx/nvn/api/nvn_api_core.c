@@ -519,17 +519,35 @@ void nvn_present_fence_note(void) {
                      __ATOMIC_RELAXED);
 }
 
-static void sync_wait_note(uint64_t fence, uint64_t ns) {
+// Also, every 60 presents with waits in them (the loading screens: the loaders wait ~10 ms for each upload they
+// submit, 470 waits in the boot, boot-ht1), where the waited value was when the wait began: not yet recorded by the
+// replay (the latency is ours, the replay queue), or sent and not finished by the GPU (or its completion).
+static uint64_t sw_rep_n, sw_rep_ns, sw_gpu_n, sw_gpu_ns, sw_presents;
+
+static void sync_wait_note(uint64_t fence, uint64_t ns, uint64_t issued_at_start) {
     static uint64_t n[4], t[4], total;
     uint32_t at = __atomic_load_n(&present_at, __ATOMIC_RELAXED);
     int k = 0;
     while (k < 3 && at > (uint32_t)k && fence <= __atomic_load_n(&present_fence[(at - 1 - (uint32_t)k) % 4], __ATOMIC_RELAXED)) k++;
     __atomic_fetch_add(&n[k], 1, __ATOMIC_RELAXED), __atomic_fetch_add(&t[k], ns, __ATOMIC_RELAXED);
+    if (fence > issued_at_start) __atomic_fetch_add(&sw_rep_n, 1, __ATOMIC_RELAXED), __atomic_fetch_add(&sw_rep_ns, ns, __ATOMIC_RELAXED);
+    else __atomic_fetch_add(&sw_gpu_n, 1, __ATOMIC_RELAXED), __atomic_fetch_add(&sw_gpu_ns, ns, __ATOMIC_RELAXED);
     if (__atomic_add_fetch(&total, 1, __ATOMIC_RELAXED) % 600) return;
     rt_log("nvn: blocking SyncWaits by the frame of the fence: not presented yet %llu (%.1f ms), last presented %llu "
            "(%.1f ms), the one before %llu (%.1f ms), older %llu (%.1f ms)", (unsigned long long)n[0], t[0] / 1e6,
            (unsigned long long)n[1], t[1] / 1e6, (unsigned long long)n[2], t[2] / 1e6, (unsigned long long)n[3], t[3] / 1e6);
     memset(n, 0, sizeof n), memset(t, 0, sizeof t);
+}
+
+void nvn_sync_wait_window(void) {   // from the present, MKW_TRACE=perf
+    if (++sw_presents % 60) return;
+    uint64_t rn = __atomic_exchange_n(&sw_rep_n, 0, __ATOMIC_RELAXED), rt = __atomic_exchange_n(&sw_rep_ns, 0, __ATOMIC_RELAXED);
+    uint64_t gn = __atomic_exchange_n(&sw_gpu_n, 0, __ATOMIC_RELAXED), gt = __atomic_exchange_n(&sw_gpu_ns, 0, __ATOMIC_RELAXED);
+    if (!rn && !gn) return;
+    rt_log("perf: frame %llu: blocking SyncWaits: value not yet recorded by the replay %llu (%.1f ms, %.2f each), "
+           "sent and waiting for the GPU %llu (%.1f ms, %.2f each)", (unsigned long long)sw_presents,
+           (unsigned long long)rn, rt / 1e6, rn ? rt / 1e6 / (double)rn : 0.0, (unsigned long long)gn, gt / 1e6,
+           gn ? gt / 1e6 / (double)gn : 0.0);
 }
 
 // A poll (timeout under 1 ms) of a fence not done: on the console the GPU is done with a submit within the frame, here
@@ -601,12 +619,12 @@ NVN_API(nvnSyncWait) {
     if (b->fence_done() >= s->fence) { b->cpu_synced(s->fence); ret_x(c, NVN_SYNC_WAIT_RESULT_ALREADY_SIGNALED); return; }
     if (poll && poll_wait(s->fence)) { b->cpu_synced(s->fence); ret_x(c, NVN_SYNC_WAIT_RESULT_CONDITION_SATISFIED); return; }
     int ok;
-    uint64_t t0 = (rt_trace & RT_TRACE_PERF) ? kern_now_ns() : 0;
+    uint64_t t0 = (rt_trace & RT_TRACE_PERF) ? kern_now_ns() : 0, iss0 = t0 ? b->fence_queued() : 0;
     {
         NVN_BLOCKING();
         ok = b->fence_wait(s->fence, timeout);
     }
-    if (t0) sync_wait_note(s->fence, kern_now_ns() - t0);
+    if (t0) sync_wait_note(s->fence, kern_now_ns() - t0, iss0);
     if (ok) b->cpu_synced(s->fence);
     ret_x(c, ok ? NVN_SYNC_WAIT_RESULT_CONDITION_SATISFIED : NVN_SYNC_WAIT_RESULT_TIMEOUT_EXPIRED);
 }

@@ -45,6 +45,7 @@ const pool_t *nvn_pool_find(uint64_t addr, uint64_t len);  // GPU-visible pool h
 uint64_t nvn_new_serial(void);                             // next tex_t / prog_t serial, from 1
 uint64_t nvn_fence_last(void);                             // fence value of the newest submit (0 before the first)
 void nvn_present_fence_note(void);                         // a present: notes the newest fence (SyncWait census)
+void nvn_sync_wait_window(void);                           // a present: the waits of the last 60, by where the value was
 int nvn_depth_minus_w(void);                               // 1 after DeviceSetDepthMode(NEAR_IS_MINUS_W), else 0
 void nvn_depth_minus_w_set(int on);                        // the mode of a capture being replayed (runtime/gfx/cap)
 void nvn_guest_written(uint64_t addr, uint64_t size);      // the host or the game wrote pool storage: back end re-reads
