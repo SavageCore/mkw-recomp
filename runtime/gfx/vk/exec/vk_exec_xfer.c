@@ -332,8 +332,10 @@ static void report_counter(VkExec *ex, const p_report_counter *p) {
         ReportCb *r = malloc(sizeof *r);
         if (!r) rt_fatal("vk: out of memory");
         *r = (ReportCb){p->addr, 0, NULL};
-        if (nvn_report_at_submit() && gpu_end_mode()) {   // the value the submit wrote (nvn_api_cmd.c)
-            r->ts = __atomic_load_n((const uint64_t *)(uintptr_t)(p->addr + 8), __ATOMIC_RELAXED);
+        uint64_t ts = nvn_report_at_submit() && gpu_end_mode()   // the value the submit wrote (nvn_api_cmd.c)
+                          ? __atomic_load_n((const uint64_t *)(uintptr_t)(p->addr + 8), __ATOMIC_RELAXED) : 0;
+        if (ts) {   // 0: no submit wrote it (a stream replayed without the front end): there is no time to move
+            r->ts = ts;
             if (!group_cur || group_cur->fence != ex->fence) {
                 group_cur = calloc(1, sizeof *group_cur);
                 if (!group_cur) rt_fatal("vk: out of memory");
