@@ -118,6 +118,14 @@ updates; handheld resolution by @titooo7; and a faster start on AMD cards on Lin
   20 000 more while the loading screen ran at about 10 fps. The blocks of a row now bind as one; on a Radeon 660M the
   logo hitch is 0.5 s shorter, the loading screen goes from 6-7 s to 5 s and the title comes 1.7 s earlier.
 
+### Tested
+
+From these packages, before publishing:
+
+- The whole setup on Linux (Radeon 660M, RADV) and on Windows 11 (GTX 1050 Ti), each to the end of its warm-up.
+- Before the tag, on `main`: the sparse bind change against the title capture (same images as the reference), and
+  boot runs to the title on the Radeon 660M.
+
 ## 0.1.10
 
 Mods in the start screen, from @SavageCore's work, with GameBanana's mods a click away; Unlock everything on 1.8.0 by
