@@ -78,7 +78,8 @@ reach, and a frame over 33.3 ms runs the race slower than real time.
 
 Requirements: x86-64 CPU with AVX2 (or, on Linux, AArch64 with ARMv8.2: LSE, FP16, RCpc, DotProd,
 CRC32), a GPU with Vulkan 1.3 (`VK_EXT_mesh_shader` recommended; without it, task and mesh shaders run as compute),
-16 GB of RAM recommended.
+16 GB of RAM recommended. In a Docker or Podman container on Linux, allow `userfaultfd` in its seccomp profile (Docker's
+default refuses it): without it the port cannot tell which game memory changed, and runs several times slower.
 
 ## Extra features
 

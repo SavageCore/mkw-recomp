@@ -382,8 +382,9 @@ int storage_rewritten(const Tex *e, uint32_t since, uint32_t *now) {
 // Without a write watch (vk_mem_changed -1: a kernel without userfaultfd, as the Odin 2's SteamOS ARM 7.2) every check
 // uploaded the texture again: three 8192x8192 ASTC textures 627 times each at the first menus (run7, 10/11/2026), ~100
 // ms of every frame. The storage's hash, once per submission, tells a rewrite apart: 1 when it is unchanged since the
-// last upload. MKW_TEX_HASH_UNTRACKED=1 on any GPU, 0 never; on by default on Qualcomm only, so other GPUs without a
-// write watch upload again as before.
+// last upload. MKW_TEX_HASH_UNTRACKED=1 on any GPU, 0 never; on by default wherever the write watch is missing: also
+// in a container whose seccomp profile refuses userfaultfd (#241: Docker's default, an RX 9070 at ~6 fps on the title,
+// ~20 with this, 60 with userfaultfd allowed), not only on Qualcomm's kernels.
 // The check runs once per submission: a rewrite of the storage later in the same submission is uploaded at the next
 // one. That is the point (the 627 re-uploads were checks within a few submissions), and a texture the game rewrites
 // mid-submission without a write watch reads the bytes of that submission's start.
@@ -391,8 +392,13 @@ static int hash_untracked(void) {
     static int on = -1;
     if (on < 0) {
         const char *c = cfg_get("MKW_TEX_HASH_UNTRACKED");
-        VkCtx *x = vk_ctx();
-        on = c && *c ? atoi(c) != 0 : x && x->props.vendorID == 0x5143;
+        uint64_t page;
+        int no_watch = plat_mem_written(mem_layout()->heap.base, 0x1000, &page, 1, 0) == UINT64_MAX;
+        on = c && *c ? atoi(c) != 0 : no_watch;
+        if (no_watch)
+            rt_log("vk: no write watch (on Linux, userfaultfd refused: in a container, allow it in its seccomp profile): "
+                   "texture storage %s, much slower than with it (MKW_TEX_HASH_UNTRACKED)",
+                   on ? "is hashed once per submission instead" : "is uploaded again at every check");
     }
     return on;
 }
