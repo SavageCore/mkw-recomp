@@ -76,7 +76,7 @@ what = "Intel's GPUs hang in a compute program that reaches `barrier()` after an
 [[signature]]
 issue = 50
 all = ["driver radv", "task/mesh draws as mesh shaders", "upload submit failed (-4)"]
-what = "RADV loses the device at the title with the game's mesh shaders run natively (`mesh_compute = 1` in `mkw.ini` avoids it on several cards)"
+what = "RADV loses the device at the title with the game's mesh shaders run natively: from 0.1.10 RADV draws them as compute passes by default (`mesh_compute = 1` in `mkw.ini` does the same before)"
 
 [[signature]]
 issue = 152

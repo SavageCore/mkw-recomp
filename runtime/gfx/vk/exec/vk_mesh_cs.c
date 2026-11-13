@@ -105,12 +105,17 @@ int vk_mesh_cs_alloc(uint64_t fence, VkDeviceSize size, VkBuffer *buf, VkDeviceS
 // on one with it (to compare both forms of the same frame); MKW_MESH_COMPUTE=0 leaves them undrawn there.
 // AMD's own driver also takes the compute passes by default: on Windows 26.10.x (RX 7600 to 9070 XT, issues #88 #91
 // #67 #76 #83) the device is lost ~5 s into the title, Radeon GPU Detective showing a DispatchMesh that never launched
-// its workgroups and no page fault; MKW_MESH_COMPUTE=1 runs past it (#88, 11/11/2026). RADV keeps the mesh shaders.
+// its workgroups and no page fault; MKW_MESH_COMPUTE=1 runs past it (#88, 11/11/2026). RADV too: the 8 logs with the
+// mesh shaders native (#4 RX 7900 GRE, #43 RX 6650 XT, #50 890M, #225 RX 9070; Mesa 25.2.8 to 26.2.6) lose the device
+// at the title ~70 log lines after the first task/mesh pipeline, the kernel naming a read fault of the command
+// processor (CPG) in RADV's 32-bit window after a barrier; with MKW_MESH_COMPUTE=1 they all run past it (13/11/2026).
 int vk_mesh_cs_on(void) {
     static int on = -1;
     if (on < 0) {
         const char *e = cfg_get("MKW_MESH_COMPUTE");
-        on = e && *e ? atoi(e) != 0 : !vk_ctx()->has_mesh || vk_caps.driver_id == VK_DRIVER_ID_AMD_PROPRIETARY;
+        on = e && *e ? atoi(e) != 0
+                     : !vk_ctx()->has_mesh || vk_caps.driver_id == VK_DRIVER_ID_AMD_PROPRIETARY ||
+                           vk_caps.driver_id == VK_DRIVER_ID_MESA_RADV;
         on = on && vk_ctx()->has_buffer_device_address;
         rt_log("vk: task/mesh draws %s", on ? "as compute passes and an indexed draw (MKW_MESH_COMPUTE)"
                                              : vk_ctx()->has_mesh ? "as mesh shaders" : "not drawn (no mesh shaders, no buffer addresses)");

@@ -36,6 +36,9 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
   the setup says so (an antivirus, proxy, VPN or unstable connection) instead of only showing two checksums.
 - Settings > Hacks > Unlock everything did nothing on game version 1.8.0: its save has another layout than 1.0.0's,
   and the lists are now found by their key in the save itself.
+- AMD GPUs on Linux (RADV) no longer lose the device at the title as soon as the game draws its first task and mesh
+  programs (#4, #43, #50, #225): they are drawn as compute passes there by default, as `mesh_compute = 1` in `mkw.ini`
+  did (`mesh_compute = 0` goes back to the mesh shaders). A later hang some of these cards still have is in #50.
 
 ## 0.1.9
 
