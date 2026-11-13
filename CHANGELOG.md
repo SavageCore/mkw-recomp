@@ -8,6 +8,12 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
 
 ### Changes
 
+- **Giant triangles over Shy Guy Bazaar** (#291 by @flavio-silva, #72): for single frames the 3D scene was covered by
+  huge triangles there. MKW fills its instanced characters' animations on the GPU into pitch textures of 70-190 KiB
+  and its CPU code reads their bytes in place every frame; only targets up to 64 KiB went back to memory at a fence
+  wait, so the bones read zeros or stale bytes. @flavio-silva traced it down to the two game functions and the
+  textures; pitch textures now go back at the fence whatever their size: 0 wrong frames in his Flower Cup, from 16-75
+  per 600.
 - **NVIDIA: the device loss with "instruction pointer invalid"** (#22, also #112 #133 #137 #142 #166 #189 #203 #208
   #212 #219 #221 #230 #231 and discussion #139): the Shell Cup after its video, Star High Sundae's lap 2, Moo Moo
   Meadows after the cows and the Special Cup's unlock animation stopped the GPU on drivers 616-621, Turing to
