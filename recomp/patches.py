@@ -168,9 +168,21 @@ def load_mods(table, mods_dir, bases):
             continue
         if not mp:
             continue
-        if not mp.get("spans"):
-            pass
-        else:
+        # before the spans: a mod with spans only (Timer alone) used them unbound (UnboundLocalError)
+        where = f'{path}: patches'
+        index = {s[0]: i for i, s in enumerate(table.sets)}
+
+        def clash(module, off, nwords):
+            # names who already patches [off, off + 4*nwords): a site, a span, or None (like the mod
+            # merger's overlap report: two mods patching one address stop the generate, never merge silently)
+            if off in table.sites.get(module, {}):
+                return table.sources.get((module, off))
+            for o, (k, ws) in table.spans.get(module, {}).items():
+                if off < o + 4 * len(ws) and o < off + 4 * nwords:
+                    return table.sources.get((module, o))
+            return None
+
+        if mp.get("spans"):
             for sp in mp["spans"]:
                 for k in ("set", "env", "module", "off", "words"):
                     if k not in sp:
@@ -205,19 +217,6 @@ def load_mods(table, mods_dir, bases):
                         raise PatchError(f'{where}: {sp["module"]}+{o:#x} is both a site and in a span')
                 mod[off] = (index[sp["set"]], words)
                 table.sources[(sp["module"], off)] = name
-        where = f'{path}: patches'
-        index = {s[0]: i for i, s in enumerate(table.sets)}
-
-        def clash(module, off, nwords):
-            # names who already patches [off, off + 4*nwords): a site, a span, or None (like the mod
-            # merger's overlap report: two mods patching one address stop the generate, never merge silently)
-            if off in table.sites.get(module, {}):
-                return table.sources.get((module, off))
-            for o, (k, ws) in table.spans.get(module, {}).items():
-                if off < o + 4 * len(ws) and o < off + 4 * nwords:
-                    return table.sources.get((module, o))
-            return None
-
         for st in mp.get("sites", []):
             for k in ("set", "env", "module", "off", "orig", "repl"):
                 if k not in st:
