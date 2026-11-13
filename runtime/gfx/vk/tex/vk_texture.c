@@ -42,6 +42,7 @@ SampSlot *sslots;
 int nsslots;
 nvn_hmap samplers = {.klen = sizeof(samp_par)};
 int nreleased;
+uint64_t released_bytes;
 Tex *rel_head, *rel_tail;   // released entries in release order (sweep_released drops from the head)
 uint64_t n_uploads, n_reuploads;
 // Re-uploads since the last perf line (tex_lock): all, and those of textures a WriteTexels wrote since their last upload.
@@ -205,7 +206,7 @@ void vk_texture_shutdown(void) {
     by_addr = (nvn_hmap){.klen = 8};
     samplers = (nvn_hmap){.klen = sizeof(samp_par)};
     free(tslots), free(sslots);
-    tslots = NULL, sslots = NULL, ntslots = nsslots = 0, nreleased = 0;
+    tslots = NULL, sslots = NULL, ntslots = nsslots = 0, nreleased = 0, released_bytes = 0;
     rel_head = rel_tail = NULL;
     if (sinfo) memset(sinfo, 0, sizeof *sinfo << 20);   // no slot is registered: tokens 0
     if (schk) memset(schk, 0, sizeof *schk << 20);
