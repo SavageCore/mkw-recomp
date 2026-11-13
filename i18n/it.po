@@ -2162,3 +2162,50 @@ msgid ""
 msgstr ""
 "All'avvio chiede a GitHub se c'è una versione più recente del port e la propone nella schermata "
 "iniziale (al massimo pochi secondi, niente offline)."
+
+msgctxt "UI_LAUNCH_PLAYERS"
+msgid "Profiles"
+msgstr "Profili"
+
+msgctxt "UI_LAUNCH_PLAYER"
+msgid "Profile: %s"
+msgstr "Profilo: %s"
+
+msgctxt "UI_PLAYER_NOTE"
+msgid ""
+"Each profile has its own name and save, like the users of a console. The game shows the name, and "
+"so do the other players' screens in LAN play."
+msgstr ""
+"Ogni profilo ha il suo nome e il suo salvataggio, come gli utenti di una console. Il gioco mostra "
+"il nome, anche sugli schermi degli altri giocatori in LAN."
+
+msgctxt "UI_PLAYER_NAME_HINT"
+msgid "Name (up to 10 characters)"
+msgstr "Nome (fino a 10 caratteri)"
+
+msgctxt "UI_PLAYER_CHOOSE"
+msgid "Play as"
+msgstr "Gioca con questo"
+
+msgctxt "UI_PLAYER_CHOSEN"
+msgid "Playing"
+msgstr "In uso"
+
+msgctxt "UI_PLAYER_NEW"
+msgid "New profile"
+msgstr "Nuovo profilo"
+
+msgctxt "UI_PLAYER_REMOVE"
+msgid "Remove"
+msgstr "Rimuovi"
+
+msgctxt "UI_PLAYER_CONFIRM"
+msgid ""
+"Remove the profile %s? It leaves the list; its save is kept in the folder profile/players/deleted."
+msgstr ""
+"Rimuovere il profilo %s? Esce dall'elenco; il suo salvataggio resta nella cartella "
+"profile/players/deleted."
+
+msgctxt "UI_PLAYER_FAILED"
+msgid "The profile could not be saved (the log says why)."
+msgstr "Impossibile salvare il profilo (il log spiega perché)."

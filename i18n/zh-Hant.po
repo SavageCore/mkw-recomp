@@ -2061,3 +2061,46 @@ msgid ""
 "At start, ask GitHub for a newer release of the port and offer it on the start screen (a few "
 "seconds at most, nothing offline)."
 msgstr "啟動時向 GitHub 查詢此移植版的新版本，並在開始畫面中提示（最多幾秒，離線時不做任何事）。"
+
+msgctxt "UI_LAUNCH_PLAYERS"
+msgid "Profiles"
+msgstr "檔案"
+
+msgctxt "UI_LAUNCH_PLAYER"
+msgid "Profile: %s"
+msgstr "檔案：%s"
+
+msgctxt "UI_PLAYER_NOTE"
+msgid ""
+"Each profile has its own name and save, like the users of a console. The game shows the name, and "
+"so do the other players' screens in LAN play."
+msgstr "每個檔案都有自己的名稱和存檔，就像主機上的使用者。遊戲會顯示這個名稱，區域網路遊戲中其他玩家的畫面上也會顯示。"
+
+msgctxt "UI_PLAYER_NAME_HINT"
+msgid "Name (up to 10 characters)"
+msgstr "名稱（最多 10 個字元）"
+
+msgctxt "UI_PLAYER_CHOOSE"
+msgid "Play as"
+msgstr "用這個玩"
+
+msgctxt "UI_PLAYER_CHOSEN"
+msgid "Playing"
+msgstr "使用中"
+
+msgctxt "UI_PLAYER_NEW"
+msgid "New profile"
+msgstr "新增檔案"
+
+msgctxt "UI_PLAYER_REMOVE"
+msgid "Remove"
+msgstr "移除"
+
+msgctxt "UI_PLAYER_CONFIRM"
+msgid ""
+"Remove the profile %s? It leaves the list; its save is kept in the folder profile/players/deleted."
+msgstr "移除檔案 %s？它會從清單中消失，存檔保留在 profile/players/deleted 資料夾中。"
+
+msgctxt "UI_PLAYER_FAILED"
+msgid "The profile could not be saved (the log says why)."
+msgstr "無法儲存檔案（原因見記錄）。"

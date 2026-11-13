@@ -322,7 +322,9 @@ void frame_step_present(uint64_t display_ns, int interval); // nvnQueuePresentTe
 void frame_rate_host(uint64_t patch_page);                 // game.c MKW_FPS: register its host function (patches.c)
 void frame_rate_init(uint64_t patch_page);                 // and point the frame object's vtable slot at it
 // ---- boot (boot.c, main.c)
-typedef struct { const char *exefs, *romfs, *profile; int boot; double seconds; const char *shot, *gpu; } RtConfig;
+typedef struct { const char *exefs, *romfs, *profile; int boot; double seconds; const char *shot, *gpu, *profile_base; } RtConfig;
+                                                           // profile: the player's folder (core/base/players.h);
+                                                           // profile_base: the folder the players live in
                                                            // romfs: the dump's loose romfs/ directory or
                                                            // its .nup package;
                                                            // frames: --frames N (0 = no limit); shot: --shot

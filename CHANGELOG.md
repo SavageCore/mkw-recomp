@@ -8,6 +8,11 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
 
 ### Changes
 
+- **Profiles in the launcher** (discussion #288): the name the game showed was always "Local". The start screen now
+  has a Profiles page, opened from the "Profile: name" row under Play: each profile has its own name (up to 10
+  characters, as on the console; also what LAN players see) and its own save, and the one marked Playing is the one
+  the next start plays. The save you already have is the first profile, named "Player" until you rename it; removing
+  a profile takes it off the list and keeps its save in `profile/players/deleted`.
 - **Giant triangles over Shy Guy Bazaar** (#291 by @flavio-silva, #72): for single frames the 3D scene was covered by
   huge triangles there. MKW fills its instanced characters' animations on the GPU into pitch textures of 70-190 KiB
   and its CPU code reads their bytes in place every frame; only targets up to 64 KiB went back to memory at a fence

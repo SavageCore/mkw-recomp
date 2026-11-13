@@ -352,11 +352,11 @@ static void prewarm_main(void *arg) {
     return;
 }
 
-// One game per profile: a second one (a shortcut clicked twice) would commit over the first's save and double the GPU
-// memory. Told in a box as well as in the log: the player started it and has no log open.
+// One game per profile folder, whichever player: a second one (a shortcut clicked twice) would commit over the first's
+// save and double the GPU memory. Told in a box as well as in the log: the player started it and has no log open.
 static void lock_profile(void) {
     char p[4200];
-    snprintf(p, sizeof p, "%s/instance.lock", rt_config()->profile);
+    snprintf(p, sizeof p, "%s/instance.lock", rt_config()->profile_base);
     if (plat_file_lock(p)) return;   // -1 (cannot open it): played as before, without the guard
     const char *msg = "Mario Kart World is already running from this folder. Close it before starting it again.";
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "mkw-recomp", msg, NULL);

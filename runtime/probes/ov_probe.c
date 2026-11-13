@@ -22,6 +22,7 @@
 #include "kernel.h"
 #include "ov.h"
 #include "platform/platform.h"
+#include "players.h"
 #include "utf16.h"
 #include "ui_text.h"
 #include "ov_probe.h"
@@ -422,7 +423,17 @@ static void probe_account(void) {
     CHECK(uid[0] == direct[0] && uid[1] == direct[1], "GetUserId differs from account_uid");
     CHECK(CALL("account.GetUserExistence", U(&exists), U(uid)) == 0 && exists == 1, "GetUserExistence");
     CHECK(CALL("account.GetUserExistence", U(&exists), U(other)) == 0 && exists == 0, "GetUserExistence (other)");
-    CHECK(CALL("account.GetNickname", U(nick), U(uid)) == 0 && !strcmp(nick, "Local"), "GetNickname");
+    char name[PLAYER_NAME_BYTES];
+    // a name as the console takes it: trimmed, no control characters, 10 characters, whole UTF-8 sequences
+    player_name_clean("  Ab\x01" "cdefghijklm  ", name);
+    CHECK(!strcmp(name, "Abcdefghij"), "player_name_clean: '%s'", name);
+    player_name_clean("\xe3\x83\x9e\xe3\x83\xaa\xe3\x82\xaa\xe3\x83\xab\xe3\x82\xa4\xe3\x83\xbc\xe3\x82\xb8"
+                      "\xe3\x83\x9e\xe3\x83\xaa\xe3\x82\xaa\xe3\x83\xab\xe3\x82\xa4", name);   // 11 kana, 33 bytes
+    CHECK(strlen(name) == 30, "player_name_clean on 3-byte characters: %zu bytes", strlen(name));
+    player_name_clean(" \x80\xff ", name);
+    CHECK(!name[0], "player_name_clean of nothing usable: '%s'", name);
+    player_name(rt_config()->profile, name);
+    CHECK(CALL("account.GetNickname", U(nick), U(uid)) == 0 && !strcmp(nick, name), "GetNickname: %s, not %s", nick, name);
     CALL("account.CloseUser", U(h));
     CHECK(CALL("account.GetUserId", U(uid), U(h)) != 0, "GetUserId on a closed handle");
     probe_uid[0] = direct[0];

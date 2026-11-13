@@ -38,6 +38,7 @@
 #include "gamelib.h"
 #include "hacks.h"
 #include "host.h"
+#include "players.h"
 #include "platform/platform.h"
 #include "sha256.h"
 #include "ui/launcher/launcher.h"
@@ -553,6 +554,17 @@ static int run_launcher(int argc, char **argv) {
         }
     }
     if (romfs) launcher_set_romfs(romfs);
+    // the players (Profiles page) live in the profile folder the game will use: --profile, else MKW_PROFILE_DIR /
+    // mkw.ini, else profile/ beside the executable
+    const char *profile = NULL;
+    for (int i = 1; i + 1 < argc; i++)
+        if (!strcmp(argv[i], "--profile")) profile = argv[i + 1];
+    if (!profile) {
+        RtConfig paths = {.profile = rt_default_profile};
+        portable_paths(&paths);
+        profile = paths.profile;
+    }
+    if (profile && *profile) launcher_set_profile(profile);
     // the same for exefs: an import checks a mod's build id against the game it will run with
     const char *exefs = NULL;
     for (int i = 1; i + 1 < argc; i++)
@@ -633,6 +645,11 @@ int main(int argc, char **argv) {
     if (cfg.shot && !cfg.seconds) return usage(argv[0]);
     if (cfg.seconds && mode) return usage(argv[0]);
     log_open(!mode);
+    // the player the launcher picked (core/base/players.h): its account and save; the lock stays on the folder
+    static char player_profile[PLAT_PATH_MAX * 2];
+    cfg.profile_base = cfg.profile;
+    player_active_dir(cfg.profile, player_profile, sizeof player_profile);
+    cfg.profile = player_profile;
     if (!mode) {
         cfg.boot = cfg.seconds > 0;   // --seconds starts the game like --boot, with its checkpoints
         rt_boot();

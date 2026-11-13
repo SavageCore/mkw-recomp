@@ -117,14 +117,12 @@ static int oldest_cb(const char *name, int kind, uint64_t, void *) {
     return 1;
 }
 
-void mods_before_play(const char *exe_dir) {
+void mods_before_play(const char *player_dir) {
     const char *on = cfg_get("MKW_MODS"), *played = cfg_get("MKW_MODS_PLAYED");
     if (!strcmp(on ? on : "", played ? played : "")) return;
     if (on && *on) {
-        const char *prof = cfg_get("MKW_PROFILE_DIR");
         CopyCtx c = {};
-        if (prof && *prof) snprintf(c.src, sizeof c.src, "%s/save", prof);
-        else snprintf(c.src, sizeof c.src, "%s/profile/save", exe_dir);
+        snprintf(c.src, sizeof c.src, "%s/save", player_dir);
         SDL_Time now;
         SDL_DateTime t;
         SDL_GetCurrentTime(&now);

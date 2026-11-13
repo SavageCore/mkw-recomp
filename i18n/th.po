@@ -2121,3 +2121,49 @@ msgid ""
 msgstr ""
 "ตอนเริ่ม ถาม GitHub หารีลีสใหม่ของพอร์ตและเสนอที่หน้าเริ่มต้น (ไม่กี่วินาทีที่มากที่สุด "
 "ออฟไลน์จะไม่ทำอะไร)"
+
+msgctxt "UI_LAUNCH_PLAYERS"
+msgid "Profiles"
+msgstr "โปรไฟล์"
+
+msgctxt "UI_LAUNCH_PLAYER"
+msgid "Profile: %s"
+msgstr "โปรไฟล์: %s"
+
+msgctxt "UI_PLAYER_NOTE"
+msgid ""
+"Each profile has its own name and save, like the users of a console. The game shows the name, and "
+"so do the other players' screens in LAN play."
+msgstr ""
+"แต่ละโปรไฟล์มีชื่อและเซฟของตัวเอง เหมือนผู้ใช้ของเครื่องคอนโซล เกมจะแสดงชื่อนี้ "
+"รวมถึงบนหน้าจอของผู้เล่นคนอื่นเมื่อเล่นผ่าน LAN"
+
+msgctxt "UI_PLAYER_NAME_HINT"
+msgid "Name (up to 10 characters)"
+msgstr "ชื่อ (ไม่เกิน 10 ตัวอักษร)"
+
+msgctxt "UI_PLAYER_CHOOSE"
+msgid "Play as"
+msgstr "เล่นด้วยโปรไฟล์นี้"
+
+msgctxt "UI_PLAYER_CHOSEN"
+msgid "Playing"
+msgstr "กำลังใช้"
+
+msgctxt "UI_PLAYER_NEW"
+msgid "New profile"
+msgstr "โปรไฟล์ใหม่"
+
+msgctxt "UI_PLAYER_REMOVE"
+msgid "Remove"
+msgstr "นำออก"
+
+msgctxt "UI_PLAYER_CONFIRM"
+msgid ""
+"Remove the profile %s? It leaves the list; its save is kept in the folder profile/players/deleted."
+msgstr ""
+"นำโปรไฟล์ %s ออกหรือไม่? โปรไฟล์จะหายไปจากรายการ แต่เซฟจะยังอยู่ในโฟลเดอร์ profile/players/deleted"
+
+msgctxt "UI_PLAYER_FAILED"
+msgid "The profile could not be saved (the log says why)."
+msgstr "บันทึกโปรไฟล์ไม่ได้ (ดูสาเหตุในบันทึก)"

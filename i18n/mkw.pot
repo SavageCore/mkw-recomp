@@ -2042,3 +2042,46 @@ msgid ""
 "At start, ask GitHub for a newer release of the port and offer it on the start screen (a few "
 "seconds at most, nothing offline)."
 msgstr ""
+
+msgctxt "UI_LAUNCH_PLAYERS"
+msgid "Profiles"
+msgstr ""
+
+msgctxt "UI_LAUNCH_PLAYER"
+msgid "Profile: %s"
+msgstr ""
+
+msgctxt "UI_PLAYER_NOTE"
+msgid ""
+"Each profile has its own name and save, like the users of a console. The game shows the name, and "
+"so do the other players' screens in LAN play."
+msgstr ""
+
+msgctxt "UI_PLAYER_NAME_HINT"
+msgid "Name (up to 10 characters)"
+msgstr ""
+
+msgctxt "UI_PLAYER_CHOOSE"
+msgid "Play as"
+msgstr ""
+
+msgctxt "UI_PLAYER_CHOSEN"
+msgid "Playing"
+msgstr ""
+
+msgctxt "UI_PLAYER_NEW"
+msgid "New profile"
+msgstr ""
+
+msgctxt "UI_PLAYER_REMOVE"
+msgid "Remove"
+msgstr ""
+
+msgctxt "UI_PLAYER_CONFIRM"
+msgid ""
+"Remove the profile %s? It leaves the list; its save is kept in the folder profile/players/deleted."
+msgstr ""
+
+msgctxt "UI_PLAYER_FAILED"
+msgid "The profile could not be saved (the log says why)."
+msgstr ""

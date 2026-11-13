@@ -2162,3 +2162,50 @@ msgid ""
 msgstr ""
 "Vraagt bij het starten aan GitHub of er een nieuwere versie van de port is en biedt die aan op "
 "het startscherm (hooguit een paar seconden, offline niets)."
+
+msgctxt "UI_LAUNCH_PLAYERS"
+msgid "Profiles"
+msgstr "Profielen"
+
+msgctxt "UI_LAUNCH_PLAYER"
+msgid "Profile: %s"
+msgstr "Profiel: %s"
+
+msgctxt "UI_PLAYER_NOTE"
+msgid ""
+"Each profile has its own name and save, like the users of a console. The game shows the name, and "
+"so do the other players' screens in LAN play."
+msgstr ""
+"Elk profiel heeft een eigen naam en opgeslagen voortgang, zoals de gebruikers van een console. "
+"Het spel toont de naam, ook op de schermen van andere spelers via LAN."
+
+msgctxt "UI_PLAYER_NAME_HINT"
+msgid "Name (up to 10 characters)"
+msgstr "Naam (max. 10 tekens)"
+
+msgctxt "UI_PLAYER_CHOOSE"
+msgid "Play as"
+msgstr "Hiermee spelen"
+
+msgctxt "UI_PLAYER_CHOSEN"
+msgid "Playing"
+msgstr "Actief"
+
+msgctxt "UI_PLAYER_NEW"
+msgid "New profile"
+msgstr "Nieuw profiel"
+
+msgctxt "UI_PLAYER_REMOVE"
+msgid "Remove"
+msgstr "Verwijderen"
+
+msgctxt "UI_PLAYER_CONFIRM"
+msgid ""
+"Remove the profile %s? It leaves the list; its save is kept in the folder profile/players/deleted."
+msgstr ""
+"Profiel %s verwijderen? Het verdwijnt uit de lijst; de voortgang blijft bewaard in de map "
+"profile/players/deleted."
+
+msgctxt "UI_PLAYER_FAILED"
+msgid "The profile could not be saved (the log says why)."
+msgstr "Het profiel kon niet worden opgeslagen (het logboek zegt waarom)."

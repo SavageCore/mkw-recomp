@@ -2151,3 +2151,48 @@ msgid ""
 msgstr ""
 "Przy starcie pyta GitHub o nowsze wydanie portu i proponuje je na ekranie startowym (najwyżej "
 "kilka sekund, offline nic)."
+
+msgctxt "UI_LAUNCH_PLAYERS"
+msgid "Profiles"
+msgstr "Profile"
+
+msgctxt "UI_LAUNCH_PLAYER"
+msgid "Profile: %s"
+msgstr "Profil: %s"
+
+msgctxt "UI_PLAYER_NOTE"
+msgid ""
+"Each profile has its own name and save, like the users of a console. The game shows the name, and "
+"so do the other players' screens in LAN play."
+msgstr ""
+"Każdy profil ma własną nazwę i zapis gry, jak użytkownicy konsoli. Gra wyświetla tę nazwę, "
+"również na ekranach innych graczy w sieci LAN."
+
+msgctxt "UI_PLAYER_NAME_HINT"
+msgid "Name (up to 10 characters)"
+msgstr "Nazwa (do 10 znaków)"
+
+msgctxt "UI_PLAYER_CHOOSE"
+msgid "Play as"
+msgstr "Graj tym"
+
+msgctxt "UI_PLAYER_CHOSEN"
+msgid "Playing"
+msgstr "Wybrany"
+
+msgctxt "UI_PLAYER_NEW"
+msgid "New profile"
+msgstr "Nowy profil"
+
+msgctxt "UI_PLAYER_REMOVE"
+msgid "Remove"
+msgstr "Usuń"
+
+msgctxt "UI_PLAYER_CONFIRM"
+msgid ""
+"Remove the profile %s? It leaves the list; its save is kept in the folder profile/players/deleted."
+msgstr "Usunąć profil %s? Zniknie z listy; jego zapis zostanie w folderze profile/players/deleted."
+
+msgctxt "UI_PLAYER_FAILED"
+msgid "The profile could not be saved (the log says why)."
+msgstr "Nie udało się zapisać profilu (przyczyna jest w dzienniku)."

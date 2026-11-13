@@ -2143,3 +2143,50 @@ msgid ""
 msgstr ""
 "При запуске спрашивает GitHub о новой версии порта и предлагает её на начальном экране (не дольше "
 "нескольких секунд, без сети — ничего)."
+
+msgctxt "UI_LAUNCH_PLAYERS"
+msgid "Profiles"
+msgstr "Профили"
+
+msgctxt "UI_LAUNCH_PLAYER"
+msgid "Profile: %s"
+msgstr "Профиль: %s"
+
+msgctxt "UI_PLAYER_NOTE"
+msgid ""
+"Each profile has its own name and save, like the users of a console. The game shows the name, and "
+"so do the other players' screens in LAN play."
+msgstr ""
+"У каждого профиля свои имя и сохранение, как у пользователей консоли. Игра показывает это имя, в "
+"том числе на экранах других игроков по LAN."
+
+msgctxt "UI_PLAYER_NAME_HINT"
+msgid "Name (up to 10 characters)"
+msgstr "Имя (до 10 символов)"
+
+msgctxt "UI_PLAYER_CHOOSE"
+msgid "Play as"
+msgstr "Играть за него"
+
+msgctxt "UI_PLAYER_CHOSEN"
+msgid "Playing"
+msgstr "Выбран"
+
+msgctxt "UI_PLAYER_NEW"
+msgid "New profile"
+msgstr "Новый профиль"
+
+msgctxt "UI_PLAYER_REMOVE"
+msgid "Remove"
+msgstr "Убрать"
+
+msgctxt "UI_PLAYER_CONFIRM"
+msgid ""
+"Remove the profile %s? It leaves the list; its save is kept in the folder profile/players/deleted."
+msgstr ""
+"Убрать профиль %s? Он исчезнет из списка; его сохранение останется в папке "
+"profile/players/deleted."
+
+msgctxt "UI_PLAYER_FAILED"
+msgid "The profile could not be saved (the log says why)."
+msgstr "Не удалось сохранить профиль (причина в журнале)."

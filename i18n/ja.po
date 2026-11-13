@@ -2075,3 +2075,46 @@ msgid ""
 "At start, ask GitHub for a newer release of the port and offer it on the start screen (a few "
 "seconds at most, nothing offline)."
 msgstr "起動時にGitHubへ問い合わせ、ポートの新しいリリースがあればスタート画面で案内します（長くても数秒。オフラインでは何もしません）。"
+
+msgctxt "UI_LAUNCH_PLAYERS"
+msgid "Profiles"
+msgstr "プロフィール"
+
+msgctxt "UI_LAUNCH_PLAYER"
+msgid "Profile: %s"
+msgstr "プロフィール: %s"
+
+msgctxt "UI_PLAYER_NOTE"
+msgid ""
+"Each profile has its own name and save, like the users of a console. The game shows the name, and "
+"so do the other players' screens in LAN play."
+msgstr "プロフィールごとに名前とセーブデータが分かれます（本体のユーザーと同じです）。名前はゲーム内に表示され、LANプレイでは他のプレイヤーの画面にも表示されます。"
+
+msgctxt "UI_PLAYER_NAME_HINT"
+msgid "Name (up to 10 characters)"
+msgstr "名前（10文字まで）"
+
+msgctxt "UI_PLAYER_CHOOSE"
+msgid "Play as"
+msgstr "これで遊ぶ"
+
+msgctxt "UI_PLAYER_CHOSEN"
+msgid "Playing"
+msgstr "使用中"
+
+msgctxt "UI_PLAYER_NEW"
+msgid "New profile"
+msgstr "新しいプロフィール"
+
+msgctxt "UI_PLAYER_REMOVE"
+msgid "Remove"
+msgstr "外す"
+
+msgctxt "UI_PLAYER_CONFIRM"
+msgid ""
+"Remove the profile %s? It leaves the list; its save is kept in the folder profile/players/deleted."
+msgstr "プロフィール「%s」を外しますか？一覧から消えますが、セーブデータは profile/players/deleted フォルダーに残ります。"
+
+msgctxt "UI_PLAYER_FAILED"
+msgid "The profile could not be saved (the log says why)."
+msgstr "プロフィールを保存できませんでした（理由はログにあります）。"

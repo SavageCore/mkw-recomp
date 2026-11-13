@@ -24,6 +24,7 @@
 #include "hacks.h"
 #include "host.h"
 #include "ov.h"
+#include "players.h"
 #include "platform/platform.h"
 
 #define NFP_R_DEVICE_NOT_FOUND 0x8073u     // nfp: no NFC reader on the host
@@ -507,7 +508,8 @@ static void ov_user_existence(Cpu *c) {
     ret_x(c, 0);
 }
 
-// Result GetNickname(Nickname *out, const Uid &): 33 bytes, NUL-terminated UTF-8
+// Result GetNickname(Nickname *out, const Uid &): 33 bytes, NUL-terminated UTF-8; the name the launcher's Profiles
+// page gave the player (core/base/players.h), also what LAN players see
 static void ov_nickname(Cpu *c) {
     char *out = arg_p(c, 0);
     plat_mutex_lock(&account_lock);
@@ -515,8 +517,12 @@ static void ov_nickname(Cpu *c) {
     int ok = out && same_uid(arg_p(c, 1));
     plat_mutex_unlock(&account_lock);
     if (ok) {
-        memset(out, 0, 33);
-        memcpy(out, "Local", 5);
+        char name[PLAYER_NAME_BYTES];
+        player_name(rt_config()->profile, name);
+        static int logged;   // once: the game asks again on every screen that shows it
+        if (!logged++) rt_log("account: nickname '%s' (%s)", name, rt_config()->profile);
+        memset(out, 0, PLAYER_NAME_BYTES);
+        memcpy(out, name, strlen(name));
     }
     ret_x(c, ok ? 0 : ACCOUNT_R_INVALID);
 }

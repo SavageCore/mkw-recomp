@@ -41,8 +41,9 @@ void mods_poll(void);
 // A code mod was enabled, disabled, imported or deleted since the last setup: Play sets the game code up again
 // first (only generate and compile run: tools/prepare/prepare.py's keys). mods/.rebuild marks it.
 int mods_code_changed(void);
-// Play: with another set of mods than the last start, the save is copied first (<profile>/save-before-mods/<time>)
-void mods_before_play(const char *exe_dir);
+// Play: with another set of mods than the last start, the save of the player about to play (player_dir, its profile
+// folder: core/base/players.h) is copied first (<player_dir>/save-before-mods/<time>)
+void mods_before_play(const char *player_dir);
 int mods_risk_draw(void);   // the risk text (and the first time, its "I understand" box): 1 when an install may go on
 void mods_code_built(void);   // the UI thread, every frame of the page and before Play: what an import or merge left
 int mods_count(void);

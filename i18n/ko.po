@@ -2093,3 +2093,46 @@ msgid ""
 "At start, ask GitHub for a newer release of the port and offer it on the start screen (a few "
 "seconds at most, nothing offline)."
 msgstr "시작할 때 GitHub에서 이 포트의 새 릴리스를 확인하고 시작 화면에서 안내합니다(길어야 몇 초이며, 오프라인에서는 아무것도 하지 않습니다)."
+
+msgctxt "UI_LAUNCH_PLAYERS"
+msgid "Profiles"
+msgstr "프로필"
+
+msgctxt "UI_LAUNCH_PLAYER"
+msgid "Profile: %s"
+msgstr "프로필: %s"
+
+msgctxt "UI_PLAYER_NOTE"
+msgid ""
+"Each profile has its own name and save, like the users of a console. The game shows the name, and "
+"so do the other players' screens in LAN play."
+msgstr "프로필마다 이름과 세이브 데이터가 따로 있습니다(본체의 사용자처럼). 이름은 게임에 표시되며, LAN 플레이에서는 다른 플레이어의 화면에도 표시됩니다."
+
+msgctxt "UI_PLAYER_NAME_HINT"
+msgid "Name (up to 10 characters)"
+msgstr "이름(최대 10자)"
+
+msgctxt "UI_PLAYER_CHOOSE"
+msgid "Play as"
+msgstr "이 프로필로 플레이"
+
+msgctxt "UI_PLAYER_CHOSEN"
+msgid "Playing"
+msgstr "사용 중"
+
+msgctxt "UI_PLAYER_NEW"
+msgid "New profile"
+msgstr "새 프로필"
+
+msgctxt "UI_PLAYER_REMOVE"
+msgid "Remove"
+msgstr "제거"
+
+msgctxt "UI_PLAYER_CONFIRM"
+msgid ""
+"Remove the profile %s? It leaves the list; its save is kept in the folder profile/players/deleted."
+msgstr "프로필 %s을(를) 제거할까요? 목록에서 사라지지만 세이브 데이터는 profile/players/deleted 폴더에 남습니다."
+
+msgctxt "UI_PLAYER_FAILED"
+msgid "The profile could not be saved (the log says why)."
+msgstr "프로필을 저장하지 못했습니다(이유는 로그에 있습니다)."

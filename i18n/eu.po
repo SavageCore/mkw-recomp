@@ -2169,3 +2169,50 @@ msgid ""
 msgstr ""
 "Abiaraztean, GitHub-i portuaren bertsio berriago bat galdetzen dio eta hasierako pantailan "
 "eskaintzen du (segundo gutxi batzuk gehienez, ezer ez lineaz kanpo)."
+
+msgctxt "UI_LAUNCH_PLAYERS"
+msgid "Profiles"
+msgstr "Profilak"
+
+msgctxt "UI_LAUNCH_PLAYER"
+msgid "Profile: %s"
+msgstr "Profila: %s"
+
+msgctxt "UI_PLAYER_NOTE"
+msgid ""
+"Each profile has its own name and save, like the users of a console. The game shows the name, and "
+"so do the other players' screens in LAN play."
+msgstr ""
+"Profil bakoitzak bere izena eta gordetako partida ditu, kontsola baten erabiltzaileek bezala. "
+"Jokoak izena erakusten du, baita LANeko beste jokalarien pantailetan ere."
+
+msgctxt "UI_PLAYER_NAME_HINT"
+msgid "Name (up to 10 characters)"
+msgstr "Izena (10 karaktere gehienez)"
+
+msgctxt "UI_PLAYER_CHOOSE"
+msgid "Play as"
+msgstr "Honekin jokatu"
+
+msgctxt "UI_PLAYER_CHOSEN"
+msgid "Playing"
+msgstr "Erabiltzen"
+
+msgctxt "UI_PLAYER_NEW"
+msgid "New profile"
+msgstr "Profil berria"
+
+msgctxt "UI_PLAYER_REMOVE"
+msgid "Remove"
+msgstr "Kendu"
+
+msgctxt "UI_PLAYER_CONFIRM"
+msgid ""
+"Remove the profile %s? It leaves the list; its save is kept in the folder profile/players/deleted."
+msgstr ""
+"%s profila kendu? Zerrendatik aterako da; bere partida profile/players/deleted karpetan gordeko "
+"da."
+
+msgctxt "UI_PLAYER_FAILED"
+msgid "The profile could not be saved (the log says why)."
+msgstr "Ezin izan da profila gorde (erregistroak dio zergatik)."

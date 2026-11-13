@@ -11,7 +11,8 @@
 // 5173d27, MIT, Copyright (c) 2026 Revivedx and the Savage Wind Recomp contributors).
 //
 // Test hooks: MKW_LAUNCHER_SHOT=<frame>[:<page>[:<tab>[:<scroll 0..1>]]] saves that frame as MKW_LAUNCHER_SHOT_OUT (default
-// launcher.png) and quits; page main, settings (tab 0..5), files or mods. The user's input is ignored while it runs.
+// launcher.png) and quits; page main, settings (tab 0..5), files, mods or players. The user's input is ignored while it
+// runs.
 // MKW_LAUNCHER_SETUP=<folder>[:link] starts the setup from that folder at once, on the game files page.
 // MKW_LAUNCHER_MODS_PICK=<zip|folder> picks it on the Mods page, as its dialogs do; MKW_LAUNCHER_MODS_TOGGLE=<mod>
 // toggles that mod once, as its checkbox does; MKW_LAUNCHER_MODS_PICKWINNER=<archive> cycles the first conflict of
@@ -37,6 +38,7 @@
 #include "ui/launcher/launcher_backdrop.h"
 #include "ui/launcher/launcher_logo.h"
 #include "ui/launcher/launcher_look.h"
+#include "ui/launcher/launcher_players.h"
 #include "ui/launcher/launcher_setup.h"
 #include "ui/launcher/launcher_update.h"
 #include "ui/launcher/mods.h"
@@ -55,7 +57,7 @@ extern const char rt_port_version[];
 void app_icon_set(SDL_Window *w);   // build/obj/rt/app_icon.c, drawn by tools/build/icon.py
 }
 
-enum Page { PAGE_MAIN, PAGE_SETTINGS, PAGE_FILES, PAGE_MODS };
+enum Page { PAGE_MAIN, PAGE_SETTINGS, PAGE_FILES, PAGE_MODS, PAGE_PLAYERS };
 
 static struct {
     SDL_Window *win;
@@ -130,6 +132,7 @@ static void parse_test(void) {
     p++;
     L.shot_page = !strncmp(p, "settings", 8) ? PAGE_SETTINGS : !strncmp(p, "files", 5) ? PAGE_FILES
                   : !strncmp(p, "mods", 4)                                              ? PAGE_MODS
+                  : !strncmp(p, "players", 7)                                           ? PAGE_PLAYERS
                                                                                         : PAGE_MAIN;
     const char *t = strchr(p, ':');
     L.shot_tab = t ? atoi(t + 1) : 0;
@@ -272,15 +275,16 @@ static void state_line(bool ok, const char *text) {
     ImGui::TextColored(col4(ok ? LOOK_OK : LOOK_WARN), "%s", text);
 }
 
-// The main page, in the original's structure: a column on the left with the title and the menu (Play, then Settings,
-// Game files and the desktop shortcut, Quit last and apart), the game files' state at the lower left and the version at
+// The main page, in the original's structure: a column on the left with the title and the menu (Play, the profile that
+// plays, then Settings, Game files and the desktop shortcut, Quit last and apart), the game files' state at the lower
+// left and the version at
 // the lower right. The picture is the background's (launcher_backdrop.cpp): the player's splash.png, or the logo's flag.
 static void page_main(float w, float h) {
     float s = L.scale, left = 96 * s, cw = 440 * s, lh = ImGui::GetTextLineHeight();
     bool ready = rt_game_present() && update_state().phase != UPDATE_FETCHING;
     // the column's height, to centre it: logo and title, the gap, Play, the menu, the gap and Quit
     float mark = 84 * s, items = item_height(), gap = 12 * s;
-    float play_h = fmaxf(52.0f, 76 * s), col_h = mark + 48 * s + play_h + gap * 2 + items * 4 + 28 * s + items;
+    float play_h = fmaxf(52.0f, 76 * s), col_h = mark + 48 * s + play_h + gap * 2 + items * 5 + 28 * s + items;
     ImGui::SetNextWindowPos(ImVec2(left - 8 * s, fmaxf(32 * s, (h - col_h) * 0.45f) - 8 * s));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8 * s, 8 * s));   // room for the cursor's ring
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, gap));
@@ -313,7 +317,9 @@ static void page_main(float w, float h) {
             setup_start(L.exe_dir, nullptr, 0);
         } else {
             mods_merge_sync(L.exe_dir);   // a stale .merged must not boot: usually a no-op fresh-check
-            mods_before_play(L.exe_dir);
+            char player[PLAT_PATH_MAX * 2];
+            launcher_player_dir(player, sizeof player);
+            if (player[0]) mods_before_play(player);
             L.result = LAUNCHER_PLAY;
         }
     }
@@ -321,24 +327,29 @@ static void page_main(float w, float h) {
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
     ImGui::Dummy(ImVec2(0, gap));
     v0 = dl->VtxBuffer.Size;
+    char profile[160];
+    snprintf(profile, sizeof profile, menu_text(UI_LAUNCH_PLAYER), launcher_player_name());
+    if (menu_item(profile, cw, true)) L.page = PAGE_PLAYERS;
+    intro_apply(dl, v0, intro(2));
+    v0 = dl->VtxBuffer.Size;
     if (menu_item(menu_text(UI_LAUNCH_SETTINGS), cw, true)) {
         L.page = PAGE_SETTINGS;
         settings_opened();
     }
-    intro_apply(dl, v0, intro(2));
-    v0 = dl->VtxBuffer.Size;
-    if (menu_item(menu_text(UI_LAUNCH_FILES), cw, true)) L.page = PAGE_FILES;
     intro_apply(dl, v0, intro(3));
     v0 = dl->VtxBuffer.Size;
-    if (menu_item(menu_text(UI_LAUNCH_MODS), cw, true)) L.page = PAGE_MODS;
+    if (menu_item(menu_text(UI_LAUNCH_FILES), cw, true)) L.page = PAGE_FILES;
     intro_apply(dl, v0, intro(4));
     v0 = dl->VtxBuffer.Size;
-    if (menu_item(menu_text(UI_LAUNCH_SHORTCUT), cw, true)) make_shortcut();
+    if (menu_item(menu_text(UI_LAUNCH_MODS), cw, true)) L.page = PAGE_MODS;
     intro_apply(dl, v0, intro(5));
+    v0 = dl->VtxBuffer.Size;
+    if (menu_item(menu_text(UI_LAUNCH_SHORTCUT), cw, true)) make_shortcut();
+    intro_apply(dl, v0, intro(6));
     ImGui::Dummy(ImVec2(0, 28 * s));
     v0 = dl->VtxBuffer.Size;
     if (menu_item(menu_text(UI_LAUNCH_QUIT), cw, true)) L.result = LAUNCHER_QUIT;
-    intro_apply(dl, v0, intro(6));
+    intro_apply(dl, v0, intro(7));
     ImGui::PopStyleVar();
     if (L.shortcut_note[0]) {
         ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + cw);
@@ -361,7 +372,7 @@ static void page_main(float w, float h) {
     float right = w - 56 * s;
     fg->AddText(ImVec2(right - ImGui::CalcTextSize(ver).x, y), LOOK_DIM, ver);
     fg->AddText(ImVec2(right - ImGui::CalcTextSize(note).x, y - lh - 6 * s), LOOK_DIM, note);
-    intro_apply(fg, f0, intro(6));
+    intro_apply(fg, f0, intro(7));
 }
 
 static bool back_pressed(void) {
@@ -405,6 +416,16 @@ static bool panel_back_row(UiTextId label = UI_LAUNCH_BACK) {
     float bw = ImGui::CalcTextSize(back).x + st.FramePadding.x * 4;
     ImGui::SetCursorPos(ImVec2(ImGui::GetWindowWidth() - st.WindowPadding.x - bw, y));
     return ImGui::Button(back, ImVec2(bw, item_height()));
+}
+
+static void page_players(float w, float h) {
+    float bottom = panel_begin("##players", UI_LAUNCH_PLAYERS, w, h);
+    launcher_players_page(L.scale, bottom);
+    bool back = panel_back_row();
+    if (!ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId) && !ImGui::GetIO().WantTextInput && back_pressed())
+        back = true;
+    ImGui::End();
+    if (back) go_main();
 }
 
 static void page_settings(float w, float h) {
@@ -954,6 +975,7 @@ static void save_shot(const char *suffix) {
 
 extern "C" void launcher_set_romfs(const char *romfs) { mods_set_romfs(romfs); }
 extern "C" void launcher_set_exefs(const char *exefs) { mods_set_exefs(exefs); }
+extern "C" void launcher_set_profile(const char *profile) { launcher_players_set_base(profile); }
 
 extern "C" void launcher_gb_install(const char *url) {
     const char *p = !strncmp(url, "mkw-recomp:", 11) ? url + 11 : url;
@@ -1070,6 +1092,7 @@ extern "C" int launcher_run(void) {
         case PAGE_SETTINGS: page_settings((float)pw, (float)ph); break;
         case PAGE_FILES: page_files((float)pw, (float)ph); break;
         case PAGE_MODS: page_mods((float)pw, (float)ph); break;
+        case PAGE_PLAYERS: page_players((float)pw, (float)ph); break;
         }
         // the page just switched to comes in from its own colour in 0.15 s, over everything drawn this frame
         if (L.page_t0 > 0 && !launcher_fade(ImGui::GetForegroundDrawList(), (float)pw, (float)ph,

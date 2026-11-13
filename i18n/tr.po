@@ -2147,3 +2147,49 @@ msgid ""
 msgstr ""
 "Başlangıçta GitHub'dan portun daha yeni bir sürümünü sorar ve başlangıç ekranında sunar (en fazla "
 "birkaç saniye, çevrimdışıyken hiçbir şey)."
+
+msgctxt "UI_LAUNCH_PLAYERS"
+msgid "Profiles"
+msgstr "Profiller"
+
+msgctxt "UI_LAUNCH_PLAYER"
+msgid "Profile: %s"
+msgstr "Profil: %s"
+
+msgctxt "UI_PLAYER_NOTE"
+msgid ""
+"Each profile has its own name and save, like the users of a console. The game shows the name, and "
+"so do the other players' screens in LAN play."
+msgstr ""
+"Her profilin, bir konsolun kullanıcıları gibi kendi adı ve kaydı vardır. Oyun bu adı gösterir; "
+"LAN oyununda diğer oyuncuların ekranlarında da görünür."
+
+msgctxt "UI_PLAYER_NAME_HINT"
+msgid "Name (up to 10 characters)"
+msgstr "Ad (en fazla 10 karakter)"
+
+msgctxt "UI_PLAYER_CHOOSE"
+msgid "Play as"
+msgstr "Bununla oyna"
+
+msgctxt "UI_PLAYER_CHOSEN"
+msgid "Playing"
+msgstr "Seçili"
+
+msgctxt "UI_PLAYER_NEW"
+msgid "New profile"
+msgstr "Yeni profil"
+
+msgctxt "UI_PLAYER_REMOVE"
+msgid "Remove"
+msgstr "Kaldır"
+
+msgctxt "UI_PLAYER_CONFIRM"
+msgid ""
+"Remove the profile %s? It leaves the list; its save is kept in the folder profile/players/deleted."
+msgstr ""
+"%s profili kaldırılsın mı? Listeden çıkar; kaydı profile/players/deleted klasöründe saklanır."
+
+msgctxt "UI_PLAYER_FAILED"
+msgid "The profile could not be saved (the log says why)."
+msgstr "Profil kaydedilemedi (nedeni günlükte)."
