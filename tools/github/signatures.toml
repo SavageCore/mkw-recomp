@@ -103,3 +103,9 @@ what = "the setup's shader step failed on Windows PCs with more than 61 CPU thre
 issue = 220
 all = ["AMD proprietary driver", "61fb5ce38233a3f7", "d50d2bc0a9bdca54"]
 what = "AMD's Windows driver loses the device right after the same pair of programs (61fb5ce3… / d50d2bc0…), at the title or in the setup's warm-up"
+
+[[signature]]
+issue = 255
+all = ["reading address 0xa0", "main+0xa66e0"]
+fixed = "v0.1.11"
+what = "the render-buffer allocator of game version 1.8.0 runs out at 2160p and `ShadowPrePass` reads a null block (`main+0xa66e0`, address 0xa0)"
