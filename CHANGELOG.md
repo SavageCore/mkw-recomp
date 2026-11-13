@@ -6,6 +6,11 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
 
 ## 0.1.11
 
+Choose where the game is installed, by @innateessence; @EdouardSence's fixes for the menu labels, the Linux taskbar
+icon and LAN Play over a VPN; @guillo1990's free roam hitches and GPU hang reports; the Shy Guy Bazaar triangles by
+@flavio-silva; @tibor-stick's AMD GPU resets on Linux; @andreknieriem's Steam Deck memory; @SavageCore's game folder
+updates; handheld resolution by @titooo7; and a faster start on AMD cards on Linux.
+
 ### Changes
 
 - **Choose where the game is installed** (#224 by @innateessence, #284): the game files always went beside the
@@ -108,6 +113,10 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
   top-left part, off-centre and cut. The picture now goes in the part the window shows.
 - **The HDR setting is kept** (#168): Settings > Screen > HDR was written to `mkw.ini` but dropped at the next start
   ("unknown key 'HDR'" in the log).
+- **A faster start, and a smoother loading screen, on AMD cards on Linux**: the terrain's sparse textures were bound to
+  their memory one 64 KiB block at a time, 11 471 driver calls in one frame of the logo (a hitch of 1.5 s) and about
+  20 000 more while the loading screen ran at about 10 fps. The blocks of a row now bind as one; on a Radeon 660M the
+  logo hitch is 0.5 s shorter, the loading screen goes from 6-7 s to 5 s and the title comes 1.7 s earlier.
 
 ## 0.1.10
 
