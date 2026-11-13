@@ -76,6 +76,9 @@ static struct {
 } G = {};
 
 static char g_query[128], g_last_query[128];
+static int g_open_mod, g_open_file;   // a 1-Click link's mod and file (mods_browse_open): its page, then the question
+
+void mods_browse_open(int mod_id, int file_id) { g_open_mod = mod_id, g_open_file = file_id; }
 static int g_sort, g_page = 1, g_loaded, g_selected = -1;
 
 static void unescape(char *s) {   // gamebanana.py writes a text's line breaks as \n
@@ -441,10 +444,24 @@ int mods_browse_draw(const char *exe_dir, SDL_Renderer *ren) {
     memcpy(rows, G.rows, sizeof rows);
     // the page shown stays until the next one has come (no blank frame), and a page seen before comes at once
     static Info info;
-    static int wanted;
+    static int wanted, ask_file = -1;
+    if (g_open_mod && !running) {   // a 1-Click link: its mod's page (not in the list), then the install asked
+        wanted = g_open_mod, g_selected = -2, g_open_mod = 0;
+        char id[16];
+        snprintf(id, sizeof id, "%d", wanted);
+        SDL_UnlockMutex(G.lock);
+        const char *rest[] = {"info", id, nullptr};
+        start(exe_dir, JOB_INFO, rest);
+        SDL_LockMutex(G.lock);
+    }
     if (job == JOB_INFO && !running && finished > 0 && G.info.id == wanted && info.id != wanted) {
         info = G.info;
         info_keep(info);
+        if (g_open_file) {
+            for (int i = 0; i < info.nfiles; i++)
+                if (info.files[i].id == g_open_file && info.files[i].clean) ask_file = i;
+            g_open_file = 0;
+        }
     }
     SDL_UnlockMutex(G.lock);
 
@@ -483,7 +500,7 @@ int mods_browse_draw(const char *exe_dir, SDL_Renderer *ren) {
     static int confirm_file = -1;
     if (job == JOB_INFO && running && !info.id) {
         ImGui::TextDisabled("%s", menu_text(UI_GB_LOADING));
-    } else if (info.id && g_selected >= 0) {
+    } else if (info.id && g_selected != -1) {
         ImGui::TextUnformatted(info.name);
         if (job == JOB_INFO && running) {
             ImGui::SameLine();
@@ -510,7 +527,7 @@ int mods_browse_draw(const char *exe_dir, SDL_Renderer *ren) {
             ImGui::PushID(i);
             snprintf(label, sizeof label, menu_text(UI_GB_INSTALL), f.name);
             ImGui::BeginDisabled(!f.clean || running);
-            if (ImGui::Button(label)) confirm_file = i, ImGui::OpenPopup("##gbconfirm");
+            if (ImGui::Button(label) || ask_file == i) confirm_file = i, ask_file = -1, ImGui::OpenPopup("##gbconfirm");
             ImGui::EndDisabled();
             ImGui::SameLine();
             ImGui::TextDisabled("%s%s%s", size, f.note[0] ? "  ·  " : "", f.note);

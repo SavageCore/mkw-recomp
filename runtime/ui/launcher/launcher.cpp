@@ -68,6 +68,7 @@ static struct {
     int focus_main;                 // the main page's first button takes the cursor
     int result;                     // LAUNCHER_PLAY or LAUNCHER_QUIT once chosen; -1 running
     int play_after_setup;           // Play with code mods changed: the setup builds the game code, then the game
+    int gb_open;                    // a 1-Click link: the Mods page's GameBanana tab first (launcher_gb_install)
     int save_pending;
     // test hook
     long shot_at;
@@ -664,6 +665,7 @@ static void page_mods(float w, float h) {
     }
     // two tabs: the player's mods, and GameBanana's (MKW_LAUNCHER_MODS_FIND=1 opens the second, for shots)
     static int find_tab = getenv("MKW_LAUNCHER_MODS_FIND") ? 1 : 0;
+    if (L.gb_open) find_tab = 1, L.gb_open = 0;
     if (ImGui::RadioButton(menu_text(UI_MOD_TAB_INSTALLED), find_tab == 0)) find_tab = 0;
     ImGui::SameLine();
     if (ImGui::RadioButton(menu_text(UI_MOD_TAB_FIND), find_tab == 1)) find_tab = 1;
@@ -951,6 +953,19 @@ static void save_shot(const char *suffix) {
 extern "C" void launcher_set_romfs(const char *romfs) { mods_set_romfs(romfs); }
 extern "C" void launcher_set_exefs(const char *exefs) { mods_set_exefs(exefs); }
 
+extern "C" void launcher_gb_install(const char *url) {
+    const char *p = !strncmp(url, "mkw-recomp:", 11) ? url + 11 : url;
+    int file = 0, mod = 0;
+    char tail = 0;
+    if (sscanf(p, "https://gamebanana.com/mmdl/%d,Mod,%d%c", &file, &mod, &tail) == 2 && file > 0 && mod > 0) {
+        L.gb_open = 1;
+        mods_browse_open(mod, file);
+        rt_log("launcher: GameBanana 1-Click: mod %d, file %d", mod, file);
+    } else {
+        rt_log("launcher: not a GameBanana 1-Click link, ignored: %.200s", url);
+    }
+}
+
 extern "C" int launcher_run(void) {
     L.result = -1;
     L.focus_main = 1;
@@ -979,6 +994,15 @@ extern "C" int launcher_run(void) {
     if (!rt_game_present() && !L.shot_at) L.page = PAGE_FILES;
     char state[1100];
     snprintf(state, sizeof state, "%s/setup-state.json", L.exe_dir);
+    if (L.gb_open && rt_game_present()) L.page = PAGE_MODS;
+    if (!L.shot_at && plat_file_exists(state)) {   // a set-up folder: GameBanana's 1-Click opens this program
+        char exe[PLAT_PATH_MAX * 2];
+        const char *appimage = getenv("APPIMAGE");   // Linux: the AppImage, not the mounted copy inside it
+        if (appimage && *appimage) snprintf(exe, sizeof exe, "%s", appimage);
+        else if (!plat_exe_path(exe, sizeof exe)) exe[0] = 0;
+        if (exe[0] && !plat_url_scheme("mkw-recomp", "MKW Recomp mods", exe, "--gb-install"))
+            rt_log("launcher: the mkw-recomp: links (GameBanana 1-Click) could not be registered");
+    }
     int updated = update_just_installed(L.exe_dir, L.updated, sizeof L.updated);
     int other = !updated && !L.shot_at && setup_from_other_version(state);
     if ((updated || other) && L.tools && plat_file_exists(state)) {

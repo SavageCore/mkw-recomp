@@ -1999,11 +1999,11 @@ msgstr "Не вдається відкрити архів: для .rar і .7z п
 #. The Mods page's two tabs: the player's mods, and GameBanana's.
 msgctxt "UI_MOD_TAB_INSTALLED"
 msgid "Installed"
-msgstr ""
+msgstr "Встановлені"
 
 msgctxt "UI_MOD_TAB_FIND"
 msgid "Find on GameBanana"
-msgstr ""
+msgstr "Знайти на GameBanana"
 
 #. Shown above the GameBanana list: the project hosts no mods.
 msgctxt "UI_GB_NOTE"
@@ -2012,68 +2012,71 @@ msgid ""
 "is not affiliated with GameBanana or the mods' authors, and does not host, review or endorse "
 "mods. Each mod has its own license."
 msgstr ""
+"Моди створюють їхні автори, а завантажуються вони з GameBanana під час встановлення. Проєкт не "
+"пов'язаний із GameBanana та авторами модів і не розміщує, не перевіряє й не схвалює моди. Кожен "
+"мод має власну ліцензію."
 
 msgctxt "UI_GB_SEARCH"
 msgid "Search"
-msgstr ""
+msgstr "Пошук"
 
 msgctxt "UI_GB_SORT_DOWNLOADS"
 msgid "Most downloaded"
-msgstr ""
+msgstr "Найбільше завантажень"
 
 msgctxt "UI_GB_SORT_NEW"
 msgid "Newest"
-msgstr ""
+msgstr "Найновіші"
 
 msgctxt "UI_GB_SORT_LIKES"
 msgid "Most liked"
-msgstr ""
+msgstr "Найбільше вподобань"
 
 msgctxt "UI_GB_LOADING"
 msgid "Loading..."
-msgstr ""
+msgstr "Завантаження..."
 
 msgctxt "UI_GB_NONE"
 msgid "No mods found"
-msgstr ""
+msgstr "Модів не знайдено"
 
 #. %s: the mod's author on GameBanana.
 msgctxt "UI_GB_BY"
 msgid "by %s"
-msgstr ""
+msgstr "автор: %s"
 
 #. %s: the mod's license, e.g. "CC BY-NC-ND 4.0".
 msgctxt "UI_GB_LICENSE"
 msgid "License: %s"
-msgstr ""
+msgstr "Ліцензія: %s"
 
 msgctxt "UI_GB_OPEN"
 msgid "Open its GameBanana page"
-msgstr ""
+msgstr "Відкрити сторінку на GameBanana"
 
 #. %s: the file's name.
 msgctxt "UI_GB_INSTALL"
 msgid "Install %s"
-msgstr ""
+msgstr "Встановити %s"
 
 #. First %s: the file's name; second %s: its author.
 msgctxt "UI_GB_CONFIRM"
 msgid "Download %s by %s from GameBanana and install it?"
-msgstr ""
+msgstr "Завантажити %s (автор: %s) з GameBanana та встановити?"
 
 msgctxt "UI_GB_UNSAFE"
 msgid "Not offered: GameBanana's virus scan has not marked this file clean"
-msgstr ""
+msgstr "Не пропонується: антивірусна перевірка GameBanana не позначила цей файл як чистий"
 
 #. %d: this page; %d: how many pages.
 msgctxt "UI_GB_PAGE"
 msgid "Page %d of %d"
-msgstr ""
+msgstr "Сторінка %d з %d"
 
 #. %s: what failed (an English detail from the network).
 msgctxt "UI_GB_ERROR"
 msgid "GameBanana did not answer: %s"
-msgstr ""
+msgstr "GameBanana не відповів: %s"
 
 #. Under an installed mod that replaces the game's graphics settings archive (general_format).
 msgctxt "UI_MOD_WARN_GRAPHICS"
@@ -2081,6 +2084,9 @@ msgid ""
 "Changes the game's graphics settings: the port's own settings (resolution, quality) go on top, so "
 "this mod may do less than on a console, look worse or misbehave"
 msgstr ""
+"Змінює налаштування графіки гри: власні налаштування порту (роздільна здатність, якість) "
+"застосовуються поверх, тому цей мод може працювати гірше, ніж на консолі, виглядати гірше або "
+"працювати неправильно"
 
 #. Above every mod install and import.
 msgctxt "UI_MOD_RISK"
@@ -2089,15 +2095,18 @@ msgid ""
 "damage your save: read its page first, keep a copy of your save, and report a mod's problems to "
 "its author."
 msgstr ""
+"Моди створюють інші люди, і проєкт їх не тестує. Мод може призвести до вильоту гри або пошкодити "
+"збереження: спершу прочитайте його сторінку, зробіть копію збереження та повідомляйте про "
+"проблеми моду його авторові."
 
 msgctxt "UI_MOD_RISK_ACK"
 msgid "I understand"
-msgstr ""
+msgstr "Зрозуміло"
 
 #. Under a mod that changes the game's code (its .ips): the game code is built with it.
 msgctxt "UI_MOD_CODE_REBUILD"
 msgid "code: turning it on or off builds the game code again before you play (a few minutes)"
-msgstr ""
+msgstr "код: увімкнення чи вимкнення заново збирає код гри перед запуском (кілька хвилин)"
 
 #. Under an installed mod that ships shaders (Shader/ files).
 msgctxt "UI_MOD_WARN_SHADERS"
@@ -2105,6 +2114,8 @@ msgid ""
 "Replaces shaders: the port translates the game's shaders during the setup, so this mod may not "
 "show, or may break the picture"
 msgstr ""
+"Замінює шейдери: порт перекладає шейдери гри під час підготовки, тому цей мод може не "
+"відображатися або зіпсувати картинку"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_UPDATE"

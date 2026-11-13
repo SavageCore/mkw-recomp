@@ -2003,11 +2003,11 @@ msgstr "No se puede abrir este archivo: los .rar y .7z necesitan bsdtar (libarch
 #. The Mods page's two tabs: the player's mods, and GameBanana's.
 msgctxt "UI_MOD_TAB_INSTALLED"
 msgid "Installed"
-msgstr ""
+msgstr "Instalados"
 
 msgctxt "UI_MOD_TAB_FIND"
 msgid "Find on GameBanana"
-msgstr ""
+msgstr "Buscar en GameBanana"
 
 #. Shown above the GameBanana list: the project hosts no mods.
 msgctxt "UI_GB_NOTE"
@@ -2016,68 +2016,71 @@ msgid ""
 "is not affiliated with GameBanana or the mods' authors, and does not host, review or endorse "
 "mods. Each mod has its own license."
 msgstr ""
+"Los mods los crean sus autores y se descargan de GameBanana al instalarlos. Este proyecto no está "
+"afiliado a GameBanana ni a los autores de los mods, y no aloja, revisa ni respalda mods. Cada mod "
+"tiene su propia licencia."
 
 msgctxt "UI_GB_SEARCH"
 msgid "Search"
-msgstr ""
+msgstr "Buscar"
 
 msgctxt "UI_GB_SORT_DOWNLOADS"
 msgid "Most downloaded"
-msgstr ""
+msgstr "Más descargados"
 
 msgctxt "UI_GB_SORT_NEW"
 msgid "Newest"
-msgstr ""
+msgstr "Más recientes"
 
 msgctxt "UI_GB_SORT_LIKES"
 msgid "Most liked"
-msgstr ""
+msgstr "Más valorados"
 
 msgctxt "UI_GB_LOADING"
 msgid "Loading..."
-msgstr ""
+msgstr "Cargando..."
 
 msgctxt "UI_GB_NONE"
 msgid "No mods found"
-msgstr ""
+msgstr "No se han encontrado mods"
 
 #. %s: the mod's author on GameBanana.
 msgctxt "UI_GB_BY"
 msgid "by %s"
-msgstr ""
+msgstr "por %s"
 
 #. %s: the mod's license, e.g. "CC BY-NC-ND 4.0".
 msgctxt "UI_GB_LICENSE"
 msgid "License: %s"
-msgstr ""
+msgstr "Licencia: %s"
 
 msgctxt "UI_GB_OPEN"
 msgid "Open its GameBanana page"
-msgstr ""
+msgstr "Abrir su página de GameBanana"
 
 #. %s: the file's name.
 msgctxt "UI_GB_INSTALL"
 msgid "Install %s"
-msgstr ""
+msgstr "Instalar %s"
 
 #. First %s: the file's name; second %s: its author.
 msgctxt "UI_GB_CONFIRM"
 msgid "Download %s by %s from GameBanana and install it?"
-msgstr ""
+msgstr "¿Descargar %s de %s desde GameBanana e instalarlo?"
 
 msgctxt "UI_GB_UNSAFE"
 msgid "Not offered: GameBanana's virus scan has not marked this file clean"
-msgstr ""
+msgstr "No se ofrece: el análisis antivirus de GameBanana no ha marcado este archivo como limpio"
 
 #. %d: this page; %d: how many pages.
 msgctxt "UI_GB_PAGE"
 msgid "Page %d of %d"
-msgstr ""
+msgstr "Página %d de %d"
 
 #. %s: what failed (an English detail from the network).
 msgctxt "UI_GB_ERROR"
 msgid "GameBanana did not answer: %s"
-msgstr ""
+msgstr "GameBanana no ha respondido: %s"
 
 #. Under an installed mod that replaces the game's graphics settings archive (general_format).
 msgctxt "UI_MOD_WARN_GRAPHICS"
@@ -2085,6 +2088,8 @@ msgid ""
 "Changes the game's graphics settings: the port's own settings (resolution, quality) go on top, so "
 "this mod may do less than on a console, look worse or misbehave"
 msgstr ""
+"Cambia los ajustes gráficos del juego: los ajustes propios del port (resolución, calidad) se "
+"aplican encima, así que este mod puede hacer menos que en consola, verse peor o fallar"
 
 #. Above every mod install and import.
 msgctxt "UI_MOD_RISK"
@@ -2093,15 +2098,19 @@ msgid ""
 "damage your save: read its page first, keep a copy of your save, and report a mod's problems to "
 "its author."
 msgstr ""
+"Los mods los hacen otras personas y este proyecto no los prueba. Un mod puede cerrar el juego o "
+"dañar tu partida guardada: lee antes su página, guarda una copia de tu partida y comunica los "
+"problemas de un mod a su autor."
 
 msgctxt "UI_MOD_RISK_ACK"
 msgid "I understand"
-msgstr ""
+msgstr "Entendido"
 
 #. Under a mod that changes the game's code (its .ips): the game code is built with it.
 msgctxt "UI_MOD_CODE_REBUILD"
 msgid "code: turning it on or off builds the game code again before you play (a few minutes)"
 msgstr ""
+"código: activarlo o desactivarlo vuelve a crear el código del juego antes de jugar (unos minutos)"
 
 #. Under an installed mod that ships shaders (Shader/ files).
 msgctxt "UI_MOD_WARN_SHADERS"
@@ -2109,6 +2118,8 @@ msgid ""
 "Replaces shaders: the port translates the game's shaders during the setup, so this mod may not "
 "show, or may break the picture"
 msgstr ""
+"Reemplaza shaders: el port traduce los shaders del juego durante la preparación, así que este mod "
+"puede no verse o estropear la imagen"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_UPDATE"

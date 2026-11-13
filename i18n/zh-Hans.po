@@ -1921,11 +1921,11 @@ msgstr "无法打开此压缩包：.rar 和 .7z 需要安装 bsdtar（libarchive
 #. The Mods page's two tabs: the player's mods, and GameBanana's.
 msgctxt "UI_MOD_TAB_INSTALLED"
 msgid "Installed"
-msgstr ""
+msgstr "已安装"
 
 msgctxt "UI_MOD_TAB_FIND"
 msgid "Find on GameBanana"
-msgstr ""
+msgstr "在 GameBanana 上查找"
 
 #. Shown above the GameBanana list: the project hosts no mods.
 msgctxt "UI_GB_NOTE"
@@ -1933,76 +1933,76 @@ msgid ""
 "Mods are made by their authors and downloaded from GameBanana when you install them. This project "
 "is not affiliated with GameBanana or the mods' authors, and does not host, review or endorse "
 "mods. Each mod has its own license."
-msgstr ""
+msgstr "模组由其作者制作，安装时从 GameBanana 下载。本项目与 GameBanana 及模组作者无关，也不托管、审核或认可任何模组。每个模组都有各自的许可证。"
 
 msgctxt "UI_GB_SEARCH"
 msgid "Search"
-msgstr ""
+msgstr "搜索"
 
 msgctxt "UI_GB_SORT_DOWNLOADS"
 msgid "Most downloaded"
-msgstr ""
+msgstr "下载最多"
 
 msgctxt "UI_GB_SORT_NEW"
 msgid "Newest"
-msgstr ""
+msgstr "最新"
 
 msgctxt "UI_GB_SORT_LIKES"
 msgid "Most liked"
-msgstr ""
+msgstr "最受欢迎"
 
 msgctxt "UI_GB_LOADING"
 msgid "Loading..."
-msgstr ""
+msgstr "正在加载..."
 
 msgctxt "UI_GB_NONE"
 msgid "No mods found"
-msgstr ""
+msgstr "未找到模组"
 
 #. %s: the mod's author on GameBanana.
 msgctxt "UI_GB_BY"
 msgid "by %s"
-msgstr ""
+msgstr "作者：%s"
 
 #. %s: the mod's license, e.g. "CC BY-NC-ND 4.0".
 msgctxt "UI_GB_LICENSE"
 msgid "License: %s"
-msgstr ""
+msgstr "许可证：%s"
 
 msgctxt "UI_GB_OPEN"
 msgid "Open its GameBanana page"
-msgstr ""
+msgstr "打开其 GameBanana 页面"
 
 #. %s: the file's name.
 msgctxt "UI_GB_INSTALL"
 msgid "Install %s"
-msgstr ""
+msgstr "安装 %s"
 
 #. First %s: the file's name; second %s: its author.
 msgctxt "UI_GB_CONFIRM"
 msgid "Download %s by %s from GameBanana and install it?"
-msgstr ""
+msgstr "要从 GameBanana 下载 %s（作者：%s）并安装吗？"
 
 msgctxt "UI_GB_UNSAFE"
 msgid "Not offered: GameBanana's virus scan has not marked this file clean"
-msgstr ""
+msgstr "不提供：GameBanana 的病毒扫描未将此文件标记为安全"
 
 #. %d: this page; %d: how many pages.
 msgctxt "UI_GB_PAGE"
 msgid "Page %d of %d"
-msgstr ""
+msgstr "第 %d 页，共 %d 页"
 
 #. %s: what failed (an English detail from the network).
 msgctxt "UI_GB_ERROR"
 msgid "GameBanana did not answer: %s"
-msgstr ""
+msgstr "GameBanana 没有响应：%s"
 
 #. Under an installed mod that replaces the game's graphics settings archive (general_format).
 msgctxt "UI_MOD_WARN_GRAPHICS"
 msgid ""
 "Changes the game's graphics settings: the port's own settings (resolution, quality) go on top, so "
 "this mod may do less than on a console, look worse or misbehave"
-msgstr ""
+msgstr "更改游戏的图形设置：移植版自己的设置（分辨率、画质）会叠加在其上，因此此模组的效果可能不如主机版，画面可能更差或出现异常"
 
 #. Above every mod install and import.
 msgctxt "UI_MOD_RISK"
@@ -2010,23 +2010,23 @@ msgid ""
 "Mods are made by other people and are not tested by this project. A mod can crash the game or "
 "damage your save: read its page first, keep a copy of your save, and report a mod's problems to "
 "its author."
-msgstr ""
+msgstr "模组由其他人制作，本项目未对其进行测试。模组可能导致游戏崩溃或损坏存档：请先阅读其页面，备份你的存档，并将模组的问题反馈给其作者。"
 
 msgctxt "UI_MOD_RISK_ACK"
 msgid "I understand"
-msgstr ""
+msgstr "我明白了"
 
 #. Under a mod that changes the game's code (its .ips): the game code is built with it.
 msgctxt "UI_MOD_CODE_REBUILD"
 msgid "code: turning it on or off builds the game code again before you play (a few minutes)"
-msgstr ""
+msgstr "代码：开启或关闭会在游玩前重新构建游戏代码（需几分钟）"
 
 #. Under an installed mod that ships shaders (Shader/ files).
 msgctxt "UI_MOD_WARN_SHADERS"
 msgid ""
 "Replaces shaders: the port translates the game's shaders during the setup, so this mod may not "
 "show, or may break the picture"
-msgstr ""
+msgstr "替换着色器：移植版在设置过程中转换游戏的着色器，因此此模组可能无法显示，或导致画面异常"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_UPDATE"

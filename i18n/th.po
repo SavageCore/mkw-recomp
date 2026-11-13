@@ -1972,11 +1972,11 @@ msgstr "เปิดไฟล์นี้ไม่ได้: .rar และ .7z 
 #. The Mods page's two tabs: the player's mods, and GameBanana's.
 msgctxt "UI_MOD_TAB_INSTALLED"
 msgid "Installed"
-msgstr ""
+msgstr "ติดตั้งแล้ว"
 
 msgctxt "UI_MOD_TAB_FIND"
 msgid "Find on GameBanana"
-msgstr ""
+msgstr "ค้นหาบน GameBanana"
 
 #. Shown above the GameBanana list: the project hosts no mods.
 msgctxt "UI_GB_NOTE"
@@ -1985,68 +1985,71 @@ msgid ""
 "is not affiliated with GameBanana or the mods' authors, and does not host, review or endorse "
 "mods. Each mod has its own license."
 msgstr ""
+"ม็อดสร้างโดยผู้เขียน และดาวน์โหลดจาก GameBanana เมื่อคุณติดตั้ง โปรเจกต์นี้ไม่มีส่วนเกี่ยวข้องกับ "
+"GameBanana หรือผู้เขียนม็อด และไม่ได้โฮสต์ ตรวจสอบ หรือรับรองม็อดใด ๆ "
+"ม็อดแต่ละตัวมีใบอนุญาตของตัวเอง"
 
 msgctxt "UI_GB_SEARCH"
 msgid "Search"
-msgstr ""
+msgstr "ค้นหา"
 
 msgctxt "UI_GB_SORT_DOWNLOADS"
 msgid "Most downloaded"
-msgstr ""
+msgstr "ดาวน์โหลดมากที่สุด"
 
 msgctxt "UI_GB_SORT_NEW"
 msgid "Newest"
-msgstr ""
+msgstr "ใหม่ล่าสุด"
 
 msgctxt "UI_GB_SORT_LIKES"
 msgid "Most liked"
-msgstr ""
+msgstr "ถูกใจมากที่สุด"
 
 msgctxt "UI_GB_LOADING"
 msgid "Loading..."
-msgstr ""
+msgstr "กำลังโหลด..."
 
 msgctxt "UI_GB_NONE"
 msgid "No mods found"
-msgstr ""
+msgstr "ไม่พบม็อด"
 
 #. %s: the mod's author on GameBanana.
 msgctxt "UI_GB_BY"
 msgid "by %s"
-msgstr ""
+msgstr "โดย %s"
 
 #. %s: the mod's license, e.g. "CC BY-NC-ND 4.0".
 msgctxt "UI_GB_LICENSE"
 msgid "License: %s"
-msgstr ""
+msgstr "ใบอนุญาต: %s"
 
 msgctxt "UI_GB_OPEN"
 msgid "Open its GameBanana page"
-msgstr ""
+msgstr "เปิดหน้า GameBanana ของม็อดนี้"
 
 #. %s: the file's name.
 msgctxt "UI_GB_INSTALL"
 msgid "Install %s"
-msgstr ""
+msgstr "ติดตั้ง %s"
 
 #. First %s: the file's name; second %s: its author.
 msgctxt "UI_GB_CONFIRM"
 msgid "Download %s by %s from GameBanana and install it?"
-msgstr ""
+msgstr "ดาวน์โหลด %s โดย %s จาก GameBanana แล้วติดตั้งหรือไม่?"
 
 msgctxt "UI_GB_UNSAFE"
 msgid "Not offered: GameBanana's virus scan has not marked this file clean"
-msgstr ""
+msgstr "ไม่เสนอให้: การสแกนไวรัสของ GameBanana ไม่ได้ทำเครื่องหมายว่าไฟล์นี้ปลอดภัย"
 
 #. %d: this page; %d: how many pages.
 msgctxt "UI_GB_PAGE"
 msgid "Page %d of %d"
-msgstr ""
+msgstr "หน้า %d จาก %d"
 
 #. %s: what failed (an English detail from the network).
 msgctxt "UI_GB_ERROR"
 msgid "GameBanana did not answer: %s"
-msgstr ""
+msgstr "GameBanana ไม่ตอบกลับ: %s"
 
 #. Under an installed mod that replaces the game's graphics settings archive (general_format).
 msgctxt "UI_MOD_WARN_GRAPHICS"
@@ -2054,6 +2057,8 @@ msgid ""
 "Changes the game's graphics settings: the port's own settings (resolution, quality) go on top, so "
 "this mod may do less than on a console, look worse or misbehave"
 msgstr ""
+"เปลี่ยนการตั้งค่ากราฟิกของเกม: การตั้งค่าของพอร์ตเอง (ความละเอียด คุณภาพ) จะทับอยู่ด้านบน "
+"ม็อดนี้จึงอาจทำได้น้อยกว่าบนคอนโซล ดูแย่ลง หรือทำงานผิดปกติ"
 
 #. Above every mod install and import.
 msgctxt "UI_MOD_RISK"
@@ -2062,22 +2067,24 @@ msgid ""
 "damage your save: read its page first, keep a copy of your save, and report a mod's problems to "
 "its author."
 msgstr ""
+"ม็อดสร้างโดยผู้อื่นและโปรเจกต์นี้ไม่ได้ทดสอบ ม็อดอาจทำให้เกมแครชหรือไฟล์เซฟเสียหาย: "
+"อ่านหน้าของม็อดก่อน สำรองไฟล์เซฟไว้ และแจ้งปัญหาของม็อดกับผู้เขียน"
 
 msgctxt "UI_MOD_RISK_ACK"
 msgid "I understand"
-msgstr ""
+msgstr "เข้าใจแล้ว"
 
 #. Under a mod that changes the game's code (its .ips): the game code is built with it.
 msgctxt "UI_MOD_CODE_REBUILD"
 msgid "code: turning it on or off builds the game code again before you play (a few minutes)"
-msgstr ""
+msgstr "โค้ด: การเปิดหรือปิดจะสร้างโค้ดของเกมใหม่ก่อนเล่น (ไม่กี่นาที)"
 
 #. Under an installed mod that ships shaders (Shader/ files).
 msgctxt "UI_MOD_WARN_SHADERS"
 msgid ""
 "Replaces shaders: the port translates the game's shaders during the setup, so this mod may not "
 "show, or may break the picture"
-msgstr ""
+msgstr "แทนที่เชเดอร์: พอร์ตแปลเชเดอร์ของเกมระหว่างการตั้งค่า ม็อดนี้จึงอาจไม่แสดงหรือทำให้ภาพเสีย"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_UPDATE"

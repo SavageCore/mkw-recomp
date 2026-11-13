@@ -403,6 +403,9 @@ int plat_open_folder(const char *path);                   // shows the folder in
 // trusted so KDE and GNOME start it without asking, with a copy in ~/.local/share/applications for the menu. Writes the
 // shortcut's path to out. 1 on success.
 int plat_desktop_shortcut(const char *name, const char *exe, const char *dir, char *out, size_t cap);
+// Makes exe the user's handler of scheme: URLs (GameBanana's 1-Click), run as `exe arg URL`; only rewritten when it
+// differs. 1 when registered.
+int plat_url_scheme(const char *scheme, const char *label, const char *exe, const char *arg);
 
 // ---- dynamic libraries: a library some machines lack (a GPU vendor's), loaded at run time. A bare name is searched
 // in the system directories only. NULL when missing.

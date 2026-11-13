@@ -93,7 +93,7 @@ WINDOWS = Target(
     [f"-I{WIN / 'deps/include'}"],
     # 16 MiB main-thread stack, as mkw; the map as on Linux.
     [f"-L{WIN / 'deps/lib'}", "-fuse-ld=lld", "-Wl,--stack,16777216", "-Wl,--Map=$builddir/mkw.map"],
-    ["-lpsapi", "-lbcrypt", "-lws2_32", "-liphlpapi", "-luser32", "-lole32", "-luuid", "-lshell32", "-lgdi32", "-ldwmapi", "-lruntimeobject", "-lwinmm", "-lvulkan-1", "-lSDL3", "-lopus",
+    ["-lpsapi", "-lbcrypt", "-ladvapi32", "-lws2_32", "-liphlpapi", "-luser32", "-lole32", "-luuid", "-lshell32", "-lgdi32", "-ldwmapi", "-lruntimeobject", "-lwinmm", "-lvulkan-1", "-lSDL3", "-lopus",
      "-l:libvpx.a", "-l:libzstd.a", "-l:libc++.a", "-l:libc++abi.a", "-l:libunwind.a", "-l:libwinpthread.a"],
     WIN / "deps/include/vma",
     str(WIN / "llvm-mingw/bin/x86_64-w64-mingw32-windres"),

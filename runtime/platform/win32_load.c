@@ -281,3 +281,22 @@ int plat_desktop_shortcut(const char *name, const char *exe, const char *dir, ch
     if (ok && out && cap) WideCharToMultiByte(CP_UTF8, 0, link, -1, out, (int)cap, NULL, NULL);
     return ok;
 }
+
+// ---- a URL scheme (GameBanana's 1-Click: "scheme:https://gamebanana.com/mmdl/...") opening exe with arg and the URL:
+// HKCU\Software\Classes\<scheme>, the current user's own (no administrator), rewritten only when it differs.
+int plat_url_scheme(const char *scheme, const char *label, const char *exe, const char *arg) {
+    wchar_t wscheme[64], wlabel[128], wexe[WPATH], warg[64], key[160], cmd[WPATH + 160], have[WPATH + 160];
+    if (!widen(scheme, wscheme, 64) || !widen(label, wlabel, 128) || !widen(exe, wexe, WPATH) || !widen(arg, warg, 64))
+        return 0;
+    _snwprintf(key, 160, L"Software\\Classes\\%ls\\shell\\open\\command", wscheme);
+    _snwprintf(cmd, WPATH + 160, L"\"%ls\" %ls \"%%1\"", wexe, warg);
+    DWORD n = sizeof have;
+    if (RegGetValueW(HKEY_CURRENT_USER, key, NULL, RRF_RT_REG_SZ, NULL, have, &n) == ERROR_SUCCESS && !wcscmp(have, cmd))
+        return 1;   // already ours, at this path
+    wchar_t root[96];
+    _snwprintf(root, 96, L"Software\\Classes\\%ls", wscheme);
+    int ok = RegSetKeyValueW(HKEY_CURRENT_USER, root, NULL, REG_SZ, wlabel, (DWORD)((wcslen(wlabel) + 1) * 2)) == 0 &&
+             RegSetKeyValueW(HKEY_CURRENT_USER, root, L"URL Protocol", REG_SZ, L"", 2) == 0 &&
+             RegSetKeyValueW(HKEY_CURRENT_USER, key, NULL, REG_SZ, cmd, (DWORD)((wcslen(cmd) + 1) * 2)) == 0;
+    return ok;
+}

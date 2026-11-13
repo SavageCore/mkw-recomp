@@ -1994,11 +1994,11 @@ msgstr "Bu arşiv açılamıyor: .rar ve .7z için bsdtar (libarchive) kurulu ol
 #. The Mods page's two tabs: the player's mods, and GameBanana's.
 msgctxt "UI_MOD_TAB_INSTALLED"
 msgid "Installed"
-msgstr ""
+msgstr "Yüklü"
 
 msgctxt "UI_MOD_TAB_FIND"
 msgid "Find on GameBanana"
-msgstr ""
+msgstr "GameBanana'da bul"
 
 #. Shown above the GameBanana list: the project hosts no mods.
 msgctxt "UI_GB_NOTE"
@@ -2007,68 +2007,71 @@ msgid ""
 "is not affiliated with GameBanana or the mods' authors, and does not host, review or endorse "
 "mods. Each mod has its own license."
 msgstr ""
+"Modları yazarları yapar ve siz yüklerken GameBanana'dan indirilir. Bu proje GameBanana ile veya "
+"mod yazarlarıyla bağlantılı değildir; mod barındırmaz, incelemez ya da onaylamaz. Her modun kendi "
+"lisansı vardır."
 
 msgctxt "UI_GB_SEARCH"
 msgid "Search"
-msgstr ""
+msgstr "Ara"
 
 msgctxt "UI_GB_SORT_DOWNLOADS"
 msgid "Most downloaded"
-msgstr ""
+msgstr "En çok indirilen"
 
 msgctxt "UI_GB_SORT_NEW"
 msgid "Newest"
-msgstr ""
+msgstr "En yeni"
 
 msgctxt "UI_GB_SORT_LIKES"
 msgid "Most liked"
-msgstr ""
+msgstr "En çok beğenilen"
 
 msgctxt "UI_GB_LOADING"
 msgid "Loading..."
-msgstr ""
+msgstr "Yükleniyor..."
 
 msgctxt "UI_GB_NONE"
 msgid "No mods found"
-msgstr ""
+msgstr "Mod bulunamadı"
 
 #. %s: the mod's author on GameBanana.
 msgctxt "UI_GB_BY"
 msgid "by %s"
-msgstr ""
+msgstr "yapan: %s"
 
 #. %s: the mod's license, e.g. "CC BY-NC-ND 4.0".
 msgctxt "UI_GB_LICENSE"
 msgid "License: %s"
-msgstr ""
+msgstr "Lisans: %s"
 
 msgctxt "UI_GB_OPEN"
 msgid "Open its GameBanana page"
-msgstr ""
+msgstr "GameBanana sayfasını aç"
 
 #. %s: the file's name.
 msgctxt "UI_GB_INSTALL"
 msgid "Install %s"
-msgstr ""
+msgstr "%s dosyasını yükle"
 
 #. First %s: the file's name; second %s: its author.
 msgctxt "UI_GB_CONFIRM"
 msgid "Download %s by %s from GameBanana and install it?"
-msgstr ""
+msgstr "%s (yapan: %s) GameBanana'dan indirilip yüklensin mi?"
 
 msgctxt "UI_GB_UNSAFE"
 msgid "Not offered: GameBanana's virus scan has not marked this file clean"
-msgstr ""
+msgstr "Sunulmuyor: GameBanana'nın virüs taraması bu dosyayı temiz olarak işaretlemedi"
 
 #. %d: this page; %d: how many pages.
 msgctxt "UI_GB_PAGE"
 msgid "Page %d of %d"
-msgstr ""
+msgstr "Sayfa %d / %d"
 
 #. %s: what failed (an English detail from the network).
 msgctxt "UI_GB_ERROR"
 msgid "GameBanana did not answer: %s"
-msgstr ""
+msgstr "GameBanana yanıt vermedi: %s"
 
 #. Under an installed mod that replaces the game's graphics settings archive (general_format).
 msgctxt "UI_MOD_WARN_GRAPHICS"
@@ -2076,6 +2079,9 @@ msgid ""
 "Changes the game's graphics settings: the port's own settings (resolution, quality) go on top, so "
 "this mod may do less than on a console, look worse or misbehave"
 msgstr ""
+"Oyunun grafik ayarlarını değiştirir: portun kendi ayarları (çözünürlük, kalite) bunun üstüne "
+"uygulanır, bu yüzden bu mod konsoldakinden daha az etki edebilir, daha kötü görünebilir veya "
+"hatalı çalışabilir"
 
 #. Above every mod install and import.
 msgctxt "UI_MOD_RISK"
@@ -2084,15 +2090,18 @@ msgid ""
 "damage your save: read its page first, keep a copy of your save, and report a mod's problems to "
 "its author."
 msgstr ""
+"Modları başkaları yapar ve bu proje onları test etmez. Bir mod oyunu çökertebilir veya kayıt "
+"dosyanıza zarar verebilir: önce sayfasını okuyun, kaydınızın bir kopyasını saklayın ve modun "
+"sorunlarını yazarına bildirin."
 
 msgctxt "UI_MOD_RISK_ACK"
 msgid "I understand"
-msgstr ""
+msgstr "Anladım"
 
 #. Under a mod that changes the game's code (its .ips): the game code is built with it.
 msgctxt "UI_MOD_CODE_REBUILD"
 msgid "code: turning it on or off builds the game code again before you play (a few minutes)"
-msgstr ""
+msgstr "kod: açıp kapatmak, oynamadan önce oyun kodunu yeniden derler (birkaç dakika)"
 
 #. Under an installed mod that ships shaders (Shader/ files).
 msgctxt "UI_MOD_WARN_SHADERS"
@@ -2100,6 +2109,8 @@ msgid ""
 "Replaces shaders: the port translates the game's shaders during the setup, so this mod may not "
 "show, or may break the picture"
 msgstr ""
+"Gölgelendiricileri değiştirir: port, kurulum sırasında oyunun gölgelendiricilerini çevirir, bu "
+"yüzden bu mod görünmeyebilir veya görüntüyü bozabilir"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_UPDATE"

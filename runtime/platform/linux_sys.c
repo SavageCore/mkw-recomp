@@ -587,3 +587,31 @@ int plat_desktop_shortcut(const char *name, const char *exe, const char *dir, ch
     if (out && cap) snprintf(out, cap, "%s", path);
     return 1;
 }
+
+// ---- a URL scheme (GameBanana's 1-Click: "scheme:https://gamebanana.com/mmdl/...") opening exe with arg and the URL:
+// ~/.local/share/applications/<scheme>-url.desktop with x-scheme-handler/<scheme>, made the default for it in
+// ~/.config/mimeapps.list through xdg-mime; rewritten only when it differs (the AppImage moved).
+int plat_url_scheme(const char *scheme, const char *label, const char *exe, const char *arg) {
+    const char *home = getenv("HOME");
+    if (!home || strpbrk(exe, "\"\\`$")) return 0;
+    char dir[PATH_MAX], path[PATH_MAX + 64], want[PATH_MAX * 2];
+    snprintf(dir, sizeof dir, "%s/.local/share/applications", home);
+    plat_file_mkdir_p(dir);
+    snprintf(path, sizeof path, "%s/%s-url.desktop", dir, scheme);
+    snprintf(want, sizeof want,
+             "[Desktop Entry]\nType=Application\nName=%s\nExec=\"%s\" %s %%u\nNoDisplay=true\nTerminal=false\n"
+             "MimeType=x-scheme-handler/%s;\n", label, exe, arg, scheme);
+    uint64_t n = 0;
+    char *have = (char *)plat_file_read(path, &n);
+    int same = have && n == strlen(want) && !memcmp(have, want, n);
+    free(have);
+    if (same) return 1;
+    if (!plat_file_write_atomic(path, want, strlen(want))) return 0;
+    char mime[96], file[96];
+    snprintf(mime, sizeof mime, "x-scheme-handler/%s", scheme);
+    snprintf(file, sizeof file, "%s-url.desktop", scheme);
+    pid_t pid;
+    char *argv[] = {"xdg-mime", "default", file, mime, NULL};
+    if (!posix_spawnp(&pid, "xdg-mime", NULL, NULL, argv, environ)) waitpid(pid, NULL, 0);
+    return 1;
+}
