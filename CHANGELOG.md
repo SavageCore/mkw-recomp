@@ -12,6 +12,10 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
   Handheld, the 3D scene rendered well above the chosen resolution (1476x828 for 540p), as the game draws all of its
   3D lines there and only 65 % of them docked. @titooo7 measured both modes on an AYN Odin 2 and the setting now
   gives the chosen lines in either; the log line names the mode.
+- **Menu labels no longer mix with other labels' letters** (#250 by @EdouardSence, #61): on AMD cards on Linux,
+  menu texts drew another frame's glyphs for a frame. @EdouardSence traced it, on an RX 9070 XT, to pages of game
+  memory the GPU copy took from a shadow that did not have them yet, and measured each step: 2 947 stale pages before
+  the fix, 8 after, and no swapped labels on screen.
 - The setup compiles with more jobs where memory held it back: a compile was given 1 GB and takes at most 0.4 (a
   12-thread PC with 13 GB went from 8 to 12 jobs, 330 s to 302 s for the game's code; an 8 GB PC with 8 threads from
   4 to 8). `logs/setup.log` now says how long each step took.
