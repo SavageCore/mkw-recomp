@@ -1,11 +1,12 @@
 # github
 
-Issue moderation, run by `.github/workflows/issues.yml` on each issue event, once a day and on each release.
+Issue moderation (`moderate.py`, `classify.py`), run by `.github/workflows/issues.yml` on each issue event, once a day and on each release. The copy to the Internet Archive (`archive.py`) runs from `.github/workflows/archive.yml` once a day.
 
 | File | Contents |
 |---|---|
 | `moderate.py` | Acts on an issue, a comment, a release or the daily sweep: release and GPU labels, empty reports closed, logs asked for, known errors answered, a log from a build with local changes (`-dirty`) noted, maintainers' replies closed. Prints what it would do unless `--apply` |
 | `classify.py` | Reads a report without GitHub: release, GPU, empty, log, known error, and what a maintainer's reply decides (tested in `tests/test_issues.py`) |
+| `archive.py` | The daily copy to the Internet Archive (`.github/workflows/archive.yml`): git bundle and every issue, pull request, discussion and release as JSON in a dated item, each release's files once, and the changed pages to the Wayback Machine. Prints what it would do unless `--apply` |
 | `signatures.toml` | Known error strings and the issue that tracks each; `fixed` keeps reports on that release or later open as possible regressions |
 
 A maintainer's reply closes its issue when it says "Fixed in vX" opening a sentence (or "is the same as #N, fixed in

@@ -1,4 +1,4 @@
-<!-- translated from README.md df5b2f6e71f1 -->
+<!-- translated from README.md 94fb2ed2d40b -->
 
 <p align="center"><img src="../logo.svg" width="128" alt="mkw-recomp logo"></p>
 
@@ -22,7 +22,8 @@
   <a href="../../docs/roadmap.md">Hoja de ruta</a> ·
   <a href="../../docs/performance.md">Rendimiento</a> ·
   <a href="https://github.com/adriadam10/mkw-recomp/issues">Issues</a> ·
-  <a href="https://github.com/adriadam10/mkw-recomp/discussions">Discussions</a>
+  <a href="https://github.com/adriadam10/mkw-recomp/discussions">Discussions</a> ·
+  <a href="https://archive.org/search?query=subject%3A%22mkw-recomp%22">Archivo</a>
 </p>
 
 <!-- i18n-bar:start -->

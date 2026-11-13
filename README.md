@@ -20,7 +20,8 @@
   <a href="docs/roadmap.md">Roadmap</a> ·
   <a href="docs/performance.md">Performance</a> ·
   <a href="https://github.com/adriadam10/mkw-recomp/issues">Issues</a> ·
-  <a href="https://github.com/adriadam10/mkw-recomp/discussions">Discussions</a>
+  <a href="https://github.com/adriadam10/mkw-recomp/discussions">Discussions</a> ·
+  <a href="https://archive.org/search?query=subject%3A%22mkw-recomp%22">Archive</a>
 </p>
 
 <!-- i18n-bar:start -->
