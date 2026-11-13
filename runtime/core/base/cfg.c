@@ -100,7 +100,7 @@ static const CfgMeta metas[] = {
     {"RESOLUTION", "original", "original|540|720|900|1080|1440|2160", RESTART},
     {"ASPECT", "16:9", "16:9|window|21:9|32:9|48:9", RESTART},
     // Game
-    {"LANG", "", "ja|en-US|fr|de|it|es|zh-CN|ko|nl|pt|ru|zh-TW|en-GB|fr-CA|es-419|zh-Hans|zh-Hant|pt-BR|ca|gl|eu", RESTART},
+    {"LANG", "", "ja|en-US|fr|de|it|es|zh-CN|ko|nl|pt|ru|zh-TW|en-GB|fr-CA|es-419|zh-Hans|zh-Hant|pt-BR|pl|th|ca|gl|eu", RESTART},
     {"OPERATION_MODE", "docked", "docked|handheld", RESTART},
     {"LAN", "0", "0|1", RESTART},   // LAN play (sdk/ov/ov_socket.c), off until played between two PCs (#144)
     // Graphics: the console's look by default

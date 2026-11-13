@@ -60,7 +60,8 @@ static const struct { const char *lang; UiTextId name; } kCjk[] = {
     {"zh-Hant", UI_MENU_LANGNAME_ZH_HANT}, {"th", UI_MENU_LANGNAME_TH},
 };
 
-static const char *g_font_lang;   // the menu language the atlas was built for
+static const char *g_font_lang;                        // the menu language the atlas was built for
+static ImVector<ImWchar> g_ranges[sizeof kCjk / sizeof *kCjk];   // read when the texture is built, after this returns
 
 int menu_look_fonts_stale(void) { return g_font_lang != menu_lang(); }
 
@@ -68,7 +69,6 @@ int menu_look_fonts_stale(void) { return g_font_lang != menu_lang(); }
 // the CJK languages in the language lists. Without the system font the CJK menu shows boxes.
 void menu_look_fonts(float scale) {
     enum { N = sizeof kCjk / sizeof *kCjk };
-    static ImVector<ImWchar> ranges[N];   // read when the texture is built, after this returns
     g_font_lang = menu_lang();
     ImFontAtlas *fa = ImGui::GetIO().Fonts;
     fa->Clear();
@@ -86,18 +86,33 @@ void menu_look_fonts(float scale) {
         b.AddText(ui_text_in("en", kCjk[i].name));
         if (!strcmp(kCjk[i].lang, g_font_lang))
             for (int id = 0; id < UI_TEXT_COUNT; id++) b.AddText(ui_text_in(g_font_lang, (UiTextId)id));
-        ranges[i].clear();
-        b.BuildRanges(&ranges[i]);
+        g_ranges[i].clear();
+        b.BuildRanges(&g_ranges[i]);
         ImFontConfig mc;
         mc.MergeMode = true;   // the atlas frees data (IM_FREE is free by default)
-        fa->AddFontFromMemoryTTF(data, (int)size, 26.0f * scale, &mc, ranges[i].Data);
+        fa->AddFontFromMemoryTTF(data, (int)size, 26.0f * scale, &mc, g_ranges[i].Data);
     }
     rt_log("menu: font atlas at %.1f px for menu language %s, CJK glyphs from %d of %d system fonts", 26.0f * scale,
            g_font_lang, merged, (int)N);
 }
 
+// The launcher's other sizes: Roboto, with the system font of a CJK or Thai menu language merged in like the main
+// font, or its titles and buttons show "?" for every glyph (discussion #193). Call after menu_look_fonts.
 ImFont *menu_look_font_at(float px) {
+    ImFontAtlas *fa = ImGui::GetIO().Fonts;
     ImFontConfig fc;
     fc.FontDataOwnedByAtlas = false;
-    return ImGui::GetIO().Fonts->AddFontFromMemoryTTF((void *)roboto_ttf, (int)sizeof roboto_ttf, px, &fc, kRanges);
+    ImFont *font = fa->AddFontFromMemoryTTF((void *)roboto_ttf, (int)sizeof roboto_ttf, px, &fc, kRanges);
+    for (size_t i = 0; i < sizeof kCjk / sizeof *kCjk; i++) {
+        char path[512];
+        uint64_t size = 0;
+        uint8_t *data;
+        if (!g_font_lang || strcmp(kCjk[i].lang, g_font_lang) || g_ranges[i].empty() ||
+            !plat_font_path(kCjk[i].lang, path, sizeof path) || !(data = plat_file_read(path, &size)))
+            continue;
+        ImFontConfig mc;
+        mc.MergeMode = true;   // the atlas frees data
+        fa->AddFontFromMemoryTTF(data, (int)size, px, &mc, g_ranges[i].Data);
+    }
+    return font;
 }

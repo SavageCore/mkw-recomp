@@ -139,9 +139,18 @@ const char *ov_language(void) {
     return switch_language(locale_tag(sys, sizeof sys));
 }
 
-// LanguageCode GetDesiredLanguage(): char[8] in x0
+// LanguageCode GetDesiredLanguage(): char[8] in x0. The first answer goes to the log with where it came from: a report
+// of the game in the wrong language reads there whether the setting or the system chose it (discussion #193).
 static void ov_desired_language(Cpu *c) {
     const char *code = ov_language();
+    static int logged;
+    if (!logged) {
+        logged = 1;
+        const char *set = cfg_get("MKW_LANG");
+        char sys[85];
+        if (set && *set) rt_log("oe: game language %s (Settings > Game > Language: %s)", code, set);
+        else rt_log("oe: game language %s (automatic, from the locale %s)", code, locale_tag(sys, sizeof sys));
+    }
     uint64_t v = 0;
     memcpy(&v, code, strlen(code));
     ret_x(c, v);

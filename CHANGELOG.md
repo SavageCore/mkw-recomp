@@ -34,6 +34,9 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
 - 48:9 for three screens side by side (discussion #264): Settings > Graphics > Aspect ratio now offers 48:9 (5760x1080,
   7680x1440 on NVIDIA Surround or AMD Eyefinity) beside 21:9 and 32:9. Races show more at the sides and the menus and
   HUD keep their shape; "window" already took that shape from a full-screen window.
+- The start screen in Thai, Japanese, Korean or Chinese (discussion #193): its title, Play button and page names showed
+  `?` for every letter, as only the small text took the system font with that script; they all do now. The log also
+  says which language the game was given and whether the setting or the system's locale chose it.
 
 ## 0.1.10
 
