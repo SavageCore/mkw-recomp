@@ -207,6 +207,8 @@ static void handle(const SDL_Event *e) {
     }
 }
 
+void app_icon_set(SDL_Window *w);   // build/obj/rt/app_icon.c, drawn by tools/build/icon.py
+
 static void window_main(void *arg) {
     (void)arg;
     g_window_tid = plat_thread_id();
@@ -287,6 +289,7 @@ static void open_window(void *arg) {
         rt_log("gfx: SDL_CreateWindow failed (%s)", SDL_GetError());
         return;
     }
+    app_icon_set(g_win);
     set_pixel_size(w, h);   // w x h were window units; the setting is in pixels
     density_update();
     note_applied();

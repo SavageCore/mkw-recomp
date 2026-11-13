@@ -260,6 +260,8 @@ def ninja_file(target: Target, gen: Path, out: Path, rt_extra: list[str], dist: 
         lines.append(f"build {lib}: ar {' '.join(objs)}")
     rt_objs = []
     rt_srcs = [*runtime_sources(target), out / "rt/defaults.c", *sorted((out / "rt/i18n").glob("ui_text_*.c"))]
+    rt_srcs.append(out / "rt/app_icon.c")   # the window's icon, drawn by tools/build/icon.py (never committed)
+    lines.append(f"build {out / 'rt/app_icon.c'}: icon {ROOT / 'tools/build/icon.py'}")
     rt_srcs += [] if dist else [out / "rt/modules.c"]
     for src in rt_srcs:
         rel = src.relative_to(RUNTIME) if src.is_relative_to(RUNTIME) else Path(src.name)

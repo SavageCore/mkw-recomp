@@ -3,9 +3,11 @@
 an .ico with PNG images of 256, 48, 32 and 16 pixels. tools/build/build.py --target windows calls it before the
 resource (runtime/platform/mkw.rc names "mkw.ico"); the file is made in build/, never committed. With an .svg name it
 writes the same drawing as vector shapes instead (the repo's logo, docs/logo.svg: text, so it can be versioned); with a
-.png name, one 256-pixel image (the Linux AppImage's icon, tools/build/release.py).
+.png name, one 256-pixel image (the Linux AppImage's icon, tools/build/release.py); with a .c name, the C source of
+app_icon_set(SDL_Window *), which gives the window a 128-pixel copy (build.py, every target): Wayland compositors with
+xdg_toplevel_icon (KWin) show it in the taskbar instead of a generic icon when no desktop file matches the app id.
 
-Usage: uv run tools/build/icon.py OUT.ico | OUT.svg | OUT.png
+Usage: uv run tools/build/icon.py OUT.ico | OUT.svg | OUT.png | OUT.c
 """
 
 import math
@@ -105,6 +107,22 @@ def main() -> None:
         return
     if sys.argv[1].endswith(".png"):
         Path(sys.argv[1]).write_bytes(png(256))
+        return
+    if sys.argv[1].endswith(".c"):
+        n = 128
+        rows = render(n)
+        px = b"".join(rows[y * (n * 4 + 1) + 1 : (y + 1) * (n * 4 + 1)] for y in range(n))   # without the filter bytes
+        body = ",".join(str(b) for b in px)
+        Path(sys.argv[1]).parent.mkdir(parents=True, exist_ok=True)
+        Path(sys.argv[1]).write_text(
+            "// Drawn by tools/build/icon.py: the window's icon, RGBA rows. Generated, never committed.\n"
+            "#include <SDL3/SDL.h>\n"
+            f"static const unsigned char px[{len(px)}] = {{{body}}};\n"
+            "void app_icon_set(SDL_Window *w) {\n"
+            f"    SDL_Surface *s = SDL_CreateSurfaceFrom({n}, {n}, SDL_PIXELFORMAT_RGBA32, (void *)px, {n * 4});\n"
+            "    if (s) SDL_SetWindowIcon(w, s), SDL_DestroySurface(s);   // SDL keeps a copy\n"
+            "}\n"
+        )
         return
     sizes = (256, 48, 32, 16)
     images = [png(s) for s in sizes]
