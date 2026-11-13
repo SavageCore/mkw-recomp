@@ -434,8 +434,11 @@ void vk_crumb_end(VkCommandBuffer cb, int kind, uint32_t id);
 uint32_t vk_crumb_op(VkCommandBuffer cb, const char *what, uint32_t w, uint32_t h);
 // MKW_GPU_CRUMBS_DRAW=1 (off by default: two marks per draw): each draw marked with its program keys (fs NULL for
 // none), so a loss names the program, not only the pass.
-void vk_crumb_draw(VkCommandBuffer cb, const uint8_t *vs, const uint8_t *fs);
+void vk_crumb_draw(VkCommandBuffer cb, const uint8_t *vs, const uint8_t *fs, uint32_t count);
+void vk_crumb_draw_ind(uint64_t ind, uint64_t count, uint32_t max);   // that draw was indirect: its arguments' guest addresses
+void vk_crumb_cs(uint32_t id, const uint8_t *cs);   // a dispatch mark's compute program key
 void vk_crumbs_report(void);     // at a device loss (vk_exec_recent_log), once
+void vk_crumbs_report_hang(void);   // the same marks while the GPU makes no progress and no loss is reported (vk_sync.c)
 VkFormat vk_texture_view_format(const VkTexImage *img, VkFormat want);   // a target view's format the image allows
 const VkTexImage *vk_texture_get(const tex_t *t);   // created and made current; NULL for BUFFER or unmapped formats
 // A texture slot; a slot whose texture was finalized follows the live texture at the same storage (hle_nvn.c).

@@ -214,6 +214,7 @@ static void cb_log(uint64_t values) {
     memset(cb_cost, 0, sizeof cb_cost), cb_values = 0;
 }
 
+#define HANG_NS 5000000000ull   // no frame's submission takes seconds; a load's uploads are many short ones
 static void completion_main(void *arg) {
     VkCtx *c = arg;
     plat_mutex_lock(&st_lock);
@@ -233,6 +234,19 @@ static void completion_main(void *arg) {
             if (r == VK_ERROR_DEVICE_LOST) vk_exec_recent_log();
             if (r != VK_SUCCESS && r != VK_TIMEOUT) rt_fatal("vk: vkWaitSemaphores failed (%d; device lost?)", (int)r);
             vkGetSemaphoreCounterValue(c->device, c->timeline, &reached);
+            // A hang the driver never reports as a lost device (NVIDIA 620.70.06 on Linux, Xid 109 "CTX SWITCH
+            // TIMEOUT", six times on 13/11/2026: this wait timed out for ever and the log named nothing; #13, #206):
+            // after HANG_NS without the timeline moving, the breadcrumbs say what the GPU had started and not finished.
+            static uint64_t stuck_since;   // this thread only
+            static int hang_logged;
+            if (reached >= want) stuck_since = 0;
+            else if (!stuck_since) stuck_since = kern_now_ns();
+            else if (!hang_logged && kern_now_ns() - stuck_since >= HANG_NS) {
+                rt_log("vk: the GPU has not finished submission %llu in %d s and the driver reports no device loss",
+                       (unsigned long long)want, (int)(HANG_NS / 1000000000ull));
+                vk_crumbs_report_hang();
+                hang_logged = 1;
+            }
             plat_mutex_lock(&st_lock);
             if (reached > issued) reached = issued;
             if (reached > done) vk_tl_reached(done, reached, 0);
