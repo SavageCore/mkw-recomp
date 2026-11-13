@@ -356,6 +356,12 @@ void vk_texture_write_back(uint64_t addr, uint64_t size) {
 // itself). On the Switch the bytes are there once the frame's fence has passed. So when the
 // CPU waits for a fence, mirrored targets up to WB_SMALL bytes rendered by work up to that fence go back to their
 // storage, unless the CPU rewrote it since. Larger targets still go back on an invalidate, memcpy or ReadTexels.
+// Pitch textures go back at the fence whatever their size (wb_at_fence). MKW fills, on the GPU, three pitch RGBA16F
+// textures for each animation of its instanced characters (scale, rotation, translation: 8x1218 texels, 0x80 bytes a
+// row, 152 KiB each) and its CPU code reads the pool bytes with plain loads, every frame, for each bone (1.8.0:
+// main+0x42bea0). Left on the GPU, the storage stayed as the heap had it: zeros gave the bones scale 0 and stale bytes
+// gave huge matrices, the giant triangles over Shy Guy Bazaar (#72; free roam there, the same drive: 17 of 600 frames
+// wrong, then 0).
 int vk_texture_small_dirty(void) { return __atomic_load_n(&small_pending, __ATOMIC_ACQUIRE); }
 
 void vk_texture_write_back_small(uint64_t fence) {
@@ -363,13 +369,13 @@ void vk_texture_write_back_small(uint64_t fence) {
     __atomic_store_n(&small_pending, 0, __ATOMIC_RELAXED);
     plat_mutex_lock_shared(&owned_lock);
     int n = 0, later = 0;
-    for (int i = 0; i < nowned; i++) n += owned[i]->gpu_dirty && owned[i]->t.L.size <= WB_SMALL;
+    for (int i = 0; i < nowned; i++) n += owned[i]->gpu_dirty && wb_at_fence(&owned[i]->t.d, owned[i]->t.L.size);
     Tex **hit = n ? malloc(sizeof *hit * (size_t)n) : NULL;
     if (n && !hit) rt_fatal("vk: out of memory for a texture write-back");
     n = 0;
     for (int i = 0; i < nowned; i++) {
         Tex *e = owned[i];
-        if (!e->gpu_dirty || e->t.L.size > WB_SMALL) continue;
+        if (!e->gpu_dirty || !wb_at_fence(&e->t.d, e->t.L.size)) continue;
         if (e->gpu_fence > fence) later = 1;
         else hit[n++] = e;
     }
@@ -389,6 +395,12 @@ void vk_texture_write_back_small(uint64_t fence) {
     for (int i = 0; i < k; i++) write_back(hit[i]);
     for (int i = 0; i < k; i++) perf_count(PERF_CNT_WB);
     for (int i = k; i < n; i++) perf_count(PERF_CNT_WB_SKIP);
+    static volatile int32_t n_pitch;
+    for (int i = 0; i < k; i++)
+        if (hit[i]->t.L.size > WB_SMALL)
+            log_limited(&n_pitch, "pitch texture %#llx %ux%u format %#x (%llu bytes) written back to its storage at fence %llu",
+                        (unsigned long long)hit[i]->pub.addr, hit[i]->t.d.width, hit[i]->t.d.height, hit[i]->t.d.format,
+                        (unsigned long long)hit[i]->t.L.size, (unsigned long long)fence);
     free(hit);
     unlock();
 }

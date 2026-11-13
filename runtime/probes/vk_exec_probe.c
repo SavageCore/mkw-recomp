@@ -399,6 +399,52 @@ static int test_c0(void) {
     return 0;
 }
 
+// ---- pitch part: a pitch texture the GPU writes holds the texels in its storage once the CPU has waited for the
+// fence, as the pool memory does on the console. The shape is that of MKW's animation textures (RGBA16F 8x1218, 0x80
+// bytes a row, 0x26100 bytes: over the small-target limit), which its CPU code reads in place.
+#define PT_W 8
+#define PT_H 1218
+
+static int test_pitch(const GfxBackend *b, uint8_t *guest, int *bytes) {
+    pool_t pool = {.magic = NVN_POOL_MAGIC, .flags = 0x22, .mem = guest + 0x800000, .size = 0x100000,
+                   .game_mem = guest + 0x800000};
+    CHECK(b->pool_init(&pool), "pool_init of a CPU-visible pool for the pitch part");
+    uint8_t *m = pool.mem;
+    static tex_t t;   // the payload's texture pointer lives as long as the submission
+    init_tex(&t, &pool, 0x40000, NVN_FORMAT_RGBA16F);
+    t.d.width = PT_W, t.d.height = PT_H, t.d.flags = NVN_TEXTURE_FLAGS_LINEAR_RENDER_TARGET;
+    nvn_tex_layout(&t.d, &t.L);
+    t.serial = 301;
+    uint32_t stride = nvn_tex_linear_stride(&t.d);
+    CHECK(stride == 0x80 && t.L.size == (uint64_t)stride * PT_H && t.L.size > (64u << 10) && t.L.size <= 0x40000,
+          "pitch texture layout: %#x bytes a row, %#llx bytes", stride, (unsigned long long)t.L.size);
+    uint16_t *src = (uint16_t *)m;   // the texels as a tight buffer, 64 bytes a row
+    for (int i = 0; i < PT_W * PT_H * 4; i++) src[i] = (uint16_t)(i * 31 + 7);
+    memset(t.mem, 0, t.L.size);
+
+    static _Alignas(8) uint8_t stream[512];
+    uint8_t *p = put(stream, OP_BEGIN, NULL, 0);
+    p_copy_b2t up;
+    memset(&up, 0, sizeof up);
+    up.src = (uint64_t)(uintptr_t)m, up.tex = &t, up.r = (NVNcopyRegion){0, 0, 0, PT_W, PT_H, 1};
+    p = put(p, OP_COPY_B2T, &up, sizeof up);
+    p = put(p, OP_END, NULL, 0);
+    CHECK(p <= stream + sizeof stream, "pitch op stream overflow");
+    uint64_t handle = (uint64_t)(uintptr_t)stream;
+    uint64_t f = b->submit(&handle, 1);
+    CHECK(b->fence_wait(f, 5000000000ull), "fence_wait of the pitch submission timed out");
+    b->cpu_synced(f);   // as nvnSyncWait after its wait
+    int y = 0;
+    while (y < PT_H && !memcmp(t.mem + (size_t)y * stride, src + (size_t)y * PT_W * 4, PT_W * 8)) y++;
+    uint16_t got = y < PT_H ? *(const uint16_t *)(t.mem + (size_t)y * stride) : 0;
+    b->texture_release(&t);   // before the check: a failed probe leaves nothing allocated for the shutdown
+    b->pool_fini(&pool);
+    CHECK(y == PT_H, "row %d of the pitch texture's storage does not hold what the GPU copied into it (first word %#x, "
+          "expected %#x)", y, got, src[(size_t)y * PT_W * 4]);
+    *bytes = PT_W * PT_H * 8;
+    return 0;
+}
+
 // A texture in a physical pool's memory that nothing wrote reads zero, as Switch pool memory starts zeroed
 // (MKW_FIX_ZERO; the driver may return zeros without it, then this is a guard).
 static int test_zero(const GfxBackend *b, uint8_t *guest, int *bytes) {
@@ -625,6 +671,8 @@ int probe_vkexec(void) {
     int sync_bad = bad;
     if (!bad) bad = test_clear(b, guest, &inside);
     if (!bad) bad = test_xfer(b, guest, &xfer_bytes);
+    int pitch_bytes = 0;
+    if (!bad) bad = test_pitch(b, guest, &pitch_bytes);
     int zero_bytes = 0;
     if (!bad) bad = test_zero(b, guest, &zero_bytes);
     int nvnx_bytes = 0, mirror_bytes = 0;
@@ -653,6 +701,8 @@ int probe_vkexec(void) {
            "texture exact, CLEAR_TEX exact, event WRITE + ADD, timestamp and samples-passed reports in guest memory after "
            "fence_wait, %d bytes compared, 0 validation errors)\n",
            XF_W, XF_H, xfer_bytes);
+    printf("probe-vkexec: pitch part passed (a %dx%d RGBA16F LINEAR_RENDER_TARGET texture filled by a buffer copy holds the "
+           "texels in its pool bytes after the fence wait, %d bytes compared)\n", PT_W, PT_H, pitch_bytes);
     printf("probe-vkexec: nvnx part passed (ClearBuffer then ReportValue in GPU order, a CPU-invisible pool fill copied out, "
            "Downsample 64x64 -> 32x32 within 1 of the 2x2 average, stencil view aspect of D24S8, %d bytes compared)\n",
            nvnx_bytes);
