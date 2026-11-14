@@ -11,7 +11,9 @@
 EXEFS ?= game/exefs
 GEN ?= build/generated
 PATCHES ?= recomp/patches-mkw.txt
-VERSION ?= 0.0.0-temp
+# The release tag without its v (0.1.11), or tag-commits-hash between tags: the same source as the binary's own
+# version (port_version in tools/build/build.py). A release passes its version: `make appimage VERSION=0.1.12`.
+VERSION ?= $(shell git describe --tags --always | sed 's/^v//')
 
 .PHONY: help build generated shaders selftest check dist appimage windows clean
 
