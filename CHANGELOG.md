@@ -8,6 +8,10 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
 
 ### Changes
 
+- **The Steam Deck renders the race at 720 lines** (#317 by @andreknieriem): the Deck's picture is 1280x720 on its
+  screen, but the 3D scene still rendered at the console's docked 2560x1440. @andreknieriem measured it on a Deck: those
+  passes took 16 of the GPU's 42 ms a frame. The Deck's profile now sets Resolution to 720, and races went from about
+  36 to 24 ms a frame. The menu or `mkw.ini` still pick another one (a Deck on a TV, for instance).
 - **The start screen says how the last game ended**: when it stopped with a known problem, it names the issue that
   follows it (no need to report it again) or the release that fixes it; an unknown error gets a button to the bug
   form, asking for `logs/mkw.log`.
