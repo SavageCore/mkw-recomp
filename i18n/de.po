@@ -1725,13 +1725,15 @@ msgstr "Spielordner"
 
 msgctxt "UI_LAUNCH_PICK_GAME_DIR"
 msgid "Choose game folder"
-msgstr ""
+msgstr "Spielordner wählen"
 
 msgctxt "UI_LAUNCH_GAME_DIR_HELP"
 msgid ""
 "Choose where to install the game, or select an existing installation. The launcher reopens with "
 "that folder. Existing files are kept where they are."
 msgstr ""
+"Wähle, wo das Spiel installiert werden soll, oder eine vorhandene Installation. Der Launcher "
+"öffnet sich mit diesem Ordner neu. Vorhandene Dateien bleiben, wo sie sind."
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_GAME_DIR_INVALID"
@@ -1739,6 +1741,8 @@ msgid ""
 "This game folder could not be selected. Choose a folder whose full path is at most %d UTF-8 bytes "
 "and contains no line breaks."
 msgstr ""
+"Dieser Spielordner konnte nicht ausgewählt werden. Wähle einen Ordner, dessen vollständiger Pfad "
+"höchstens %d UTF-8-Bytes lang ist und keine Zeilenumbrüche enthält."
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_GAME_DIR_INVALID_WIN32"
@@ -1746,6 +1750,9 @@ msgid ""
 "This game folder could not be selected. On Windows, choose a folder without line breaks whose "
 "full path is at most %d UTF-16 units to leave room for the game's files."
 msgstr ""
+"Dieser Spielordner konnte nicht ausgewählt werden. Wähle unter Windows einen Ordner ohne "
+"Zeilenumbrüche, dessen vollständiger Pfad höchstens %d UTF-16-Einheiten lang ist, damit Platz für "
+"die Spieldateien bleibt."
 
 msgctxt "UI_LAUNCH_FILES_HELP"
 msgid ""

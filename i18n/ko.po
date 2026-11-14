@@ -1671,20 +1671,20 @@ msgstr "게임 폴더"
 
 msgctxt "UI_LAUNCH_PICK_GAME_DIR"
 msgid "Choose game folder"
-msgstr ""
+msgstr "게임 폴더 선택"
 
 msgctxt "UI_LAUNCH_GAME_DIR_HELP"
 msgid ""
 "Choose where to install the game, or select an existing installation. The launcher reopens with "
 "that folder. Existing files are kept where they are."
-msgstr ""
+msgstr "게임을 설치할 위치를 선택하거나 기존 설치를 선택하세요. 런처가 해당 폴더로 다시 열립니다. 기존 파일은 그대로 유지됩니다."
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_GAME_DIR_INVALID"
 msgid ""
 "This game folder could not be selected. Choose a folder whose full path is at most %d UTF-8 bytes "
 "and contains no line breaks."
-msgstr ""
+msgstr "이 게임 폴더를 선택할 수 없습니다. 전체 경로가 UTF-8로 %d바이트 이하이고 줄바꿈이 없는 폴더를 선택하세요."
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_GAME_DIR_INVALID_WIN32"
@@ -1692,6 +1692,7 @@ msgid ""
 "This game folder could not be selected. On Windows, choose a folder without line breaks whose "
 "full path is at most %d UTF-16 units to leave room for the game's files."
 msgstr ""
+"이 게임 폴더를 선택할 수 없습니다. Windows에서는 게임 파일을 위한 여유를 남기도록, 줄바꿈이 없고 전체 경로가 UTF-16으로 %d단위 이하인 폴더를 선택하세요."
 
 msgctxt "UI_LAUNCH_FILES_HELP"
 msgid ""

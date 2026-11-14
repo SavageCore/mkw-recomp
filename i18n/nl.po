@@ -1727,13 +1727,15 @@ msgstr "Spelmap"
 
 msgctxt "UI_LAUNCH_PICK_GAME_DIR"
 msgid "Choose game folder"
-msgstr ""
+msgstr "Spelmap kiezen"
 
 msgctxt "UI_LAUNCH_GAME_DIR_HELP"
 msgid ""
 "Choose where to install the game, or select an existing installation. The launcher reopens with "
 "that folder. Existing files are kept where they are."
 msgstr ""
+"Kies waar het spel geïnstalleerd wordt, of selecteer een bestaande installatie. De launcher opent "
+"opnieuw met die map. Bestaande bestanden blijven waar ze zijn."
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_GAME_DIR_INVALID"
@@ -1741,6 +1743,8 @@ msgid ""
 "This game folder could not be selected. Choose a folder whose full path is at most %d UTF-8 bytes "
 "and contains no line breaks."
 msgstr ""
+"Deze spelmap kon niet worden geselecteerd. Kies een map waarvan het volledige pad hoogstens %d "
+"UTF-8-bytes is en geen regeleinden bevat."
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_GAME_DIR_INVALID_WIN32"
@@ -1748,6 +1752,8 @@ msgid ""
 "This game folder could not be selected. On Windows, choose a folder without line breaks whose "
 "full path is at most %d UTF-16 units to leave room for the game's files."
 msgstr ""
+"Deze spelmap kon niet worden geselecteerd. Kies op Windows een map zonder regeleinden waarvan het "
+"volledige pad hoogstens %d UTF-16-eenheden is, zodat er ruimte blijft voor de spelbestanden."
 
 msgctxt "UI_LAUNCH_FILES_HELP"
 msgid ""

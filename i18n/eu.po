@@ -1732,13 +1732,15 @@ msgstr "Jokoaren karpeta"
 
 msgctxt "UI_LAUNCH_PICK_GAME_DIR"
 msgid "Choose game folder"
-msgstr ""
+msgstr "Aukeratu jokoaren karpeta"
 
 msgctxt "UI_LAUNCH_GAME_DIR_HELP"
 msgid ""
 "Choose where to install the game, or select an existing installation. The launcher reopens with "
 "that folder. Existing files are kept where they are."
 msgstr ""
+"Aukeratu non instalatu jokoa, edo hautatu lehendik dagoen instalazio bat. Abiarazlea karpeta "
+"horrekin irekiko da berriro. Lehendik dauden fitxategiak dauden lekuan geratzen dira."
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_GAME_DIR_INVALID"
@@ -1746,6 +1748,8 @@ msgid ""
 "This game folder could not be selected. Choose a folder whose full path is at most %d UTF-8 bytes "
 "and contains no line breaks."
 msgstr ""
+"Ezin izan da jokoaren karpeta hau hautatu. Aukeratu bide-izen osoa gehienez %d byte UTF-8 dituen "
+"eta lerro-jauzirik ez duen karpeta bat."
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_GAME_DIR_INVALID_WIN32"
@@ -1753,6 +1757,8 @@ msgid ""
 "This game folder could not be selected. On Windows, choose a folder without line breaks whose "
 "full path is at most %d UTF-16 units to leave room for the game's files."
 msgstr ""
+"Ezin izan da jokoaren karpeta hau hautatu. Windows-en, aukeratu lerro-jauzirik gabeko karpeta "
+"bat, bide-izen osoa gehienez %d UTF-16 unitate dituena, jokoaren fitxategiei lekua uzteko."
 
 msgctxt "UI_LAUNCH_FILES_HELP"
 msgid ""

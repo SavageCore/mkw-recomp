@@ -1715,13 +1715,15 @@ msgstr "Cartafol do xogo"
 
 msgctxt "UI_LAUNCH_PICK_GAME_DIR"
 msgid "Choose game folder"
-msgstr ""
+msgstr "Escoller o cartafol do xogo"
 
 msgctxt "UI_LAUNCH_GAME_DIR_HELP"
 msgid ""
 "Choose where to install the game, or select an existing installation. The launcher reopens with "
 "that folder. Existing files are kept where they are."
 msgstr ""
+"Escolle onde instalar o xogo ou selecciona unha instalación existente. O lanzador ábrese de novo "
+"con ese cartafol. Os ficheiros que xa hai quedan onde están."
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_GAME_DIR_INVALID"
@@ -1729,6 +1731,8 @@ msgid ""
 "This game folder could not be selected. Choose a folder whose full path is at most %d UTF-8 bytes "
 "and contains no line breaks."
 msgstr ""
+"Non se puido seleccionar este cartafol do xogo. Escolle un cartafol cunha ruta completa de como "
+"moito %d bytes UTF-8 e sen saltos de liña."
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_GAME_DIR_INVALID_WIN32"
@@ -1736,6 +1740,9 @@ msgid ""
 "This game folder could not be selected. On Windows, choose a folder without line breaks whose "
 "full path is at most %d UTF-16 units to leave room for the game's files."
 msgstr ""
+"Non se puido seleccionar este cartafol do xogo. En Windows, escolle un cartafol sen saltos de "
+"liña cunha ruta completa de como moito %d unidades UTF-16, para deixar sitio aos ficheiros do "
+"xogo."
 
 msgctxt "UI_LAUNCH_FILES_HELP"
 msgid ""

@@ -1643,27 +1643,27 @@ msgstr "遊戲資料夾"
 
 msgctxt "UI_LAUNCH_PICK_GAME_DIR"
 msgid "Choose game folder"
-msgstr ""
+msgstr "選擇遊戲資料夾"
 
 msgctxt "UI_LAUNCH_GAME_DIR_HELP"
 msgid ""
 "Choose where to install the game, or select an existing installation. The launcher reopens with "
 "that folder. Existing files are kept where they are."
-msgstr ""
+msgstr "選擇遊戲的安裝位置，或選擇已有的安裝。啟動器會以該資料夾重新開啟。已有的檔案保留在原處。"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_GAME_DIR_INVALID"
 msgid ""
 "This game folder could not be selected. Choose a folder whose full path is at most %d UTF-8 bytes "
 "and contains no line breaks."
-msgstr ""
+msgstr "無法選擇此遊戲資料夾。請選擇完整路徑不超過 %d 個 UTF-8 位元組且不含換行的資料夾。"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_GAME_DIR_INVALID_WIN32"
 msgid ""
 "This game folder could not be selected. On Windows, choose a folder without line breaks whose "
 "full path is at most %d UTF-16 units to leave room for the game's files."
-msgstr ""
+msgstr "無法選擇此遊戲資料夾。在 Windows 上，請選擇不含換行、完整路徑不超過 %d 個 UTF-16 單位的資料夾，以便為遊戲檔案保留空間。"
 
 msgctxt "UI_LAUNCH_FILES_HELP"
 msgid ""

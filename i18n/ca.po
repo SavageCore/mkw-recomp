@@ -1724,13 +1724,15 @@ msgstr "Carpeta del joc"
 
 msgctxt "UI_LAUNCH_PICK_GAME_DIR"
 msgid "Choose game folder"
-msgstr ""
+msgstr "Tria la carpeta del joc"
 
 msgctxt "UI_LAUNCH_GAME_DIR_HELP"
 msgid ""
 "Choose where to install the game, or select an existing installation. The launcher reopens with "
 "that folder. Existing files are kept where they are."
 msgstr ""
+"Tria on instal·lar el joc o selecciona una instal·lació existent. El llançador es torna a obrir "
+"amb aquesta carpeta. Els fitxers que ja hi ha es queden on són."
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_GAME_DIR_INVALID"
@@ -1738,6 +1740,8 @@ msgid ""
 "This game folder could not be selected. Choose a folder whose full path is at most %d UTF-8 bytes "
 "and contains no line breaks."
 msgstr ""
+"No s'ha pogut seleccionar aquesta carpeta del joc. Tria una carpeta amb un camí complet de com a "
+"màxim %d bytes UTF-8 i sense salts de línia."
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_GAME_DIR_INVALID_WIN32"
@@ -1745,6 +1749,8 @@ msgid ""
 "This game folder could not be selected. On Windows, choose a folder without line breaks whose "
 "full path is at most %d UTF-16 units to leave room for the game's files."
 msgstr ""
+"No s'ha pogut seleccionar aquesta carpeta del joc. A Windows, tria una carpeta sense salts de "
+"línia amb un camí complet de com a màxim %d unitats UTF-16, per deixar lloc als fitxers del joc."
 
 msgctxt "UI_LAUNCH_FILES_HELP"
 msgid ""

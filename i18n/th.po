@@ -1693,13 +1693,15 @@ msgstr "โฟลเดอร์เกม"
 
 msgctxt "UI_LAUNCH_PICK_GAME_DIR"
 msgid "Choose game folder"
-msgstr ""
+msgstr "เลือกโฟลเดอร์เกม"
 
 msgctxt "UI_LAUNCH_GAME_DIR_HELP"
 msgid ""
 "Choose where to install the game, or select an existing installation. The launcher reopens with "
 "that folder. Existing files are kept where they are."
 msgstr ""
+"เลือกตำแหน่งที่จะติดตั้งเกม หรือเลือกการติดตั้งที่มีอยู่ ตัวเปิดเกมจะเปิดใหม่ด้วยโฟลเดอร์นั้น "
+"ไฟล์ที่มีอยู่จะอยู่ที่เดิม"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_GAME_DIR_INVALID"
@@ -1707,6 +1709,8 @@ msgid ""
 "This game folder could not be selected. Choose a folder whose full path is at most %d UTF-8 bytes "
 "and contains no line breaks."
 msgstr ""
+"ไม่สามารถเลือกโฟลเดอร์เกมนี้ได้ เลือกโฟลเดอร์ที่พาธเต็มยาวไม่เกิน %d ไบต์ UTF-8 "
+"และไม่มีการขึ้นบรรทัดใหม่"
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_GAME_DIR_INVALID_WIN32"
@@ -1714,6 +1718,9 @@ msgid ""
 "This game folder could not be selected. On Windows, choose a folder without line breaks whose "
 "full path is at most %d UTF-16 units to leave room for the game's files."
 msgstr ""
+"ไม่สามารถเลือกโฟลเดอร์เกมนี้ได้ บน Windows "
+"ให้เลือกโฟลเดอร์ที่ไม่มีการขึ้นบรรทัดใหม่และพาธเต็มยาวไม่เกิน %d หน่วย UTF-16 "
+"เพื่อเว้นที่ให้ไฟล์ของเกม"
 
 msgctxt "UI_LAUNCH_FILES_HELP"
 msgid ""

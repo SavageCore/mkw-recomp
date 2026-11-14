@@ -1719,13 +1719,15 @@ msgstr "Тека гри"
 
 msgctxt "UI_LAUNCH_PICK_GAME_DIR"
 msgid "Choose game folder"
-msgstr ""
+msgstr "Вибрати теку гри"
 
 msgctxt "UI_LAUNCH_GAME_DIR_HELP"
 msgid ""
 "Choose where to install the game, or select an existing installation. The launcher reopens with "
 "that folder. Existing files are kept where they are."
 msgstr ""
+"Виберіть, куди встановити гру, або вкажіть наявну інсталяцію. Лаунчер відкриється знову з цією "
+"текою. Наявні файли залишаться на своїх місцях."
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_GAME_DIR_INVALID"
@@ -1733,6 +1735,8 @@ msgid ""
 "This game folder could not be selected. Choose a folder whose full path is at most %d UTF-8 bytes "
 "and contains no line breaks."
 msgstr ""
+"Не вдалося вибрати цю теку гри. Виберіть теку, повний шлях до якої займає не більше %d байтів "
+"UTF-8 і не містить розривів рядка."
 
 #. printf format: keep every %... conversion, in the same order.
 msgctxt "UI_LAUNCH_GAME_DIR_INVALID_WIN32"
@@ -1740,6 +1744,8 @@ msgid ""
 "This game folder could not be selected. On Windows, choose a folder without line breaks whose "
 "full path is at most %d UTF-16 units to leave room for the game's files."
 msgstr ""
+"Не вдалося вибрати цю теку гри. У Windows виберіть теку без розривів рядка, повний шлях до якої "
+"не довший за %d одиниць UTF-16, щоб лишилося місце для файлів гри."
 
 msgctxt "UI_LAUNCH_FILES_HELP"
 msgid ""
