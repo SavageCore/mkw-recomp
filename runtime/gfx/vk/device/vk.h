@@ -446,6 +446,7 @@ const VkTexImage *vk_texture_by_id(int id, view_t *view, int *has_view);
 VkFormat vk_srgb_twin(VkFormat f);                    // the sRGB / UNORM twin of an 8-bit colour format, else UNDEFINED
 int vk_format_numeric(VkFormat f);                    // GFX_TYPE_* its components read as in a shader
 uint32_t vk_texture_slot_format(int id, uint64_t *addr);   // NVN format the game registered in slot id (0: none)
+void vk_texture_slot_dims(int id, char *o, size_t size);   // slot id's registered WxHxD levels target format, for the binds trace
 // The replay looks up many slots per draw: it takes the texture lock once around them (vk_texture_lock) and uses the
 // _locked lookups; vk_texture_slots_gen changes whenever a slot may resolve to another image or view.
 void vk_texture_lock(void);

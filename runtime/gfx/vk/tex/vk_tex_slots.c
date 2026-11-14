@@ -132,6 +132,17 @@ uint32_t vk_texture_slot_format(int id, uint64_t *addr) {
     return f;
 }
 
+// The slot's registered dimensions for the binds trace (MKW_TRACE_PROGRAMS): "0" when slot id was never registered.
+void vk_texture_slot_dims(int id, char *o, size_t size) {
+    lock();
+    if (id < 0 || id >= ntslots || !tslots[id].used) snprintf(o, size, "unregistered");
+    else {
+        const nvn_texdesc *d = &tslots[id].t.d;
+        snprintf(o, size, "%ux%ux%u l%d t%d f%#x", d->width, d->height, d->depth, d->levels, d->target, d->format);
+    }
+    unlock();
+}
+
 // A sampled slot that resolves to no image (the draw binds a zero stand-in): the first 32 slot ids, with why. run106's
 // final composite read four such slots and came out black.
 static void unresolved_note(int id, const TexSlot *s) {

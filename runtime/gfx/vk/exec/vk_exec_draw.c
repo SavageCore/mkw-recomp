@@ -621,7 +621,7 @@ int prepare_draw_ex(VkExec *ex, int prim, int32_t count, int restart, int mesh) 
     record_fixed(ex);
     repeat_stats(ex, info);
     PD_MARK(PD_STATE);
-    bind_resources(ex, info);
+    bind_resources(ex, info, vs, fs);
     PD_MARK(PD_RES);
     if (fbl & ex->fb_dirty) feedback_barrier(ex);
     feedback_written(ex, &s);

@@ -278,7 +278,7 @@ static void op_dispatch(VkExec *ex, const p_dispatch *d) {
     bind_pipeline(ex, VK_PIPELINE_BIND_POINT_COMPUTE, p);
     recent_note(cs, NULL);
     c0_dim[0] = (uint32_t)d->x, c0_dim[1] = (uint32_t)d->y, c0_dim[2] = (uint32_t)d->z, c0_cs = cs;
-    bind_resources(ex, info);
+    bind_resources(ex, info, NULL, NULL);
     int pt = vk_pt_enabled();
     if (vk_spec_census_on()) spec_census(ex, cs, NVN_STAGE_CS);
     if (pt && vk_pt_draw_mode()) vk_pt_draw(ex->cb, cs, NULL);
@@ -324,7 +324,7 @@ static void op_dispatch_ind(VkExec *ex, const p_dispatch_ind *d) {
     recent_note(cs, NULL);
     c0_dim[0] = c0_dim[1] = c0_dim[2] = 0, c0_cs = cs;
     B.c0_valid[2] = 0;   // a fresh c0 range: the copy below must not change one an earlier dispatch reads
-    bind_resources(ex, info);
+    bind_resources(ex, info, NULL, NULL);
     if (B.c0_valid[2]) {   // the shader binds c0
         VkBufferCopy cp = {ip.offset, B.c0_off[2] + VK_C0_DISPATCH, sizeof(VkDispatchIndirectCommand)};
         vkCmdCopyBuffer(ex->cb, ip.buffer, B.c0_buf[2], 1, &cp);
@@ -423,7 +423,7 @@ static void op_draw_mesh_cs(VkExec *ex, const p_draw_mesh *d) {
     dispatch_barrier(ex);   // ends the pass; earlier writes are visible to the passes
     if (task) {
         bind_pipeline(ex, VK_PIPELINE_BIND_POINT_COMPUTE, tp);
-        bind_resources(ex, ti);
+        bind_resources(ex, ti, NULL, NULL);
         vkCmdPushConstants(ex->cb, ti->layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof pc, &pc);
         vkCmdDispatch(ex->cb, (uint32_t)d->count, 1, 1);
         ex->recorded += 2;
@@ -436,7 +436,7 @@ static void op_draw_mesh_cs(VkExec *ex, const p_draw_mesh *d) {
         vk_exec_barrier(ex);   // the map and the indirect arguments
     }
     bind_pipeline(ex, VK_PIPELINE_BIND_POINT_COMPUTE, mp);
-    bind_resources(ex, mi);
+    bind_resources(ex, mi, NULL, NULL);
     vkCmdPushConstants(ex->cb, mi->layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof pc, &pc);
     if (task) vkCmdDispatchIndirect(ex->cb, ab, ao);
     else vkCmdDispatch(ex->cb, groups, 1, 1);

@@ -226,7 +226,7 @@ typedef struct { uint64_t ubo_max, ubo_align, sbo_max, sbo_align; } DrawLim;
 extern DrawLim LIM DRAW_SHARED;   // vk_exec_bind.c
 void limits_init(void);
 // vk_exec_bind.c
-void bind_resources(VkExec *ex, const VkPipeInfo *info);
+void bind_resources(VkExec *ex, const VkPipeInfo *info, const GfxShader *vs, const GfxShader *fs);
 void vk_exec_bind_thread(void);
 void vk_exec_bind_shutdown(void);
 // vk_exec_dstat.c

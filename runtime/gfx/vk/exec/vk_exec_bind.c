@@ -712,10 +712,53 @@ static VkDescriptorSet dc_bind(VkExec *ex, const VkPipeInfo *info, uint32_t s, V
 // MKW_TRACE_BINDS=1 (diagnosis): per draw, its replay position, program and what each binding names in terms stable
 // from one run to the next (a buffer's guest address and range, a texture's game handle and the layout given), so two
 // recording orders of a capture show the first draw that binds something else (grabacion-paralela, the title's fault).
-static void trace_binds(const VkExec *ex, const VkPipeInfo *info, const VkDescSlot *d) {
+// MKW_TRACE_PROGRAMS=<hex>[,<hex>...] (diagnosis): only draws whose vertex or fragment program key starts with one of
+// these are traced (the 64 hex digits of the breadcrumb and "last programs" lines, or a prefix of them, as
+// MKW_SKIP_PROGRAMS takes them); without it every draw is traced. Why: the Koopa Troopa Beach hang (#99) needed the
+// bindings of only the draws in the watchdog's window, and the full trace fills the 64 MiB log before the hang.
+#define TRACE_PROGS 16
+static int tp_hexval(char c) { return c >= '0' && c <= '9' ? c - '0' : (c | 32) >= 'a' && (c | 32) <= 'f' ? (c | 32) - 'a' + 10 : -1; }
+static struct { int n; uint8_t key[TRACE_PROGS][32]; uint8_t len[TRACE_PROGS]; int logged; } TP = {.n = -1};
+static void trace_binds(const VkExec *ex, const VkPipeInfo *info, const VkDescSlot *d, const GfxShader *tvs,
+                          const GfxShader *tfs) {
     static int on = -1;
     if (on < 0) on = cfg_get("MKW_TRACE_BINDS") && atoi(cfg_get("MKW_TRACE_BINDS"));
     if (!on) return;
+    if (TP.n < 0) {
+        int n = 0;
+        const char *p = cfg_get("MKW_TRACE_PROGRAMS");
+        while (p && *p && n < TRACE_PROGS) {
+            while (*p && tp_hexval(*p) < 0) p++;
+            int len = 0;
+            memset(TP.key[n], 0, 32);
+            while (tp_hexval(*p) >= 0 && len < 64) {
+                TP.key[n][len / 2] |= (uint8_t)(tp_hexval(*p) << (len & 1 ? 0 : 4));
+                p++, len++;
+            }
+            if (len) {
+                char h[17];
+                for (int i = 0; i < 8; i++) snprintf(h + 2 * i, 3, "%02x", TP.key[n][i]);
+                rt_log("vk_exec: binds trace program %d: %s... (%d hex digits)", n + 1, h, len);
+                TP.len[n++] = (uint8_t)len;
+            }
+        }
+        __atomic_store_n(&TP.n, n, __ATOMIC_RELEASE);
+        if (n && !__atomic_exchange_n(&TP.logged, 1, __ATOMIC_RELAXED))
+            rt_log("vk_exec: binds traced for %d listed programs only (MKW_TRACE_PROGRAMS, a diagnosis)", n);
+    }
+    if (TP.n) {
+        int hit = 0;
+        for (int s = 0; s < 2 && !hit; s++) {
+            const GfxShader *g = s ? tfs : tvs;
+            if (!g) continue;
+            const uint8_t *k = gfx_shader_key(g);
+            for (int i = 0; i < TP.n && !hit; i++) {
+                hit = !memcmp(k, TP.key[i], (size_t)TP.len[i] / 2);
+                if (hit && (TP.len[i] & 1)) hit = (k[TP.len[i] / 2] >> 4) == (TP.key[i][TP.len[i] / 2] >> 4);
+            }
+        }
+        if (!hit) return;
+    }
     char b[2048];
     uint64_t ph = 0xcbf29ce484222325ull;   // the NVN-side pipeline state (dynamic state included), stable across runs
     for (size_t i = 0; i < sizeof ex->pipe; i++) ph = (ph ^ ((const uint8_t *)&ex->pipe)[i]) * 0x100000001b3ull;
@@ -725,6 +768,7 @@ static void trace_binds(const VkExec *ex, const VkPipeInfo *info, const VkDescSl
         const VkPipeBinding *pb = &info->bindings[i];
         uint32_t cnt = pb->count ? pb->count : 1;
         int st = nvn_stage_of(pb->stage), slot = pb->res ? pb->res->slot : -1;
+        k += snprintf(b + k, sizeof b - (size_t)k, " b%u:%d", (unsigned)pb->binding, (int)pb->type);
         if (pb->kind == GFX_RES_UBO && slot >= 3 && slot - 3 < 18)
             k += snprintf(b + k, sizeof b - (size_t)k, " u%d.%d=%#llx+%llu", st, slot, (unsigned long long)ex->ubo[st][slot - 3].addr,
                           (unsigned long long)d[at].buffer.range);
@@ -736,9 +780,14 @@ static void trace_binds(const VkExec *ex, const VkPipeInfo *info, const VkDescSl
                           (unsigned long long)ubo_ptr((VkExec *)ex, st, pb->res), (unsigned long long)d[at].buffer.range);
         else if (pb->kind == GFX_RES_SSBO)
             k += snprintf(b + k, sizeof b - (size_t)k, " s%d.?+%llu", st, (unsigned long long)d[at].buffer.range);
-        else if (pb->kind == GFX_RES_TEX && slot >= 0 && slot < 128)
-            k += snprintf(b + k, sizeof b - (size_t)k, " t%d.%d=%#llx/%d", st, slot, (unsigned long long)ex->tex[st][slot],
-                          (int)d[at].image.imageLayout);
+        else if (pb->kind == GFX_RES_TEX && slot >= 0 && slot < 128) {
+            uint64_t th = ex->tex[st][slot], ta = 0;
+            uint32_t tf = vk_texture_slot_format((int)(th & 0xfffff), &ta);
+            char td[64];
+            vk_texture_slot_dims((int)(th & 0xfffff), td, sizeof td);
+            k += snprintf(b + k, sizeof b - (size_t)k, " t%d.%d=%#llx/%d/%#x@%#llx[%s]", st, slot, (unsigned long long)th,
+                          (int)d[at].image.imageLayout, tf, (unsigned long long)ta, td);
+        }
         at += cnt;
     }
     rt_log("%s", b);
@@ -788,7 +837,7 @@ static int ubo_rebind(VkExec *ex, const VkPipeInfo *info) {
     return 1;
 }
 
-void bind_resources(VkExec *ex, const VkPipeInfo *info) {
+void bind_resources(VkExec *ex, const VkPipeInfo *info, const GfxShader *vs, const GfxShader *fs) {
     br_on = (rt_trace & RT_TRACE_DRAW) != 0;
     if (br_on) br_t = plat_cycles();
     VkWriteDescriptorSet *w = BRA.w;
@@ -937,7 +986,7 @@ void bind_resources(VkExec *ex, const VkPipeInfo *info) {
     if (xkey) xb_put(xkey, info, d, nd, xkeep, xb == 1 ? xhad : NULL);
     BR_MARK(BR_CHECK);
     vk_dcache_probe(info, d, nd);
-    trace_binds(ex, info, d);
+    trace_binds(ex, info, d, vs, fs);
     int set1_first = 0;
     if (gfx && info->layout != B.ds_layout) {   // another layout: sets bound before may be disturbed
         B.ds_layout = info->layout;
