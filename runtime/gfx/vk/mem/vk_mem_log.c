@@ -222,6 +222,7 @@ static void mirror_mode(int discrete) {
     mirror_gap = g && *g ? atoi(g) : 2;
     if (mirror_gap < 0) mirror_gap = 0;
     mirror_cpu_gen = rt_knob("MIRROR_CPU_GEN", "1");
+    shadow_cpu_gen = rt_knob("SHADOW_CPU_GEN", "1");
     // Submissions a region stays unwritten before it is frozen. 60 rather than 300: in a fight 100 of the 257 MiB
     // queried a frame lay in regions idle for 30-299 submissions, and a thaw by a write costs about 60 us.
     const char *fi = cfg_get("MKW_FREEZE_IDLE");

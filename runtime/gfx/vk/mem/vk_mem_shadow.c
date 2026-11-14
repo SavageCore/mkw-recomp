@@ -36,6 +36,11 @@ int64_t s_live_n, s_live_bytes;            // shadow_lock
 static uint8_t *strack;                           // vk_mem_shadow_sync: tracked flag of each touched pool
 static int cstrack;
 int vk_dirty_census;                              // MKW_DIRTY_CENSUS with MKW_TRACE=perf (vk.h)
+// Pages whose only stamp since the shadow's sync is a GPU write-back (vk_gpu_written_stamp) are not copied in: the
+// write-back took those bytes from this shadow, so it holds them (sh-reup, 14/11/2026: 57 of 262 MiB copied in over
+// build/cap/race). MKW_SHADOW_CPU_GEN (default 1; "ab") switches it; s_gpu_only counts them either way.
+int shadow_cpu_gen = 1;
+static uint64_t s_gpu_only;       // shadow_lock: bytes with only a GPU write-back since (skipped when the knob is on)
 static uint64_t s_syncs, s_copied, s_queries, s_untracked, s_ticks;   // shadow_lock: since the last log
 // The sync's ticks by step: captures applied, write-watch queries, pages copied in, merge bases (tl2: 6.9 ms a frame
 // on the replay thread, the frame's critical path; 12.8 MiB copied in and 8.8 MiB of bases a frame, 0 KiB merged).
@@ -279,8 +284,13 @@ static void shadow_newer_runs(PoolRec *r, int tracked) {
             if (run) run_add(r, run, a), run = 0;
             continue;
         }
+        const uint32_t *cc = cpu_gen_chunk[a >> GEN_CHUNK_SHIFT];
         for (uint64_t x = a; x < b; x += 1ull << GEN_PAGE_SHIFT) {
             int dirty = ch[(x >> GEN_PAGE_SHIFT) & (GEN_PER_CHUNK - 1)] > since;
+            if (dirty && (!cc || cc[(x >> GEN_PAGE_SHIFT) & (GEN_PER_CHUNK - 1)] <= since)) {
+                s_gpu_only += 1ull << GEN_PAGE_SHIFT;
+                if (RT_KNOB_ON(shadow_cpu_gen)) dirty = 0;
+            }
             if (dirty && !run) run = x;
             else if (!dirty && run) run_add(r, run, x), run = 0;
         }
@@ -523,10 +533,11 @@ void shadow_log(uint64_t frame) {
     sdone_drain();
     rt_log("mem: shadow at frame %llu: %lld pools %.1f MiB; since the last: %llu pool syncs, %llu queries, %.1f MiB "
            "copied in (%llu untracked), %.1f MiB written back, %.2f ms, %d GPU writes pending; read traps: %llu pages "
-           "now, %.1f MiB trapped, filled %.1f MiB on access and %.1f MiB by a thaw",
+           "now, %.1f MiB trapped, filled %.1f MiB on access and %.1f MiB by a thaw; %.1f MiB listed for a copy in with "
+           "only a GPU write-back since",
            (unsigned long long)frame, (long long)s_live_n, s_live_bytes / 1048576.0, (unsigned long long)s_syncs,
            (unsigned long long)s_queries, s_copied / 1048576.0, (unsigned long long)s_untracked, s_wb_bytes / 1048576.0,
-           qpc_ms(s_ticks), nspend, (unsigned long long)tn, tp / 256.0, tf / 256.0, to / 256.0);
+           qpc_ms(s_ticks), nspend, (unsigned long long)tn, tp / 256.0, tf / 256.0, to / 256.0, s_gpu_only / 1048576.0);
     rt_log("mem: shadow sync by step since the last line, ms: captures applied %.2f, queries %.2f, copies in %.2f, "
            "merge bases %.2f; waiting for shadow_lock %.2f; early syncs %.2f (%llu pools, in the steps above; %llu early bases)",
            qpc_ms(s_t_cap), qpc_ms(s_t_query), qpc_ms(s_t_copy), qpc_ms(s_t_base), qpc_ms(s_t_lock), qpc_ms(s_t_early),
@@ -549,7 +560,7 @@ void shadow_log(uint64_t frame) {
     cap_log();
     merge_census_log();
     if (race_on > 0) race_log(frame);
-    s_syncs = s_queries = s_copied = s_untracked = s_wb_bytes = s_ticks = s_merged = s_based = s_nobase = 0;
+    s_syncs = s_queries = s_copied = s_untracked = s_wb_bytes = s_ticks = s_merged = s_based = s_nobase = s_gpu_only = 0;
     s_base_bytes = 0;
     if (hot_mode > 0) {
         gen_lock_x();
