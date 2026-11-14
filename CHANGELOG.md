@@ -13,6 +13,9 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
   form, asking for `logs/mkw.log`.
 - **Issues**: a report of a known error is closed at once as its duplicate (a reply from its author reopens it), and
   a report on an older release, quiet for 3 days, is asked to try the latest and closed after 7 days without a reply.
+- **Motion controls for every player** (discussion 302): the gyroscope and accelerometer were read from player 1's
+  controller only, so in local multiplayer players 2 to 8 had no motion; each player's controller now feeds its own.
+- **"Choose game folder" in every menu language**: its four texts came in English only in 0.1.11.
 
 ## 0.1.11
 

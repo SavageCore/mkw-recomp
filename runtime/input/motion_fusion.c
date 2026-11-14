@@ -37,17 +37,18 @@ MotionFusion *motion_new(void) {
     return m;
 }
 
-static MotionFusion *global;
+static MotionFusion *players[INPUT_MAX_PLAYERS];
 
-static void global_init(void *arg) {
+static void players_init(void *arg) {
     (void)arg;
-    global = motion_new();
+    for (int p = 0; p < INPUT_MAX_PLAYERS; p++) players[p] = motion_new();
 }
 
-MotionFusion *motion_global(void) {
+MotionFusion *motion_player(int player) {
     static PlatOnce once = PLAT_ONCE_INIT;
-    plat_once(&once, global_init, NULL);
-    return global;
+    if (player < 0 || player >= INPUT_MAX_PLAYERS) rt_fatal("motion: player %d out of range", player);
+    plat_once(&once, players_init, NULL);
+    return players[player];
 }
 
 static double norm3(const double v[3]) { return sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]); }

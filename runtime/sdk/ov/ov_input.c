@@ -446,32 +446,36 @@ static void ov_vib_permit(Cpu *c) {
     ret_x(c, 0);
 }
 
-static volatile int32_t six_running;   // StartSixAxisSensor .. StopSixAxisSensor
+static volatile int32_t six_running[INPUT_MAX_PLAYERS];   // by player: StartSixAxisSensor .. StopSixAxisSensor
 
-static int six_axis_ours(const uint32_t *h, const char *fn) {
+// The player whose controller's sensor h names, -1 for another device or a player without a controller.
+static int six_axis_player(const uint32_t *h, const char *fn) {
     uint32_t v = *need_handle(h, fn);
-    if ((v >> 16 & 0xff) == SIX_AXIS_DEVICE && handle_player(v) == 0) return 1;
+    int p = (v >> 16 & 0xff) == SIX_AXIS_DEVICE ? handle_player(v) : -1;
+    if (p >= 0 && p < INPUT_MAX_PLAYERS) return p;
     static volatile int32_t warned;
-    once(&warned, "hid: six-axis call for handle %#x, not the connected controller's sensor: reads at rest", v);
-    return 0;
+    once(&warned, "hid: six-axis call for handle %#x, not a connected controller's sensor: reads at rest", v);
+    return -1;
 }
 
 // Result detail::StartSixAxisSensor(const SixAxisSensorHandle &): angle and direction start over
 static void ov_six_start(Cpu *c) {
     const uint32_t *h = arg_p(c, 0);
-    if (six_axis_ours(h, "StartSixAxisSensor")) {
-        static volatile int32_t logged;
-        once(&logged, "hid: the game started the six-axis sensor (handle %#x)", *h);
-        motion_restart(motion_global());
+    int p = six_axis_player(h, "StartSixAxisSensor");
+    if (p >= 0) {
+        static volatile int32_t logged[INPUT_MAX_PLAYERS];
+        once(&logged[p], "hid: the game started a six-axis sensor (handle %#x)", *h);
+        motion_restart(motion_player(p));
         input_motion_start();
-        plat_xchg32(&six_running, 1);
+        plat_xchg32(&six_running[p], 1);
     }
     ret_x(c, 0);
 }
 
 // Result detail::StopSixAxisSensor(const SixAxisSensorHandle &)
 static void ov_six_stop(Cpu *c) {
-    if (six_axis_ours(arg_p(c, 0), "StopSixAxisSensor")) plat_xchg32(&six_running, 0);
+    int p = six_axis_player(arg_p(c, 0), "StopSixAxisSensor");
+    if (p >= 0) plat_xchg32(&six_running[p], 0);
     ret_x(c, 0);
 }
 
@@ -481,15 +485,16 @@ static void ov_six_stop(Cpu *c) {
 static int six_fill(MotionState *s, int max, const uint32_t *h, const char *fn) {
     if (max <= 0) return 0;
     if (!s) rt_fatal("nn::hid::detail::%s: null output", fn);
-    int live = six_axis_ours(h, fn) && six_running && input_motion_enabled();
-    int n = live ? motion_read(motion_global(), s, max, kern_now_ns()) : 0;
+    int p = six_axis_player(h, fn);
+    int live = p >= 0 && six_running[p] && input_motion_enabled();
+    int n = live ? motion_read(motion_player(p), s, max, kern_now_ns()) : 0;
     if (!n) {
         static const MotionState rest = {.acc = {0, 0, -1}, .dir = {1, 0, 0, 0, 1, 0, 0, 0, 1}};
         for (int i = 0; i < max; i++) s[i] = rest;
     } else
         for (int i = n; i < max; i++) s[i] = s[n - 1];
     static volatile int32_t first_rest, first_live;
-    if (!n && six_running) once(&first_rest, "hid: six-axis read with no motion samples: at rest (%u states)", (uint32_t)max);
+    if (!n && live) once(&first_rest, "hid: six-axis read with no motion samples: at rest (%u states)", (uint32_t)max);
     if (n) once(&first_live, "hid: first six-axis read with live motion (%u samples)", (uint32_t)n);
     return max;
 }

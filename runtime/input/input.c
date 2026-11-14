@@ -38,8 +38,8 @@ static int pad_layout = -1;          // PAD_LAYOUT_* in effect for the open game
 static unsigned pad_layout_seen;
 static volatile int32_t pad_layout_shown = -1;   // pad_layout for the menu (any thread), -1 without a gamepad
 static volatile int32_t last_device;           // INPUT_DEVICE_* the player used last, 0 none yet (input_last_device)
-static SDL_JoystickID sensor_pad;    // the gamepad whose sensors the motion thread set up, 0 none
-static int sensor_ok;                // ... and it has both sensors, enabled
+static SDL_JoystickID sensor_pad[8]; // by player: the gamepad whose sensors the motion thread set up, 0 none
+static int sensor_ok[8];             // ... and it has both sensors, enabled
 static int motion_thread;            // 0 not started, 1 running, -1 off (MKW_MOTION=0, no SDL)
 
 // SDL buttons of the gamepad inputs (input_map.h PAD_*), by position; PAD_ZL and PAD_ZR are the triggers (axes).
@@ -137,14 +137,14 @@ static void pad_adopt(void);
 // Close the gamepads that went away and open the new ones (player 1 first, then the first free player); logs each change.
 static void scan_pads(void) {
     if (pad && !SDL_GamepadConnected(pad)) {
-        SDL_CloseGamepad(pad); pad = NULL; sensor_pad = 0; sensor_ok = 0;
+        SDL_CloseGamepad(pad); pad = NULL; sensor_pad[0] = 0; sensor_ok[0] = 0;
         plat_xchg32(&pad_layout_shown, -1);
         for (int i = 0; i < 4; i++) plat_xchg32(&pad_labels[i], PAD_LABEL_NONE);
         rt_log("input: gamepad disconnected");
     }
     for (int p = 1; p < INPUT_MAX_PLAYERS; p++)
         if (extra[p] && !SDL_GamepadConnected(extra[p])) {
-            SDL_CloseGamepad(extra[p]); extra[p] = NULL;
+            SDL_CloseGamepad(extra[p]); extra[p] = NULL; sensor_pad[p] = 0; sensor_ok[p] = 0;
             rt_log("input: gamepad of player %d disconnected", p + 1);
         }
     int n = 0;
@@ -550,22 +550,22 @@ void input_motion_axes(const float a[3], const float g[3], double acc[3], double
     gyro[2] = g[1];
 }
 
-// Under lock: (re)enable the sensors when the open gamepad changed; 1 if it has both and they are on.
-static int sensors_ready(void) {
-    SDL_JoystickID id = SDL_GetGamepadID(pad);
-    if (id == sensor_pad) return sensor_ok;
-    sensor_pad = id;
+// Under lock: (re)enable the sensors of player p's gamepad g when it changed; 1 if it has both and they are on.
+static int sensors_ready(int p, SDL_Gamepad *g) {
+    SDL_JoystickID id = SDL_GetGamepadID(g);
+    if (id == sensor_pad[p]) return sensor_ok[p];
+    sensor_pad[p] = id;
     // Nothing drains the SDL event queue: no event per sample (the data still updates, SDL_SendJoystickSensor)
     SDL_SetEventEnabled(SDL_EVENT_GAMEPAD_SENSOR_UPDATE, false);
-    sensor_ok =SDL_GamepadHasSensor(pad, SDL_SENSOR_GYRO) && SDL_GamepadHasSensor(pad, SDL_SENSOR_ACCEL) &&
-                SDL_SetGamepadSensorEnabled(pad, SDL_SENSOR_GYRO, true) &&
-                SDL_SetGamepadSensorEnabled(pad, SDL_SENSOR_ACCEL, true);
-    if (sensor_ok) rt_log("input: motion sensors on (gyro %.0f Hz, accelerometer %.0f Hz)",
-                          (double)SDL_GetGamepadSensorDataRate(pad, SDL_SENSOR_GYRO),
-                          (double)SDL_GetGamepadSensorDataRate(pad, SDL_SENSOR_ACCEL));
-    else rt_log("input: \"%s\" has no gyro and accelerometer: the six-axis sensor reads a controller at rest",
-                SDL_GetGamepadName(pad));
-    return sensor_ok;
+    sensor_ok[p] = SDL_GamepadHasSensor(g, SDL_SENSOR_GYRO) && SDL_GamepadHasSensor(g, SDL_SENSOR_ACCEL) &&
+                   SDL_SetGamepadSensorEnabled(g, SDL_SENSOR_GYRO, true) &&
+                   SDL_SetGamepadSensorEnabled(g, SDL_SENSOR_ACCEL, true);
+    if (sensor_ok[p]) rt_log("input: player %d motion sensors on (gyro %.0f Hz, accelerometer %.0f Hz)", p + 1,
+                             (double)SDL_GetGamepadSensorDataRate(g, SDL_SENSOR_GYRO),
+                             (double)SDL_GetGamepadSensorDataRate(g, SDL_SENSOR_ACCEL));
+    else rt_log("input: \"%s\" (player %d) has no gyro and accelerometer: its six-axis sensor reads a controller at rest",
+                SDL_GetGamepadName(g), p + 1);
+    return sensor_ok[p];
 }
 
 int input_motion_enabled(void) {
@@ -579,26 +579,33 @@ int input_motion_enabled(void) {
     return on;
 }
 
-// 250 Hz: the gamepads update (reports read, rumble expiry) and the newest gyro and accelerometer sample goes into the
-// fusion. Without a gamepad with sensors, or with motion off (MKW_MOTION=0, live), nothing is fed and the six-axis
-// sensor reads at rest.
+// 250 Hz: the gamepads update (reports read, rumble expiry) and each player's newest gyro and accelerometer sample goes
+// into that player's fusion. Players 2-8 have their own (#302: player 2's gyro did nothing). Without a gamepad with
+// sensors, or with motion off (MKW_MOTION=0, live), nothing is fed and the six-axis sensor reads at rest.
 static void motion_main(void *arg) {
     (void)arg;
+    _Static_assert(sizeof sensor_pad / sizeof sensor_pad[0] == INPUT_MAX_PLAYERS, "one sensor slot per player");
     for (;;) {
         plat_wait_ns(4000000);
-        float a[3], g[3];
-        int have = 0;
+        float a[INPUT_MAX_PLAYERS][3], g[INPUT_MAX_PLAYERS][3];
+        int have[INPUT_MAX_PLAYERS] = {0}, updated = 0;
         plat_mutex_lock(&lock);
-        if (pad && SDL_GamepadConnected(pad)) {
-            SDL_UpdateGamepads();
-            have = sensors_ready() && SDL_GetGamepadSensorData(pad, SDL_SENSOR_ACCEL, a, 3) &&
-                   SDL_GetGamepadSensorData(pad, SDL_SENSOR_GYRO, g, 3);
+        for (int p = 0; p < INPUT_MAX_PLAYERS; p++) {
+            SDL_Gamepad *gp = p ? extra[p] : pad;
+            if (!gp || !SDL_GamepadConnected(gp)) continue;
+            if (!updated) SDL_UpdateGamepads(), updated = 1;
+            have[p] = sensors_ready(p, gp) && SDL_GetGamepadSensorData(gp, SDL_SENSOR_ACCEL, a[p], 3) &&
+                      SDL_GetGamepadSensorData(gp, SDL_SENSOR_GYRO, g[p], 3);
         }
         plat_mutex_unlock(&lock);
-        if (!have || !input_motion_enabled()) continue;
-        double acc[3], gyro[3];
-        input_motion_axes(a, g, acc, gyro);
-        motion_feed(motion_global(), acc, gyro, kern_now_ns());
+        if (!input_motion_enabled()) continue;
+        uint64_t now = kern_now_ns();
+        for (int p = 0; p < INPUT_MAX_PLAYERS; p++) {
+            if (!have[p]) continue;
+            double acc[3], gyro[3];
+            input_motion_axes(a[p], g[p], acc, gyro);
+            motion_feed(motion_player(p), acc, gyro, now);
+        }
     }
 }
 
