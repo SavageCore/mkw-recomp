@@ -34,6 +34,9 @@ rm -f "build/run/$n.ctl"
 mkfifo "build/run/$n.ctl"
 export MKW_CTL=$PWD/build/run/$n.ctl MKW_ROMFS_PATCHES=${MKW_ROMFS_PATCHES-build/romfs-res}
 export MKW_RESOLUTION=${MKW_RESOLUTION:-720}   # the overlay's lines for the game output too (patches.c)
+# A run is never the start screen: a prepared player runtime (LIVE_BIN) opens it unless told otherwise (main.c
+# want_launcher; 14/11/2026: seq180d sat on the start screen).
+export MKW_NO_LAUNCHER=1
 export MKW_SPARSE_MIB=${MKW_SPARSE_MIB:-768} MKW_GPU_MEM_LIMIT=${MKW_GPU_MEM_LIMIT:-4096}
 export MKW_FLIGHT=${MKW_FLIGHT:-1} MKW_FLIGHT_SPIKE_MS=${MKW_FLIGHT_SPIKE_MS:-0} MKW_FLIGHT_DIR=${MKW_FLIGHT_DIR:-$PWD/scratchpad/flight-$n}
 export MKW_TRACE=${MKW_TRACE:-gfx,present}
