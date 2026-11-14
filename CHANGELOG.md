@@ -19,6 +19,10 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
   a report on an older release, quiet for 3 days, is asked to try the latest and closed after 7 days without a reply.
 - **Motion controls for every player** (discussion 302): the gyroscope and accelerometer were read from player 1's
   controller only, so in local multiplayer players 2 to 8 had no motion; each player's controller now feeds its own.
+- **Thai no longer crashes on game version 1.8.0** (discussion 193): with the game in Thai, loading closed the game
+  (`no function at guest pc main+0x1bb0b34`). Its text code leaves an error with the C library's `longjmp`, which
+  goes back to where `setjmp` saved its place: in translated code that place is the middle of a function. A function
+  that calls `setjmp` now keeps a host return point that the `longjmp` comes back to.
 - **"Choose game folder" in every menu language**: its four texts came in English only in 0.1.11.
 - **Photo mode no longer crashes on game version 1.8.0** (#305): pressing Minus in free roam at 1440 lines closed the
   game (`main+0xa66e0`): 1.8.0's photo mode, with its stickers, needs render targets the game's buffer pool has no room

@@ -30,6 +30,10 @@ void rt_register_host(uint64_t addr, GuestFn fn);
 // unsorted or duplicate starts, a start outside its module, overlapping modules, host code spread over 4 GiB.
 void rt_dispatch_init(const RtModule *mods, int count);
 
+// A guest longjmp to c->pc inside a live setjmp owner: back to that owner's host frame, not returning (sjlj.c).
+// Returns when no owner holds c->pc.
+void rt_sj_resume(Cpu *c);
+
 // The host function for a guest address, or NULL when nothing is there. Does not run guest code.
 GuestFn rt_dispatch_lookup(uint64_t pc);
 

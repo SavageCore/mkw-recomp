@@ -39,6 +39,7 @@ sys.path.insert(0, str(ROOT / 'recomp'))
 
 import flags  # noqa: E402
 import jumptables  # noqa: E402
+import nso  # noqa: E402
 import patches  # noqa: E402
 import regs  # noqa: E402
 from layout import layout, write as write_layout  # noqa: E402
@@ -176,6 +177,35 @@ def discover(mod):
     return starts, stats
 
 
+SETJMP_NAMES = frozenset({'setjmp', '_setjmp', '__setjmp', 'sigsetjmp'})
+
+
+def setjmp_owners(mod, starts):
+    """Function starts (absolute) of mod that call setjmp: through a PLT stub of an imported setjmp, or directly an
+    exported one. They get a host setjmp point of their own (runtime/cpu/sjlj.c) so that a guest longjmp can come
+    back into them. starts: sorted absolute function starts."""
+    n = mod.nso
+    names = {mod.base + off: n.syms[sym][0] for off, typ, sym, _ in n.relocs
+             if typ in (nso.R_AARCH64_JUMP_SLOT, nso.R_AARCH64_GLOB_DAT) and sym}
+    w = mod.words.astype(np.int64)
+    pcs = mod.lo + 4 * np.arange(len(w), dtype=np.int64)
+    # PLT stub: ADRP x16, P; LDR x17, [x16, #o]; ADD x16, x16, #o; BR x17. Its GOT slot is P + o.
+    m = np.flatnonzero(((w[:-3] & 0x9F00001F) == 0x90000010) & ((w[1:-2] & 0xFFC003FF) == 0xF9400211)
+                       & ((w[2:-1] & 0xFFC003FF) == 0x91000210) & (w[3:] == 0xD61F0220))
+    page = (pcs[m] & ~0xFFF) + (_sext(((w[m] >> 5) & 0x7FFFF) << 2 | ((w[m] >> 29) & 3), 21) << 12)
+    got = page + (((w[m + 1] >> 10) & 0xFFF) << 3)
+    targets = {int(a) for a, g in zip(pcs[m], got) if names.get(int(g)) in SETJMP_NAMES}
+    targets |= {mod.base + value for name, info, shndx, value, _ in n.syms
+                if shndx and (info & 0xF) == 2 and name in SETJMP_NAMES}
+    if not targets:
+        return set()
+    bl = np.flatnonzero((w & 0xFC000000) == 0x94000000)
+    tgt = pcs[bl] + 4 * _sext(w[bl] & 0x03FFFFFF, 26)
+    sites = pcs[bl][np.isin(tgt, np.fromiter(targets, dtype=np.int64))]
+    i = np.searchsorted(starts, sites, side='right') - 1
+    return {int(starts[k]) for k in i[i >= 0]}
+
+
 def estimate_sizes(mod, starts):
     """Estimated bytes of C per function (for chunking only; the manifest records the real sizes)."""
     w = mod.words
@@ -227,6 +257,7 @@ class Emitter:
         self.spanned = spanned or {}   # {span start: (set index, span end)} (skipped whole when the set is on)
         self.reg_locals = reg_locals   # recomp/regs.py: registers per function in C locals
         self.kept = regs.CALLEE_SAVED if callee_saved else frozenset()   # not reloaded after a call
+        self.sj_owners = setjmp_owners(mod, np.fromiter(sorted(starts), dtype=np.int64))
         self.uses_patches = False
         self.stats = Counter()
         self.unsupported = Counter()
@@ -334,7 +365,12 @@ class Emitter:
         insns = [mod.lift(a) for a in range(entry, end, 4)]
         labels, tables = self.scan(insns, entry, end)
         refs = set()
-        all_labels = 'all' in tables.values()
+        # A setjmp caller is re-entered at the setjmp's return address after a guest longjmp (runtime/cpu/sjlj.c),
+        # so it is built like a function with an unresolved computed br: every instruction a label.
+        sj_owner = entry in self.sj_owners
+        all_labels = 'all' in tables.values() or sj_owner
+        if sj_owner:
+            self.stats['setjmp_owners'] += 1
         if all_labels:
             labels = set(range(entry, end, 4))
         # An unresolved computed br re-enters the function through fb_<entry>, a C function of its own, which local
@@ -375,9 +411,10 @@ class Emitter:
             fb = f'fb_{entry:x}'
             cases = ' '.join(f'case {hx(t)}: goto L_{t:x};' for t in range(entry, end, 4))
             redispatch = f'{MUSTTAIL} {fb}(c);'
+            enter = f'rt_sj_owner(c, {fb}, {hx(entry)}, {hx(end)});' if sj_owner else redispatch
             out = [f'static void {fb}(Cpu *c);',
                    f'void {fname(entry)}(Cpu *c) {{', f'    FN_ENTER({hx(entry)});', f'    c->pc = {hx(entry)};',
-                   f'    {redispatch}', '}',
+                   f'    {enter}', '}',
                    f'static void {fb}(Cpu *c) {{', f'    switch (c->pc) {{ {cases} default: break; }}',
                    f'    {MUSTTAIL} rt_dispatch(c);']
         else:
