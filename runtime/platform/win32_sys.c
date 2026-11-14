@@ -68,14 +68,16 @@ void plat_local_time(struct tm *out) {
     localtime_s(out, &t);
 }
 
+// localtime_s and gmtime_s take 1970 to 3000 (PLAT_TIME_MAX); outside it they are an invalid parameter, which ends
+// the process (#310), so the range is checked first, as linux_sys.c does.
 int plat_localtime(int64_t unix_s, struct tm *out) {
     time_t t = (time_t)unix_s;
-    return !localtime_s(out, &t);
+    return unix_s >= 0 && unix_s <= PLAT_TIME_MAX && !localtime_s(out, &t);
 }
 
 int plat_gmtime(int64_t unix_s, struct tm *out) {
     time_t t = (time_t)unix_s;
-    return !gmtime_s(out, &t);
+    return unix_s >= 0 && unix_s <= PLAT_TIME_MAX && !gmtime_s(out, &t);
 }
 
 long plat_tz_west(void) {

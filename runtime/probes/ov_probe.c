@@ -481,6 +481,9 @@ static void probe_time(void) {
           "local calendar time does not round trip (offset %d, day of week %d)", info.utc_offset, info.day_of_week);
     int64_t neg = -1;
     CHECK(CALL("time.ToCalendarTime", U(&local), U(&info), U(&neg)) != 0, "ToCalendarTime of an invalid time succeeded");
+    // past year 3000: the Windows CRT's localtime_s ends the process on it (an invalid parameter, #310) unless checked
+    int64_t far = PLAT_TIME_MAX + 1;
+    CHECK(CALL("time.ToCalendarTime", U(&local), U(&info), U(&far)) != 0, "ToCalendarTime after year 3000 succeeded");
 
     uint8_t *a = guest_alloc(0xd0), *b = guest_alloc(0xd0);
     memset(a, 0xaa, 0xd0);

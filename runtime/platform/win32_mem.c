@@ -149,9 +149,33 @@ static LONG CALLBACK crash_veh(EXCEPTION_POINTERS *ep) {
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
+// The C runtime's check of a call's arguments (a time out of localtime_s's range, a null stream...) ends the process
+// with 0xC0000409 and no exception the handler above sees: #310 died in ucrtbase.dll with an empty log while warming
+// up. Reported as a crash instead, at the first frame of ours on the stack (a release CRT passes no expression or
+// file), with the guest's frames.
+static void crt_invalid_parameter(const wchar_t *expr, const wchar_t *fn, const wchar_t *file, unsigned line,
+                                  uintptr_t reserved) {
+    (void)expr, (void)fn, (void)file, (void)line, (void)reserved;
+    void *frames[32];
+    USHORT n = RtlCaptureStackBackTrace(1, 32, frames, NULL);
+    HMODULE exe = GetModuleHandleW(NULL), game = GetModuleHandleW(L"mkwgame.dll"), at = NULL;
+    PlatCrash c = {"C runtime invalid parameter", 0xC0000409u, 0, 0, -1, 0, "mkw", 0};
+    for (USHORT i = 0; i < n && !c.rip; i++) {
+        uintptr_t pc = (uintptr_t)frames[i];
+        if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                                (LPCWSTR)pc, &at) || (at != exe && at != game))
+            continue;
+        MODULEINFO mi = {0};
+        GetModuleInformation(GetCurrentProcess(), at, &mi, sizeof mi);
+        c.rip = pc, c.offset = pc - (uintptr_t)mi.lpBaseOfDll, c.module = at == exe ? "mkw" : "mkwgame";
+    }
+    crash_fn(&c);
+}
+
 void plat_crash_hook(void (*fn)(const PlatCrash *c)) {
     crash_fn = fn;
     AddVectoredExceptionHandler(0, crash_veh);
+    _set_invalid_parameter_handler(crt_invalid_parameter);
 }
 
 // A fresh process gets a fresh layout: Windows places DLLs, heaps and thread stacks at random addresses. The parent

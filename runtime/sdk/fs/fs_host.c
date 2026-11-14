@@ -379,7 +379,7 @@ static void rotate_backup(void) {
     static char names[64][48];
     int n = backup_names(names);
     uint64_t ns = plat_unix_time_ns();
-    struct tm t;
+    struct tm t = {0};   // a clock out of plat_gmtime's range names it 1900-00-00: still sorted by the suffix below
     plat_gmtime((int64_t)(ns / 1000000000u), &t);
     char name[48];
     int len = snprintf(name, sizeof name, "%04d%02d%02d-%02d%02d%02d-%03u", t.tm_year + 1900, t.tm_mon + 1, t.tm_mday,

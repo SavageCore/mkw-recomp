@@ -219,10 +219,6 @@ void plat_local_time(struct tm *out) {
     localtime_r(&t, out);
 }
 
-// The range of the Windows CRT's localtime_s and gmtime_s (1970 to 3000), which glibc exceeds: the game's time
-// service reports times outside it as invalid on both hosts.
-#define PLAT_TIME_MAX 32535215999ll
-
 int plat_localtime(int64_t unix_s, struct tm *out) {
     time_t t = (time_t)unix_s;
     return unix_s >= 0 && unix_s <= PLAT_TIME_MAX && localtime_r(&t, out) != NULL;

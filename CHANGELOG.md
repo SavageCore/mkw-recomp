@@ -16,6 +16,9 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
 - **Motion controls for every player** (discussion 302): the gyroscope and accelerometer were read from player 1's
   controller only, so in local multiplayer players 2 to 8 had no motion; each player's controller now feeds its own.
 - **"Choose game folder" in every menu language**: its four texts came in English only in 0.1.11.
+- **No more silent exits in the C runtime on Windows** (#310): a date past the year 3000 given to the game's time
+  service ended the process with no message (code 0xC0000409 in `ucrtbase.dll`); it is now refused as on Linux, and any
+  other call the Windows C runtime rejects writes a crash report with the game's frames to `logs/mkw.log`.
 - **The setup refuses `exefs` and `romfs` from different game versions** (#315): 1.0.0's program with 1.8.0's game
   files passed the checks and the game crashed while warming up; the setup now says which version each one is.
 
