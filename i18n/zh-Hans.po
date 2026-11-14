@@ -2076,6 +2076,35 @@ msgctxt "UI_LAUNCH_NO_GAME_DATA"
 msgid "Your own copy of the game · No game data included"
 msgstr "你自己的游戏副本 · 不含任何游戏数据"
 
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_LAUNCH_LASTRUN_KNOWN"
+msgid ""
+"The last game stopped with a known problem, followed in issue #%d. No need to report it again."
+msgstr "上次游戏因已知问题停止，该问题在 issue #%d 中跟进，无需再次报告。"
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_LAUNCH_LASTRUN_FIXED"
+msgid "The last game stopped with a problem that %s fixes. Update to get the fix."
+msgstr "上次游戏因 %s 已修复的问题停止。请更新以获得修复。"
+
+msgctxt "UI_LAUNCH_LASTRUN_CRASH"
+msgid ""
+"The last game stopped with an error. Reporting it with logs/mkw.log attached helps to fix it."
+msgstr "上次游戏因错误停止。附上 logs/mkw.log 报告有助于修复。"
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_LAUNCH_LASTRUN_OPEN"
+msgid "Open issue #%d"
+msgstr "打开 issue #%d"
+
+msgctxt "UI_LAUNCH_LASTRUN_REPORT"
+msgid "Report it"
+msgstr "报告"
+
+msgctxt "UI_LAUNCH_LASTRUN_DISMISS"
+msgid "Close"
+msgstr "关闭"
+
 msgctxt "UI_MENU_UPDATE_CHECK"
 msgid "Check for updates"
 msgstr "检查更新"

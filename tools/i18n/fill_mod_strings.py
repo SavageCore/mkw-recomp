@@ -982,6 +982,98 @@ BROWSER = {
 for _ctx, _langs in BROWSER.items():
     T.setdefault(_ctx, {}).update(_langs)
 
+# The start screen's notice about how the last game ended (ui/launcher/launcher_lastrun.cpp, 14/11/2026).
+LASTRUN = {
+    "UI_LAUNCH_LASTRUN_KNOWN": {
+        "fr": "La dernière partie s'est arrêtée sur un problème connu, suivi dans le ticket #%d. Inutile de le signaler à nouveau.",
+        "de": "Das letzte Spiel wurde durch ein bekanntes Problem beendet, das in Issue #%d verfolgt wird. Du musst es nicht erneut melden.",
+        "es": "La última partida se detuvo por un problema conocido, que se sigue en la incidencia #%d. No hace falta volver a informar de él.",
+        "es-419": "La última partida se detuvo por un problema conocido, que se sigue en el reporte #%d. No hace falta volver a reportarlo.",
+        "it": "L'ultima partita si è fermata per un problema noto, seguito nella segnalazione #%d. Non serve segnalarlo di nuovo.",
+        "pt": "O último jogo parou com um problema conhecido, acompanhado na issue #%d. Não é preciso reportá-lo outra vez.",
+        "pt-BR": "O último jogo parou com um problema conhecido, acompanhado na issue #%d. Não é preciso relatá-lo de novo.",
+        "nl": "Het laatste spel stopte door een bekend probleem, gevolgd in issue #%d. Je hoeft het niet opnieuw te melden.",
+        "ru": "Последняя игра остановилась из-за известной проблемы, она отслеживается в issue #%d. Сообщать о ней снова не нужно.",
+        "ja": "前回のゲームは既知の問題で停止しました（Issue #%d で対応中）。再度報告する必要はありません。",
+        "ko": "지난 게임이 알려진 문제로 멈췄습니다. 이슈 #%d에서 추적 중이니 다시 보고하지 않아도 됩니다.",
+        "zh-Hans": "上次游戏因已知问题停止，该问题在 issue #%d 中跟进，无需再次报告。",
+        "zh-Hant": "上次遊戲因已知問題停止，該問題在 issue #%d 中追蹤，不需再次回報。",
+        "ca": "L'última partida es va aturar per un problema conegut, que se segueix a la incidència #%d. No cal tornar-lo a notificar.",
+        "gl": "A última partida detívose por un problema coñecido, que se segue na incidencia #%d. Non fai falta informar del de novo.",
+        "eu": "Azken partida arazo ezagun batengatik gelditu zen, #%d gertakarian jarraitzen dena. Ez da berriro jakinarazi behar.",
+        "pl": "Ostatnia gra zatrzymała się z powodu znanego problemu, śledzonego w zgłoszeniu #%d. Nie trzeba go zgłaszać ponownie.",
+        "tr": "Son oyun bilinen bir sorun nedeniyle durdu; sorun #%d numaralı kayıtta takip ediliyor. Tekrar bildirmenize gerek yok.",
+        "uk": "Остання гра зупинилася через відому проблему, її відстежують в issue #%d. Повідомляти про неї знову не потрібно.",
+        "th": "เกมครั้งล่าสุดหยุดเพราะปัญหาที่ทราบแล้ว ซึ่งติดตามอยู่ใน issue #%d ไม่จำเป็นต้องรายงานซ้ำ",
+    },
+    "UI_LAUNCH_LASTRUN_FIXED": {
+        "fr": "La dernière partie s'est arrêtée sur un problème corrigé par %s. Mettez à jour pour obtenir le correctif.",
+        "de": "Das letzte Spiel wurde durch ein Problem beendet, das %s behebt. Aktualisiere, um die Korrektur zu erhalten.",
+        "es": "La última partida se detuvo por un problema que %s corrige. Actualiza para tener la corrección.",
+        "es-419": "La última partida se detuvo por un problema que %s corrige. Actualiza para tener la corrección.",
+        "it": "L'ultima partita si è fermata per un problema che %s risolve. Aggiorna per avere la correzione.",
+        "pt": "O último jogo parou com um problema que a %s corrige. Atualiza para ter a correção.",
+        "pt-BR": "O último jogo parou com um problema que a %s corrige. Atualize para ter a correção.",
+        "nl": "Het laatste spel stopte door een probleem dat %s oplost. Werk bij om de oplossing te krijgen.",
+        "ru": "Последняя игра остановилась из-за проблемы, которую исправляет %s. Обновитесь, чтобы получить исправление.",
+        "ja": "前回のゲームは %s で修正済みの問題で停止しました。修正を適用するにはアップデートしてください。",
+        "ko": "지난 게임이 %s에서 수정된 문제로 멈췄습니다. 수정 사항을 받으려면 업데이트하세요.",
+        "zh-Hans": "上次游戏因 %s 已修复的问题停止。请更新以获得修复。",
+        "zh-Hant": "上次遊戲因 %s 已修正的問題停止。請更新以取得修正。",
+        "ca": "L'última partida es va aturar per un problema que %s corregeix. Actualitza per tenir la correcció.",
+        "gl": "A última partida detívose por un problema que %s corrixe. Actualiza para ter a corrección.",
+        "eu": "Azken partida %s bertsioak konpontzen duen arazo batengatik gelditu zen. Eguneratu konponketa izateko.",
+        "pl": "Ostatnia gra zatrzymała się z powodu problemu, który naprawia %s. Zaktualizuj, aby otrzymać poprawkę.",
+        "tr": "Son oyun, %s sürümünün düzelttiği bir sorun nedeniyle durdu. Düzeltmeyi almak için güncelleyin.",
+        "uk": "Остання гра зупинилася через проблему, яку виправляє %s. Оновіться, щоб отримати виправлення.",
+        "th": "เกมครั้งล่าสุดหยุดเพราะปัญหาที่ %s แก้ไขแล้ว อัปเดตเพื่อรับการแก้ไข",
+    },
+    "UI_LAUNCH_LASTRUN_CRASH": {
+        "fr": "La dernière partie s'est arrêtée sur une erreur. La signaler avec logs/mkw.log en pièce jointe aide à la corriger.",
+        "de": "Das letzte Spiel wurde durch einen Fehler beendet. Eine Meldung mit angehängter logs/mkw.log hilft, ihn zu beheben.",
+        "es": "La última partida se detuvo por un error. Informar de él adjuntando logs/mkw.log ayuda a corregirlo.",
+        "es-419": "La última partida se detuvo por un error. Reportarlo adjuntando logs/mkw.log ayuda a corregirlo.",
+        "it": "L'ultima partita si è fermata per un errore. Segnalarlo allegando logs/mkw.log aiuta a correggerlo.",
+        "pt": "O último jogo parou com um erro. Reportá-lo com o logs/mkw.log em anexo ajuda a corrigi-lo.",
+        "pt-BR": "O último jogo parou com um erro. Relatá-lo com o logs/mkw.log anexado ajuda a corrigi-lo.",
+        "nl": "Het laatste spel stopte door een fout. Melden met logs/mkw.log als bijlage helpt om het op te lossen.",
+        "ru": "Последняя игра остановилась из-за ошибки. Сообщение о ней с приложенным logs/mkw.log поможет её исправить.",
+        "ja": "前回のゲームはエラーで停止しました。logs/mkw.log を添付して報告すると修正に役立ちます。",
+        "ko": "지난 게임이 오류로 멈췄습니다. logs/mkw.log를 첨부해 보고하면 수정에 도움이 됩니다.",
+        "zh-Hans": "上次游戏因错误停止。附上 logs/mkw.log 报告有助于修复。",
+        "zh-Hant": "上次遊戲因錯誤停止。附上 logs/mkw.log 回報有助於修正。",
+        "ca": "L'última partida es va aturar per un error. Notificar-lo adjuntant logs/mkw.log ajuda a corregir-lo.",
+        "gl": "A última partida detívose por un erro. Informar del xuntando logs/mkw.log axuda a corrixilo.",
+        "eu": "Azken partida errore batengatik gelditu zen. logs/mkw.log erantsita jakinarazteak konpontzen laguntzen du.",
+        "pl": "Ostatnia gra zatrzymała się z powodu błędu. Zgłoszenie go z załączonym logs/mkw.log pomaga go naprawić.",
+        "tr": "Son oyun bir hata nedeniyle durdu. logs/mkw.log dosyasını ekleyerek bildirmek düzeltilmesine yardımcı olur.",
+        "uk": "Остання гра зупинилася через помилку. Повідомлення про неї з доданим logs/mkw.log допоможе її виправити.",
+        "th": "เกมครั้งล่าสุดหยุดเพราะข้อผิดพลาด การรายงานพร้อมแนบ logs/mkw.log ช่วยให้แก้ไขได้",
+    },
+    "UI_LAUNCH_LASTRUN_OPEN": {
+        "fr": "Ouvrir le ticket #%d", "de": "Issue #%d öffnen", "es": "Abrir la incidencia #%d",
+        "es-419": "Abrir el reporte #%d", "it": "Apri la segnalazione #%d", "pt": "Abrir a issue #%d",
+        "pt-BR": "Abrir a issue #%d", "nl": "Issue #%d openen", "ru": "Открыть issue #%d", "ja": "Issue #%d を開く",
+        "ko": "이슈 #%d 열기", "zh-Hans": "打开 issue #%d", "zh-Hant": "開啟 issue #%d", "ca": "Obre la incidència #%d",
+        "gl": "Abrir a incidencia #%d", "eu": "Ireki #%d gertakaria", "pl": "Otwórz zgłoszenie #%d",
+        "tr": "#%d numaralı kaydı aç", "uk": "Відкрити issue #%d", "th": "เปิด issue #%d",
+    },
+    "UI_LAUNCH_LASTRUN_REPORT": {
+        "fr": "Le signaler", "de": "Melden", "es": "Informar", "es-419": "Reportar", "it": "Segnala",
+        "pt": "Reportar", "pt-BR": "Relatar", "nl": "Melden", "ru": "Сообщить", "ja": "報告する", "ko": "보고하기",
+        "zh-Hans": "报告", "zh-Hant": "回報", "ca": "Notifica-ho", "gl": "Informar", "eu": "Jakinarazi",
+        "pl": "Zgłoś", "tr": "Bildir", "uk": "Повідомити", "th": "รายงาน",
+    },
+    "UI_LAUNCH_LASTRUN_DISMISS": {
+        "fr": "Fermer", "de": "Schließen", "es": "Cerrar", "es-419": "Cerrar", "it": "Chiudi", "pt": "Fechar",
+        "pt-BR": "Fechar", "nl": "Sluiten", "ru": "Закрыть", "ja": "閉じる", "ko": "닫기", "zh-Hans": "关闭",
+        "zh-Hant": "關閉", "ca": "Tanca", "gl": "Pechar", "eu": "Itxi", "pl": "Zamknij", "tr": "Kapat",
+        "uk": "Закрити", "th": "ปิด",
+    },
+}
+for _ctx, _langs in LASTRUN.items():
+    T.setdefault(_ctx, {}).update(_langs)
+
 
 def main():
     # catalog.py's own reader and writer: a long English id is wrapped over several lines in the .po, which a

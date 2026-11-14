@@ -2164,6 +2164,41 @@ msgctxt "UI_LAUNCH_NO_GAME_DATA"
 msgid "Your own copy of the game · No game data included"
 msgstr "Twoja własna kopia gry · Brak danych gry w zestawie"
 
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_LAUNCH_LASTRUN_KNOWN"
+msgid ""
+"The last game stopped with a known problem, followed in issue #%d. No need to report it again."
+msgstr ""
+"Ostatnia gra zatrzymała się z powodu znanego problemu, śledzonego w zgłoszeniu #%d. Nie trzeba go "
+"zgłaszać ponownie."
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_LAUNCH_LASTRUN_FIXED"
+msgid "The last game stopped with a problem that %s fixes. Update to get the fix."
+msgstr ""
+"Ostatnia gra zatrzymała się z powodu problemu, który naprawia %s. Zaktualizuj, aby otrzymać "
+"poprawkę."
+
+msgctxt "UI_LAUNCH_LASTRUN_CRASH"
+msgid ""
+"The last game stopped with an error. Reporting it with logs/mkw.log attached helps to fix it."
+msgstr ""
+"Ostatnia gra zatrzymała się z powodu błędu. Zgłoszenie go z załączonym logs/mkw.log pomaga go "
+"naprawić."
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_LAUNCH_LASTRUN_OPEN"
+msgid "Open issue #%d"
+msgstr "Otwórz zgłoszenie #%d"
+
+msgctxt "UI_LAUNCH_LASTRUN_REPORT"
+msgid "Report it"
+msgstr "Zgłoś"
+
+msgctxt "UI_LAUNCH_LASTRUN_DISMISS"
+msgid "Close"
+msgstr "Zamknij"
+
 msgctxt "UI_MENU_UPDATE_CHECK"
 msgid "Check for updates"
 msgstr "Szukaj aktualizacji"

@@ -2160,6 +2160,40 @@ msgctxt "UI_LAUNCH_NO_GAME_DATA"
 msgid "Your own copy of the game · No game data included"
 msgstr "Oyunun kendi kopyanız · Oyun verisi içermez"
 
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_LAUNCH_LASTRUN_KNOWN"
+msgid ""
+"The last game stopped with a known problem, followed in issue #%d. No need to report it again."
+msgstr ""
+"Son oyun bilinen bir sorun nedeniyle durdu; sorun #%d numaralı kayıtta takip ediliyor. Tekrar "
+"bildirmenize gerek yok."
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_LAUNCH_LASTRUN_FIXED"
+msgid "The last game stopped with a problem that %s fixes. Update to get the fix."
+msgstr ""
+"Son oyun, %s sürümünün düzelttiği bir sorun nedeniyle durdu. Düzeltmeyi almak için güncelleyin."
+
+msgctxt "UI_LAUNCH_LASTRUN_CRASH"
+msgid ""
+"The last game stopped with an error. Reporting it with logs/mkw.log attached helps to fix it."
+msgstr ""
+"Son oyun bir hata nedeniyle durdu. logs/mkw.log dosyasını ekleyerek bildirmek düzeltilmesine "
+"yardımcı olur."
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_LAUNCH_LASTRUN_OPEN"
+msgid "Open issue #%d"
+msgstr "#%d numaralı kaydı aç"
+
+msgctxt "UI_LAUNCH_LASTRUN_REPORT"
+msgid "Report it"
+msgstr "Bildir"
+
+msgctxt "UI_LAUNCH_LASTRUN_DISMISS"
+msgid "Close"
+msgstr "Kapat"
+
 msgctxt "UI_MENU_UPDATE_CHECK"
 msgid "Check for updates"
 msgstr "Güncellemeleri denetle"

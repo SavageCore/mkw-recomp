@@ -2090,6 +2090,35 @@ msgctxt "UI_LAUNCH_NO_GAME_DATA"
 msgid "Your own copy of the game · No game data included"
 msgstr "ご自身のゲームのコピー · ゲームデータは含まれていません"
 
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_LAUNCH_LASTRUN_KNOWN"
+msgid ""
+"The last game stopped with a known problem, followed in issue #%d. No need to report it again."
+msgstr "前回のゲームは既知の問題で停止しました（Issue #%d で対応中）。再度報告する必要はありません。"
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_LAUNCH_LASTRUN_FIXED"
+msgid "The last game stopped with a problem that %s fixes. Update to get the fix."
+msgstr "前回のゲームは %s で修正済みの問題で停止しました。修正を適用するにはアップデートしてください。"
+
+msgctxt "UI_LAUNCH_LASTRUN_CRASH"
+msgid ""
+"The last game stopped with an error. Reporting it with logs/mkw.log attached helps to fix it."
+msgstr "前回のゲームはエラーで停止しました。logs/mkw.log を添付して報告すると修正に役立ちます。"
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_LAUNCH_LASTRUN_OPEN"
+msgid "Open issue #%d"
+msgstr "Issue #%d を開く"
+
+msgctxt "UI_LAUNCH_LASTRUN_REPORT"
+msgid "Report it"
+msgstr "報告する"
+
+msgctxt "UI_LAUNCH_LASTRUN_DISMISS"
+msgid "Close"
+msgstr "閉じる"
+
 msgctxt "UI_MENU_UPDATE_CHECK"
 msgid "Check for updates"
 msgstr "更新を確認"

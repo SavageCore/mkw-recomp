@@ -348,3 +348,19 @@ def test_package_has_the_launchers_tools() -> None:
         path = f"tools/{rel}"
         assert any(path == s or path.startswith(s.rstrip("/") + "/") for s in sources), f"{path} not in dist.py SOURCES"
         assert (ROOT / path).is_file(), path
+
+
+def test_lastrun_reads_how_the_last_game_ended() -> None:
+    # tools/prepare/lastrun.py: the start screen's notice; a wrong "known" sends a player away from a new bug
+    import lastrun
+
+    sigs = [{"issue": 22, "all": ["instruction pointer invalid"]},
+            {"issue": 29, "all": ["spec.py", "args.cc.split"], "fixed": "v0.1.5"}]  # fmt: skip
+    assert lastrun.verdict("x\n[host] gfx: window closed; exiting\n", "0.1.11", sigs) == "clean"
+    assert lastrun.verdict("vk: device fault: Instruction pointer invalid\n", "0.1.11", sigs) == "known 22"
+    assert lastrun.verdict("spec.py ... args.cc.split()\n", "0.1.4", sigs) == "fixed 29 v0.1.5"
+    # on the release that fixed it, or later, the same text is a regression: still pointed to its issue
+    assert lastrun.verdict("spec.py ... args.cc.split()\n", "0.1.5", sigs) == "known 29"
+    assert lastrun.verdict("[host] FATAL: SIGSEGV at host 0x1\n", "0.1.11", sigs) == "crash"
+    assert lastrun.verdict("[host] frame 300\n", "0.1.11", sigs) == ""   # killed or power off: nothing to say
+    assert (ROOT / "tools/github/signatures.toml").is_file()

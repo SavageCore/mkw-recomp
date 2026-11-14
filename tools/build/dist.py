@@ -113,7 +113,8 @@ SOURCES = ["recomp", "sm86", "tools/build/build.py", "tools/prepare", "tools/mod
            "tools/i18n/catalog.py", "tools/i18n/game_texts.py", "i18n/game",
            "tools/shaders/extract.py", "tools/shaders/translate.py", "tools/shaders/shaderc_lib.py",
            "runtime/cpu",
-           "runtime/core/boot/gamelib.h"]  # fmt: skip
+           "runtime/core/boot/gamelib.h",
+           "tools/github/signatures.toml"]  # fmt: skip  (the known errors tools/prepare/lastrun.py names)
 # Windows DLLs mkw.exe needs beside it (build/win/deps/bin, tools/build/windeps.py); vulkan-1.dll is the driver's.
 WIN_DLLS = ["SDL3.dll", "libopus-0.dll", "libusb-1.0.dll"]   # libusb: SDL3.dll loads it (windeps.py)
 

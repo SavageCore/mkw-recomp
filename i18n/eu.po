@@ -2182,6 +2182,41 @@ msgctxt "UI_LAUNCH_NO_GAME_DATA"
 msgid "Your own copy of the game · No game data included"
 msgstr "Jokoaren zure kopia propioa · Ez dago jokoaren daturik"
 
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_LAUNCH_LASTRUN_KNOWN"
+msgid ""
+"The last game stopped with a known problem, followed in issue #%d. No need to report it again."
+msgstr ""
+"Azken partida arazo ezagun batengatik gelditu zen, #%d gertakarian jarraitzen dena. Ez da berriro "
+"jakinarazi behar."
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_LAUNCH_LASTRUN_FIXED"
+msgid "The last game stopped with a problem that %s fixes. Update to get the fix."
+msgstr ""
+"Azken partida %s bertsioak konpontzen duen arazo batengatik gelditu zen. Eguneratu konponketa "
+"izateko."
+
+msgctxt "UI_LAUNCH_LASTRUN_CRASH"
+msgid ""
+"The last game stopped with an error. Reporting it with logs/mkw.log attached helps to fix it."
+msgstr ""
+"Azken partida errore batengatik gelditu zen. logs/mkw.log erantsita jakinarazteak konpontzen "
+"laguntzen du."
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_LAUNCH_LASTRUN_OPEN"
+msgid "Open issue #%d"
+msgstr "Ireki #%d gertakaria"
+
+msgctxt "UI_LAUNCH_LASTRUN_REPORT"
+msgid "Report it"
+msgstr "Jakinarazi"
+
+msgctxt "UI_LAUNCH_LASTRUN_DISMISS"
+msgid "Close"
+msgstr "Itxi"
+
 msgctxt "UI_MENU_UPDATE_CHECK"
 msgid "Check for updates"
 msgstr "Bilatu eguneraketak"

@@ -25,7 +25,8 @@
 // MKW_LAUNCHER_EXIT_AFTER_SETUP=1 quits when that setup ends, after saving the page as <shot out>-end.png (its result
 // is in the log); MKW_LAUNCHER_SHOT then takes its shot without quitting. During a shot the update check runs only
 // with MKW_UPDATE_AS (tools/prepare/update.py: compare as that version). MKW_LAUNCHER_UPDATE=1 takes the update offered
-// at once, as its button does.
+// at once, as its button does. The last run's notice (launcher_lastrun.h) is read during a shot only with
+// MKW_LAUNCHER_LASTRUN=1.
 #include <SDL3/SDL.h>
 #include <math.h>
 #include <stdio.h>
@@ -41,6 +42,7 @@
 #include "ui/launcher/launcher_look.h"
 #include "ui/launcher/launcher_players.h"
 #include "ui/launcher/launcher_setup.h"
+#include "ui/launcher/launcher_lastrun.h"
 #include "ui/launcher/launcher_update.h"
 #include "ui/launcher/mods.h"
 #include "ui/launcher/mods_browse.h"
@@ -270,6 +272,37 @@ static void update_row(float bw) {
     ImGui::Dummy(ImVec2(0, 10 * L.scale));
 }
 
+// How the last game ended (launcher_lastrun.h), when it did not end well: a known problem with the button to its
+// issue, one an update fixes (the update's own row offers it), or an unknown error with the bug form. Close hides it.
+static void lastrun_row(float bw) {
+    LastRun r = lastrun_state();
+    if (r.kind == LASTRUN_NONE) return;
+    const char *repo = getenv("MKW_UPDATE_REPO");
+    if (!repo || !*repo) repo = "adriadam10/mkw-recomp";
+    char text[700], button[160], url[300];
+    url[0] = 0;
+    if (r.kind == LASTRUN_KNOWN) {
+        snprintf(text, sizeof text, menu_text(UI_LAUNCH_LASTRUN_KNOWN), r.issue);
+        snprintf(button, sizeof button, menu_text(UI_LAUNCH_LASTRUN_OPEN), r.issue);
+        snprintf(url, sizeof url, "https://github.com/%s/issues/%d", repo, r.issue);
+    } else if (r.kind == LASTRUN_FIXED) {
+        snprintf(text, sizeof text, menu_text(UI_LAUNCH_LASTRUN_FIXED), r.tag);
+    } else {
+        snprintf(text, sizeof text, "%s", menu_text(UI_LAUNCH_LASTRUN_CRASH));
+        snprintf(button, sizeof button, "%s", menu_text(UI_LAUNCH_LASTRUN_REPORT));
+        snprintf(url, sizeof url, "https://github.com/%s/issues/new?template=bug_report.yml", repo);
+    }
+    ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + bw);
+    ImGui::TextColored(col4(r.kind == LASTRUN_FIXED ? LOOK_WARN : LOOK_BAD), "%s", text);
+    ImGui::PopTextWrapPos();
+    if (url[0]) {
+        if (ImGui::SmallButton(button)) SDL_OpenURL(url);
+        ImGui::SameLine();
+    }
+    if (ImGui::SmallButton(menu_text(UI_LAUNCH_LASTRUN_DISMISS))) lastrun_dismiss();
+    ImGui::Dummy(ImVec2(0, 10 * L.scale));
+}
+
 // The game files' state: a dot and the line, in the state's colour.
 static void state_line(bool ok, const char *text) {
     float lh = ImGui::GetTextLineHeight(), r = lh * 0.26f;
@@ -306,6 +339,7 @@ static void page_main(float w, float h) {
     float title_w = mark + 24 * s + L.big->CalcTextSizeA(ts, FLT_MAX, 0, "Mario Kart World").x;
     ImGui::Dummy(ImVec2(fmaxf(cw, title_w), mark + 48 * s - gap));   // the window as wide as the title: it clips
     update_row(cw);
+    lastrun_row(cw);
     if (L.focus_main) {
         ImGui::SetKeyboardFocusHere();
         L.focus_main = 0;
@@ -1073,6 +1107,7 @@ extern "C" int launcher_run(void) {
     } else if (!L.shot_at || getenv("MKW_UPDATE_AS")) {
         update_check_start(L.exe_dir);
     }
+    if (!L.shot_at || getenv("MKW_LAUNCHER_LASTRUN")) lastrun_start(L.exe_dir, cfg_game_dir());
     if (getenv("MKW_LAUNCHER_SHORTCUT")) make_shortcut();   // (test) as the button does
     if (const char *t = getenv("MKW_LAUNCHER_SETUP")) {   // (test) the setup started from that folder, as Set up does
         snprintf(L.source, sizeof L.source, "%s", t);

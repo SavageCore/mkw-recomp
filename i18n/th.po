@@ -2134,6 +2134,35 @@ msgctxt "UI_LAUNCH_NO_GAME_DATA"
 msgid "Your own copy of the game · No game data included"
 msgstr "สำเนาเกมของคุณเอง · ไม่มีข้อมูลเกมแนบมา"
 
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_LAUNCH_LASTRUN_KNOWN"
+msgid ""
+"The last game stopped with a known problem, followed in issue #%d. No need to report it again."
+msgstr "เกมครั้งล่าสุดหยุดเพราะปัญหาที่ทราบแล้ว ซึ่งติดตามอยู่ใน issue #%d ไม่จำเป็นต้องรายงานซ้ำ"
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_LAUNCH_LASTRUN_FIXED"
+msgid "The last game stopped with a problem that %s fixes. Update to get the fix."
+msgstr "เกมครั้งล่าสุดหยุดเพราะปัญหาที่ %s แก้ไขแล้ว อัปเดตเพื่อรับการแก้ไข"
+
+msgctxt "UI_LAUNCH_LASTRUN_CRASH"
+msgid ""
+"The last game stopped with an error. Reporting it with logs/mkw.log attached helps to fix it."
+msgstr "เกมครั้งล่าสุดหยุดเพราะข้อผิดพลาด การรายงานพร้อมแนบ logs/mkw.log ช่วยให้แก้ไขได้"
+
+#. printf format: keep every %... conversion, in the same order.
+msgctxt "UI_LAUNCH_LASTRUN_OPEN"
+msgid "Open issue #%d"
+msgstr "เปิด issue #%d"
+
+msgctxt "UI_LAUNCH_LASTRUN_REPORT"
+msgid "Report it"
+msgstr "รายงาน"
+
+msgctxt "UI_LAUNCH_LASTRUN_DISMISS"
+msgid "Close"
+msgstr "ปิด"
+
 msgctxt "UI_MENU_UPDATE_CHECK"
 msgid "Check for updates"
 msgstr "ตรวจสอบอัปเดต"
