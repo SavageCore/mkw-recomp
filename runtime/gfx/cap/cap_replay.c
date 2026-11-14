@@ -348,6 +348,7 @@ int cap_replay_main(int argc, char **argv) {
     cap_in_close(in);
     b->finish();
     vk_pt_flush(frame, presents);   // MKW_PASS_TIMING: the GPU time of the replayed frames
+    vk_mem_replay_log(presents);    // mirror and shadow traffic per presented frame (MKW_MEMORY=mirror)
     long errors = vk_validation_errors_total();
     vk_exec_par_log();   // how many submissions went in chunks: a replay that never chunks compares serial with serial
     static const char *const names[] = {"", "meta", "mem", "zero", "pool init", "pool fini", "mapv", "texreg", "sampreg",

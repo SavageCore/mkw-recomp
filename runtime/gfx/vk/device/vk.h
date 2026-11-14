@@ -279,6 +279,7 @@ int vk_mem_mirror_probe(uint64_t addr);   // --probe-vkexec: the pool at addr ge
 void vk_mem_class_log(const VkPhysicalDeviceProperties *p, const VkPhysicalDeviceMemoryProperties *m);   // once
 void vk_mem_census(uint64_t frame);               // at each present: pool census and traffic, logged at frame 1800 and,
                                                   // with MKW_TRACE=perf, every 1800 frames
+void vk_mem_replay_log(uint64_t frames);          // a capture replay's end: the mirror and shadow summaries over its frames
 // VRAM in use and its budget, summed over the DEVICE_LOCAL heaps. exact 1: VK_EXT_memory_budget (the whole process),
 // 0: this allocator's own allocations against the heap sizes. 0 when unknown.
 int vk_mem_vram(uint64_t *used, uint64_t *budget, int *exact);

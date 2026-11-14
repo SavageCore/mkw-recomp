@@ -54,6 +54,13 @@ static uint64_t vram_every(void) {
     return (uint64_t)n;
 }
 
+// A capture holds a few frames (build/cap/race: 3), so the per-60-frames summaries above never come in a replay: the
+// same lines once at its end, averaged over the frames it presented (mir-base, 14/11/2026).
+void vk_mem_replay_log(uint64_t frames) {
+    mirror_log(frames);
+    shadow_log(frames);
+}
+
 void vk_mem_census(uint64_t frame) {
     static uint64_t window_start;
     mem_early_log(frame);   // MKW_EARLY_READ
