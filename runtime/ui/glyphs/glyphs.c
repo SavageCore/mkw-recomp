@@ -32,7 +32,10 @@ const unsigned char *menu_look_font_data(void);   // ui/menu/menu_look.cpp: the 
 #define SHEET 1024
 #define CELL 104
 #define PITCH 105
-#define SHEET_HASH 0x832514785d492576ull   // FNV-1a of the sheet as uploaded (1.0.0, player2 06/11/2026)
+// FNV-1a of the sheet as uploaded. 1.8.0's has two more glyphs (U+E0CB and U+E0CC in cells 39 and 40, the coin moves
+// to 41); cells 0-38 are where 1.0.0 has them, so the same table redraws both (hash from seq180d, 14/11/2026).
+#define SHEET_HASH_100 0x832514785d492576ull   // player2 06/11/2026
+#define SHEET_HASH_180 0xa792f977841ba116ull
 
 // ---- what each cell shows
 enum { G_KEEP, G_BUTTON, G_FACE, G_STICK, G_STICK_PRESS, G_DPAD };
@@ -248,7 +251,7 @@ int glyphs_apply(uint64_t addr, int format, uint32_t w, uint32_t h, uint8_t *lin
     if ((format != FMT_RGBA8 && format != FMT_RGBA8_SRGB) || w != SHEET || h != SHEET || row < SHEET * 4) return 0;
     uint64_t hash = 0xcbf29ce484222325ull;
     for (uint32_t y = 0; y < SHEET; y++) hash = fnv1a(lin + (size_t)y * row, SHEET * 4, hash);
-    if (hash != SHEET_HASH) {   // (a re-upload reads the game's storage again: the original, not our icons)
+    if (hash != SHEET_HASH_100 && hash != SHEET_HASH_180) {   // (a re-upload reads the game's storage again: the original, not our icons)
         static int n;
         if (n++ < 4) rt_log("glyphs: 1024x1024 RGBA8 texture %#llx is not the button sheet (hash %016llx)",
                             (unsigned long long)addr, (unsigned long long)hash);

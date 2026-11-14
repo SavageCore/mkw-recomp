@@ -23,6 +23,9 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
   (`no function at guest pc main+0x1bb0b34`). Its text code leaves an error with the C library's `longjmp`, which
   goes back to where `setjmp` saved its place: in translated code that place is the middle of a function. A function
   that calls `setjmp` now keeps a host return point that the `longjmp` comes back to.
+- **Xbox, PlayStation and keyboard button icons on game version 1.8.0** (#19): 1.8.0's button sheet has two more
+  icons, so the runtime did not recognise it and the prompts kept Nintendo's buttons. The other icons sit where
+  1.0.0 has them, and both sheets are redrawn now.
 - **"Choose game folder" in every menu language**: its four texts came in English only in 0.1.11.
 - **Photo mode no longer crashes on game version 1.8.0** (#305): pressing Minus in free roam at 1440 lines closed the
   game (`main+0xa66e0`): 1.8.0's photo mode, with its stickers, needs render targets the game's buffer pool has no room
