@@ -16,6 +16,9 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
 - **Motion controls for every player** (discussion 302): the gyroscope and accelerometer were read from player 1's
   controller only, so in local multiplayer players 2 to 8 had no motion; each player's controller now feeds its own.
 - **"Choose game folder" in every menu language**: its four texts came in English only in 0.1.11.
+- **Photo mode no longer crashes on game version 1.8.0** (#305): pressing Minus in free roam at 1440 lines closed the
+  game (`main+0xa66e0`): 1.8.0's photo mode, with its stickers, needs render targets the game's buffer pool has no room
+  for. The pool gets a second part of the runtime's own memory for them, as it did at 2160 lines (#255).
 - **No more silent exits in the C runtime on Windows** (#310): a date past the year 3000 given to the game's time
   service ended the process with no message (code 0xC0000409 in `ucrtbase.dll`); it is now refused as on Linux, and any
   other call the Windows C runtime rejects writes a crash report with the game's frames to `logs/mkw.log`.
