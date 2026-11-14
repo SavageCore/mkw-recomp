@@ -4,6 +4,16 @@ Each version's section is that release's notes: `tools/build/notes.py` puts it i
 updating, known issues, reporting) for the GitHub release. A section has a summary paragraph, `### Changes` (each with
 its issue, #N), `### Tested` (what was run from the packages before publishing) and optionally `### Known issues`.
 
+## 0.1.12
+
+### Changes
+
+- **The start screen says how the last game ended**: when it stopped with a known problem, it names the issue that
+  follows it (no need to report it again) or the release that fixes it; an unknown error gets a button to the bug
+  form, asking for `logs/mkw.log`.
+- **Issues**: a report of a known error is closed at once as its duplicate (a reply from its author reopens it), and
+  a report on an older release, quiet for 3 days, is asked to try the latest and closed after 7 days without a reply.
+
 ## 0.1.11
 
 Choose where the game is installed, by @innateessence; @EdouardSence's fixes for the menu labels, the Linux taskbar
@@ -122,7 +132,8 @@ updates; handheld resolution by @titooo7; and a faster start on AMD cards on Lin
 
 From these packages, before publishing:
 
-- The whole setup on Linux (Radeon 660M, RADV) and on Windows 11 (GTX 1050 Ti), each to the end of its warm-up.
+- The whole setup on Linux (Radeon 660M, RADV) in 15 minutes, its warm-up 1 087 frames without a fault, and on
+  Windows 11 (GTX 1050 Ti) in 25 minutes, its warm-up to the end without a fault.
 - Before the tag, on `main`: the sparse bind change against the title capture (same images as the reference), and
   boot runs to the title on the Radeon 660M.
 
