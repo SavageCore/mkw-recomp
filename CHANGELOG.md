@@ -26,6 +26,11 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
 - **Xbox, PlayStation and keyboard button icons on game version 1.8.0** (#19): 1.8.0's button sheet has two more
   icons, so the runtime did not recognise it and the prompts kept Nintendo's buttons. The other icons sit where
   1.0.0 has them, and both sheets are redrawn now.
+- **LAN play picks the home network's address** (discussion 148): with several network adapters, the game could take
+  one that leads nowhere, such as a VirtualBox host-only adapter (192.168.56.1) or one without a DHCP server
+  (169.254.x.x), and two PCs on the same network never saw each other. The address on the network with the default
+  route now comes first, then other local networks, then 169.254.x.x, and VPN /32 addresses last. The log lists the
+  candidates (`nifm: LAN candidate`); `lan_ip` in `mkw.ini` still picks one by hand.
 - **"Choose game folder" in every menu language**: its four texts came in English only in 0.1.11.
 - **Photo mode no longer crashes on game version 1.8.0** (#305): pressing Minus in free roam at 1440 lines closed the
   game (`main+0xa66e0`): 1.8.0's photo mode, with its stickers, needs render targets the game's buffer pool has no room
