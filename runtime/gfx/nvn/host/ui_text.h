@@ -186,6 +186,7 @@ typedef enum {
     UI_SETUP_ERR_SOURCE, UI_SETUP_ERR_NOGAME, UI_SETUP_ERR_ENCRYPTED, UI_SETUP_ERR_VERSION, UI_SETUP_ERR_ROMFS,
     UI_SETUP_ERR_FAILED, UI_SETUP_ERR_IO, UI_SETUP_ERR_STOPPED, UI_SETUP_ERR_CANCELLED, UI_SETUP_ERR_NO_SETUP,
     UI_SETUP_ERR_MOVED,   // "... %s": the last setup's game files folder, no longer there (#188)
+    UI_SETUP_ERR_MISMATCH,   // "... %s": which version the RomFS and exefs/main are (#315)
     // the setup's steps (tools/prepare/prepare.py STEPS), and the mark of one an earlier setup already did
     UI_LAUNCH_STEP_CHECK, UI_LAUNCH_STEP_EXEFS, UI_LAUNCH_STEP_ROMFS, UI_LAUNCH_STEP_GENERATE, UI_LAUNCH_STEP_COMPILE,
     UI_LAUNCH_STEP_SHADERS, UI_LAUNCH_STEP_WARM, UI_LAUNCH_STEP_CLEANUP, UI_LAUNCH_STEP_KEPT,

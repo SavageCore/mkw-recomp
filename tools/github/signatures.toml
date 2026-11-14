@@ -109,3 +109,14 @@ issue = 255
 all = ["reading address 0xa0", "main+0xa66e0"]
 fixed = "v0.1.11"
 what = "the render-buffer allocator of game version 1.8.0 runs out at 2160p and `ShadowPrePass` reads a null block (`main+0xa66e0`, address 0xa0)"
+
+[[signature]]
+issue = 315
+all = ["in lifted function f_700078ab50"]
+fixed = "v0.1.12"
+what = "1.0.0's `exefs/main` with 1.8.0's `romfs/`: the game crashed reading its parameters while warming up"
+
+[[signature]]
+issue = 315
+all = ["are from different versions (RomFS"]
+what = "`exefs` and `romfs` come from different game versions (the setup now refuses them)"

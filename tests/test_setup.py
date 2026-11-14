@@ -98,6 +98,40 @@ def test_versions() -> None:
     assert update.version_key("dev") is None
 
 
+def test_romfs_version_matches_main() -> None:
+    # #315: 1.0.0's exefs/main with 1.8.0's RomFS passed the file count and crashed while warming up
+    import versions
+
+    v100, v180 = versions.VERSIONS
+    res = "System/Resource/ResourceSizeTable."
+    r100 = [f"{res}Product.100.Nin_Ounce_NVN2.rsizetable.zs", f"{res}Pilot.100.Nin_Ounce_NVN2.rsizetable.zs"]
+    r180 = [f"{res}Product.180.Nin_Ounce_NVN2.rsizetable.zs", "Layout/Title.sarc.zs"]
+    assert versions.romfs_mismatch(v100, r100) == "" and versions.romfs_mismatch(v180, r180) == ""
+    assert versions.romfs_mismatch(v100, r180) == "RomFS 1.8.0, exefs/main 1.0.0"
+    assert versions.romfs_mismatch(v180, r100) == "RomFS 1.0.0, exefs/main 1.8.0"
+    assert versions.romfs_mismatch(v100, ["Layout/Title.sarc.zs"]) == ""  # no marker: the file count decides
+
+
+@pytest.mark.parametrize("product, ok", [(100, True), (180, False)])
+def test_check_refuses_other_romfs(tmp_path: Path, monkeypatch, product: int, ok: bool) -> None:
+    # check() on a loose dump: 1.0.0's main (its build id in an NSO header) and a RomFS naming `product`
+    import versions
+
+    v100 = versions.VERSIONS[0]
+    (tmp_path / "exefs").mkdir()
+    (tmp_path / "exefs/main").write_bytes(b"NSO0" + bytes(0x3C) + bytes.fromhex(v100.main_build_id))
+    res = tmp_path / "romfs/System/Resource"
+    res.mkdir(parents=True)
+    (res / f"ResourceSizeTable.Product.{product}.Nin_Ounce_NVN2.rsizetable.zs").write_bytes(b"")
+    monkeypatch.setattr(prepare, "count_files", lambda top, enough: enough)  # the file count is not under test
+    if ok:
+        assert prepare.check(tmp_path, tmp_path)[2] == v100
+    else:
+        with pytest.raises(prepare.Failed) as e:
+            prepare.check(tmp_path, tmp_path)
+        assert "RomFS 1.8.0, exefs/main 1.0.0" in str(e.value)
+
+
 @pytest.mark.parametrize("name", ["stale.old", "setup.old"])
 def test_clean_removes_old(tmp_path: Path, name: str) -> None:
     game = tmp_path / ODD

@@ -1870,6 +1870,15 @@ msgstr ""
 "je spelbestanden staan niet meer in %s: als je die map hebt verplaatst of hernoemd, kies hem "
 "opnieuw"
 
+#. %s: the two versions, e.g. "RomFS 1.8.0, exefs/main 1.0.0".
+msgctxt "UI_SETUP_ERR_MISMATCH"
+msgid ""
+"the game files and the program are from different versions (%s): take exefs and romfs from the "
+"same dump, with the update applied to both"
+msgstr ""
+"de spelbestanden en het programma zijn van verschillende versies (%s): neem exefs en romfs uit "
+"dezelfde dump, met de update op beide toegepast"
+
 msgctxt "UI_LAUNCH_STEP_CHECK"
 msgid "Check the copy"
 msgstr "Kopie controleren"

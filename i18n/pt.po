@@ -1866,6 +1866,15 @@ msgstr ""
 "os ficheiros do jogo já não estão em %s: se moveste ou mudaste o nome dessa pasta, escolhe-a de "
 "novo"
 
+#. %s: the two versions, e.g. "RomFS 1.8.0, exefs/main 1.0.0".
+msgctxt "UI_SETUP_ERR_MISMATCH"
+msgid ""
+"the game files and the program are from different versions (%s): take exefs and romfs from the "
+"same dump, with the update applied to both"
+msgstr ""
+"os ficheiros do jogo e o programa são de versões diferentes (%s): usa exefs e romfs do mesmo "
+"dump, com a atualização aplicada a ambos"
+
 msgctxt "UI_LAUNCH_STEP_CHECK"
 msgid "Check the copy"
 msgstr "Verificar a cópia"

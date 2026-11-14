@@ -1787,6 +1787,13 @@ msgctxt "UI_SETUP_ERR_MOVED"
 msgid "your game files are no longer in %s: if you moved or renamed that folder, choose it again"
 msgstr "ゲームファイルが %s にありません。フォルダーを移動または名前を変更した場合は、もう一度選んでください"
 
+#. %s: the two versions, e.g. "RomFS 1.8.0, exefs/main 1.0.0".
+msgctxt "UI_SETUP_ERR_MISMATCH"
+msgid ""
+"the game files and the program are from different versions (%s): take exefs and romfs from the "
+"same dump, with the update applied to both"
+msgstr "ゲームファイルとプログラムのバージョンが異なります（%s）：更新を両方に適用した同じダンプから exefs と romfs を用意してください"
+
 msgctxt "UI_LAUNCH_STEP_CHECK"
 msgid "Check the copy"
 msgstr "コピーを確認"

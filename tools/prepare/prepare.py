@@ -87,7 +87,8 @@ from machine import (
 import update  # (ca_file)
 
 PREP_VERSION = 1  # bump when a step's output changes meaning: every step runs again
-from versions import Version, build_id_of, detect_id  # (build build.py put recomp/ on the path)
+# (build.py put recomp/ on the path)
+from versions import ROMFS_PRODUCT, Version, build_id_of, detect_id, romfs_mismatch
 
 ROMFS_MARGIN = 0.95  # a few short still passes: some dumping tools skip empty files
 SHADER_DIRS = ("Effect", "Layout", "Lib")  # extract.py's SHADER_DIRS: with Shader/, the RomFS folders it reads
@@ -184,6 +185,15 @@ def check(src: Path, game: Path, runtime: Path | None = None) -> tuple[Path, Pat
         n = len(Nup(romfs).files("romfs")) if romfs.is_file() else count_files(romfs, need)
     if n < need:
         raise Failed(f"the RomFS has {n} files, {v.name} has {v.romfs_files}: an incomplete copy", "romfs", str(n))
+    if not is_nx(romfs):
+        res = Path(ROMFS_PRODUCT).parent
+        names = (
+            Nup(romfs).files("romfs")
+            if romfs.is_file()
+            else (f"{res.as_posix()}/{p.name}" for p in (romfs / res).glob("*"))
+        )
+        if why := romfs_mismatch(v, names):
+            raise Failed(f"the RomFS and exefs/main are from different versions ({why})", "mismatch", why)
     emit("version", v.name)
     return exefs, romfs, v
 

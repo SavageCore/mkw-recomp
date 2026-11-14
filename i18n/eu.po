@@ -1875,6 +1875,15 @@ msgstr ""
 "jokoaren fitxategiak ez daude jada %s karpetan: karpeta hori mugitu edo izenez aldatu baduzu, "
 "aukeratu berriro"
 
+#. %s: the two versions, e.g. "RomFS 1.8.0, exefs/main 1.0.0".
+msgctxt "UI_SETUP_ERR_MISMATCH"
+msgid ""
+"the game files and the program are from different versions (%s): take exefs and romfs from the "
+"same dump, with the update applied to both"
+msgstr ""
+"jokoaren fitxategiak eta programa bertsio desberdinetakoak dira (%s): hartu exefs eta romfs "
+"irauli beretik, eguneraketa bietan aplikatuta"
+
 msgctxt "UI_LAUNCH_STEP_CHECK"
 msgid "Check the copy"
 msgstr "Egiaztatu kopia"

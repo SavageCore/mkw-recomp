@@ -1805,6 +1805,13 @@ msgctxt "UI_SETUP_ERR_MOVED"
 msgid "your game files are no longer in %s: if you moved or renamed that folder, choose it again"
 msgstr "게임 파일이 더 이상 %s에 없습니다. 그 폴더를 옮기거나 이름을 바꿨다면 다시 선택하세요"
 
+#. %s: the two versions, e.g. "RomFS 1.8.0, exefs/main 1.0.0".
+msgctxt "UI_SETUP_ERR_MISMATCH"
+msgid ""
+"the game files and the program are from different versions (%s): take exefs and romfs from the "
+"same dump, with the update applied to both"
+msgstr "게임 파일과 프로그램의 버전이 다릅니다(%s): 업데이트를 둘 다에 적용한 같은 덤프에서 exefs와 romfs를 가져오세요"
+
 msgctxt "UI_LAUNCH_STEP_CHECK"
 msgid "Check the copy"
 msgstr "사본 확인"

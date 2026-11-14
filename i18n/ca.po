@@ -1866,6 +1866,15 @@ msgstr ""
 "els fitxers del joc ja no són a %s: si has mogut o canviat el nom d'aquesta carpeta, torna-la a "
 "triar"
 
+#. %s: the two versions, e.g. "RomFS 1.8.0, exefs/main 1.0.0".
+msgctxt "UI_SETUP_ERR_MISMATCH"
+msgid ""
+"the game files and the program are from different versions (%s): take exefs and romfs from the "
+"same dump, with the update applied to both"
+msgstr ""
+"els fitxers del joc i el programa són de versions diferents (%s): agafa exefs i romfs del mateix "
+"bolcat, amb l'actualització aplicada a tots dos"
+
 msgctxt "UI_LAUNCH_STEP_CHECK"
 msgid "Check the copy"
 msgstr "Comprovar la còpia"

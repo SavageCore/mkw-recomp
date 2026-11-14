@@ -54,6 +54,33 @@ def detect_id(got: str) -> Version:
     raise ValueError(f"exefs/main is not a known version of Mario Kart World ({names}; build id {got})")
 
 
+# The RomFS names its game data version in one file: System/Resource/ResourceSizeTable.Product.<number>.*.rsizetable.zs
+# (100 in 1.0.0's, 180 in 1.8.0's). An executable opens its own number's files: 1.0.0's main with 1.8.0's RomFS (#315)
+# passed the file count and crashed reading a Gyml parameter (main+0x78ab50) while warming up.
+ROMFS_PRODUCT = "System/Resource/ResourceSizeTable.Product."
+
+
+def romfs_products(names) -> set[int]:
+    """The game data version numbers RomFS file paths (relative, '/'-separated) name, empty when none does."""
+    found = set()
+    for name in names:
+        if name.startswith(ROMFS_PRODUCT):
+            number = name[len(ROMFS_PRODUCT) :].split(".", 1)[0]
+            if number.isdigit():
+                found.add(int(number))
+    return found
+
+
+def romfs_mismatch(v: Version, names) -> str:
+    """Why the RomFS whose file paths are `names` does not belong to v ("" when it does or names no version)."""
+    found = romfs_products(names)
+    if not found or v.number in found:
+        return ""
+    known = {x.number: x.name for x in VERSIONS}
+    got = ", ".join(known.get(n, f"Product.{n}") for n in sorted(found))
+    return f"RomFS {got}, exefs/main {v.name}"
+
+
 def modules(exefs: Path) -> list[str]:
     """The game modules present in the ExeFS, in load order (recomp/layout.py ORDER)."""
     sys.path.insert(0, str(ROOT / "recomp"))

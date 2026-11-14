@@ -16,6 +16,8 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
 - **Motion controls for every player** (discussion 302): the gyroscope and accelerometer were read from player 1's
   controller only, so in local multiplayer players 2 to 8 had no motion; each player's controller now feeds its own.
 - **"Choose game folder" in every menu language**: its four texts came in English only in 0.1.11.
+- **The setup refuses `exefs` and `romfs` from different game versions** (#315): 1.0.0's program with 1.8.0's game
+  files passed the checks and the game crashed while warming up; the setup now says which version each one is.
 
 ## 0.1.11
 

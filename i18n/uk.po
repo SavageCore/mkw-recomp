@@ -1860,6 +1860,15 @@ msgid "your game files are no longer in %s: if you moved or renamed that folder,
 msgstr ""
 "файлів гри більше немає в %s: якщо ви перемістили або перейменували цю теку, виберіть її знову"
 
+#. %s: the two versions, e.g. "RomFS 1.8.0, exefs/main 1.0.0".
+msgctxt "UI_SETUP_ERR_MISMATCH"
+msgid ""
+"the game files and the program are from different versions (%s): take exefs and romfs from the "
+"same dump, with the update applied to both"
+msgstr ""
+"файли гри та програма з різних версій (%s): візьміть exefs і romfs з одного дампу, з оновленням, "
+"застосованим до обох"
+
 msgctxt "UI_LAUNCH_STEP_CHECK"
 msgid "Check the copy"
 msgstr "Перевірити копію"
