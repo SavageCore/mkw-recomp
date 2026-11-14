@@ -41,6 +41,7 @@ enum { MR_BUDGET, MR_UNTRACKED, MR_OVERLAP, MR_ALLOC, MR_N };
 int vk_mirror_on;
 int mirror_verify;
 int mirror_gap = 2;             // pre-snap: hot pools at most this many 2 MiB regions apart share one query
+int mirror_cpu_gen = 1;         // MKW_MIRROR_CPU_GEN (default 1; "ab"): sync by the CPU stamps only (vk_mem_gen.c)
 static PoolRec **mlist;                // pool_lock: mirrored pools by import_lo
 static int nm, mcap;
 static uint32_t msub;                  // replay: number of the submission being recorded
@@ -59,7 +60,7 @@ static PlatMutex flush_lock = PLAT_MUTEX_INIT;
 
 typedef struct {
     uint64_t subs, syncs, upload_bytes, upload_copies, first_n, first_bytes, wb_bytes, wb_copies, wb_ranges;
-    uint64_t presnap_queries, sync_queries, presnap_t, sync_t, prologues, presnap_bytes, reup_bytes;
+    uint64_t presnap_queries, sync_queries, presnap_t, sync_t, prologues, presnap_bytes, reup_bytes, gpu_kept_bytes;
 } MirrorAcc;
 static MirrorAcc mrep;                 // replay: this submission
 static MirrorAcc macc;                 // mirror_stat_lock: since the last summary
@@ -264,8 +265,15 @@ static void mirror_sync(PoolRec *r) {
         if (b > hi) b = hi;
         const uint32_t *ch = gen_chunk[a >> GEN_CHUNK_SHIFT];   // a 2 MiB region lies in one chunk
         if (!ch) continue;
+        // pages only the GPU wrote since the last sync (their fence stamped gen_chunk, not cpu_gen_chunk) are in the
+        // mirror already; a chunk without a CPU stamp ever has none to copy
+        const uint32_t *cc = RT_KNOB_ON(mirror_cpu_gen) ? cpu_gen_chunk[a >> GEN_CHUNK_SHIFT] : ch;
         for (uint64_t x = a; x < b; x += 1ull << GEN_PAGE_SHIFT)
             if (ch[(x >> GEN_PAGE_SHIFT) & (GEN_PER_CHUNK - 1)] > since) {
+                if (!cc || cc[(x >> GEN_PAGE_SHIFT) & (GEN_PER_CHUNK - 1)] <= since) {
+                    mrep.gpu_kept_bytes += 1ull << GEN_PAGE_SHIFT;
+                    continue;
+                }
                 range_add(&pend, &npend, &cpend, r, x - lo, 1ull << GEN_PAGE_SHIFT);
                 if (reup_diag > 0)
                     for (int i = 0; i < nwbprev; i++)
@@ -569,12 +577,13 @@ void mirror_log(uint64_t frame) {
            "%lld, overlapping %lld, failed %lld; per frame: submits %.2f, syncs %.1f, upload %.3f MiB in %.1f ranges, "
            "first use %.2f pools %.3f MiB, write-back %.3f MiB in %.1f ranges, flush calls %.1f (%.3f MiB), queries "
            "%.1f pre-snap (%.1f MiB) + %.1f sync, prologues %.2f, tracking cpu %.3f ms (pre-snap %.3f, syncs %.3f)%s"
-           "%s%.3f MiB uploaded again after only the GPU wrote them (MKW_MIRROR_REUP)",
+           "; GPU-written kept %.3f MiB%s%.3f MiB uploaded again after only the GPU wrote them (MKW_MIRROR_REUP)",
            (unsigned long long)frame, (long long)m_live_n, m_live_bytes / M, (long long)m_refused_n[MR_BUDGET],
            m_refused_bytes[MR_BUDGET] / M, (long long)m_refused_n[MR_UNTRACKED], (long long)m_refused_n[MR_OVERLAP],
            (long long)m_refused_n[MR_ALLOC], a.subs / f, a.syncs / f, a.upload_bytes / f / M, a.upload_copies / f,
            a.first_n / f, a.first_bytes / f / M, a.wb_bytes / f / M, a.wb_copies / f, fc / f, fb / f / M,
            a.presnap_queries / f, a.presnap_bytes / f / M, a.sync_queries / f, a.prologues / f, qpc_ms(a.presnap_t + a.sync_t) / f,
-           qpc_ms(a.presnap_t) / f, qpc_ms(a.sync_t) / f, ver, reup_diag > 0 ? "; " : "", a.reup_bytes / f / M);
+           qpc_ms(a.presnap_t) / f, qpc_ms(a.sync_t) / f, ver, a.gpu_kept_bytes / f / M, reup_diag > 0 ? "; " : "",
+           a.reup_bytes / f / M);
 }
 

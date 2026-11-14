@@ -100,6 +100,7 @@ void destroy_rec(VkCtx *c, PoolRec *r);
 #define SNAP_REGIONS (RT_ADDRESS_LIMIT >> SNAP_SHIFT)
 extern PlatMutex gen_lock;
 extern uint32_t *gen_chunk[GEN_CHUNKS];
+extern uint32_t *cpu_gen_chunk[GEN_CHUNKS];   // the page's last stamp by a CPU write (vk_mem_gen.c); NULL: none ever
 extern uint32_t gen_now;
 extern uint32_t reg_max[RT_ADDRESS_LIMIT >> REG_SHIFT];
 extern uint32_t snap_at[SNAP_REGIONS];
@@ -212,7 +213,7 @@ void watch_copy(const PoolRec *r, uint64_t a, uint64_t b, uint64_t sync);   // s
 void watch_event(const char *what, uint64_t lo, uint64_t hi, uint64_t fence, uint64_t bytes);
 
 // vk_mem_mirror.c: VRAM mirror of buffer-bound pools
-extern int mirror_verify, mirror_gap;
+extern int mirror_verify, mirror_gap, mirror_cpu_gen;
 extern volatile int64_t m_live_n, m_live_bytes;
 void mirror_forget(PoolRec *r);     // pool_lock exclusive: off the mirrored list
 void mirror_retiring(PoolRec *r);   // vk_pool_fini: kept until mirror_retire (or vk_mem_shutdown)

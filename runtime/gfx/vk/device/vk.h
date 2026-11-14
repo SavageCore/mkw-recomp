@@ -171,6 +171,8 @@ void vk_texture_release(const tex_t *t);   // TextureFinalize: the image stays f
 void vk_read_texels(const tex_t *t, const view_t *v, const NVNcopyRegion *r, uint8_t *dst, uint64_t row, uint64_t img);
 void vk_write_texels(const tex_t *t, const view_t *v, const NVNcopyRegion *r, const uint8_t *src, uint64_t row, uint64_t img);
 void vk_guest_written(uint64_t addr, uint64_t size);   // a host write write-watch may miss: textures there re-upload
+void vk_gpu_written_stamp(uint64_t addr, uint64_t size);   // a GPU write landed in guest memory (its fence): the same
+                                                           // stamp, but the mirror, which holds those bytes, skips it
 int vk_glyphs_due(void);      // per present: the button icon sheet's icons changed (ui/glyphs/glyphs.c); at most 10 times a second
 void vk_glyphs_redo(void);    // ... then, replays drained: it uploads again, redrawn
 int vk_pool_needs_drain(const pool_t *p);  // its GPU storage is guest memory: queued replays must be done first

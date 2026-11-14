@@ -16,6 +16,12 @@
 // Two-level table over the guest address space (below 2^39): 256 MiB chunks of 65,536 page generations, allocated
 // when a page of the chunk is first stamped (GEN_*, vk_mem_internal.h). 0 = never stamped.
 uint32_t *gen_chunk[GEN_CHUNKS];
+// The same table for stamps of CPU origin only: write-watch queries, host writes (vk_guest_written). A GPU write
+// reported at its fence (vk_gpu_written_stamp) stamps gen_chunk, so the texture checks and the shadow see it, but not
+// this one: the mirror already holds those bytes (the GPU wrote them there) and syncs by this table, so it does not
+// upload them again (NX2navi 6c971b7: 57 of 60 MiB a frame; here 11 of ~15, mir-reup, 14/11/2026). A CPU write after
+// the GPU's stamps both, so a page both wrote still goes up.
+uint32_t *cpu_gen_chunk[GEN_CHUNKS];
 uint32_t gen_now;                 // last generation handed out
 PlatMutex gen_lock = PLAT_MUTEX_INIT;
 static uint64_t gen_pages[1024];
@@ -67,24 +73,31 @@ uint32_t *gen_slot(uint64_t page_addr, int create) {
     return &gen_chunk[ci][(page_addr >> GEN_PAGE_SHIFT) & (GEN_PER_CHUNK - 1)];
 }
 
-// gen_lock held exclusively; g is the newest generation handed out.
-static void stamp_page(uint64_t a, uint32_t g) {
+// gen_lock held exclusively; g is the newest generation handed out; cpu 0 for a GPU write reported at its fence.
+static void stamp_page(uint64_t a, uint32_t g, int cpu) {
     uint32_t *s = gen_slot(a, 1);
     if (!s) return;
     *s = g;
     reg_max[a >> REG_SHIFT] = g;
     reg_last[a >> REG_SHIFT] = ww_ep;
+    if (!cpu) return;
+    uint64_t ci = a >> GEN_CHUNK_SHIFT;
+    if (!cpu_gen_chunk[ci]) {
+        cpu_gen_chunk[ci] = calloc(GEN_PER_CHUNK, sizeof(uint32_t));
+        if (!cpu_gen_chunk[ci]) rt_fatal("vk: out of memory for page generations");
+    }
+    cpu_gen_chunk[ci][(a >> GEN_PAGE_SHIFT) & (GEN_PER_CHUNK - 1)] = g;
 }
 
-static void stamp_range(uint64_t lo, uint64_t hi, uint32_t g) {
-    for (uint64_t a = lo; a < hi; a += 1ull << GEN_PAGE_SHIFT) stamp_page(a, g);
+static void stamp_range(uint64_t lo, uint64_t hi, uint32_t g, int cpu) {
+    for (uint64_t a = lo; a < hi; a += 1ull << GEN_PAGE_SHIFT) stamp_page(a, g, cpu);
 }
 
 // Stamps that found gen_lock taken wait here (gstamp_lock) and go in before anyone reads stamps: every taker of gen_lock
 // goes through gen_lock_x or gen_lock_s. The completion thread stamped each GPU write under gen_lock at the fence and
 // waited ~1.3 ms there while a shadow sync queried the write watch, 1.47 s in a 12 s race (rt-n3, MKW_LOCK_PROF), so
 // the fence was done that much later. A stamp applied later is one made after the wait the lock would have cost.
-typedef struct { uint64_t lo, hi; } GStamp;
+typedef struct { uint64_t lo, hi; int cpu; } GStamp;
 static GStamp *gstamp;
 static int ngstamp, cgstamp;
 static volatile int32_t gstamp_n;           // ngstamp, read without the lock
@@ -93,7 +106,7 @@ static PlatMutex gstamp_lock = PLAT_MUTEX_INIT;   // after gen_lock
 static void gen_drain(void) {   // gen_lock exclusive
     if (!__atomic_load_n(&gstamp_n, __ATOMIC_ACQUIRE)) return;
     plat_mutex_lock(&gstamp_lock);
-    for (int i = 0; i < ngstamp; i++) stamp_range(gstamp[i].lo, gstamp[i].hi, ++gen_now);
+    for (int i = 0; i < ngstamp; i++) stamp_range(gstamp[i].lo, gstamp[i].hi, ++gen_now, gstamp[i].cpu);
     ngstamp = 0;
     __atomic_store_n(&gstamp_n, 0, __ATOMIC_RELEASE);
     plat_mutex_unlock(&gstamp_lock);
@@ -114,21 +127,24 @@ void gen_lock_s(void) {
     }
 }
 
-void vk_guest_written(uint64_t addr, uint64_t size) {
+static void written_stamp(uint64_t addr, uint64_t size, int cpu) {
     if (!size || nvn_gpu_only(addr)) return;
     uint64_t lo = addr & ~0xfffull, hi = (addr + size + 0xfff) & ~0xfffull;
     if (plat_mutex_trylock(&gen_lock)) {
         gen_drain();
-        stamp_range(lo, hi, ++gen_now);
+        stamp_range(lo, hi, ++gen_now, cpu);
         plat_mutex_unlock(&gen_lock);
         return;
     }
     plat_mutex_lock(&gstamp_lock);
     if (ngstamp == cgstamp) vk_mem_grow((void **)&gstamp, &cgstamp, sizeof *gstamp);
-    gstamp[ngstamp++] = (GStamp){lo, hi};
+    gstamp[ngstamp++] = (GStamp){lo, hi, cpu};
     __atomic_store_n(&gstamp_n, ngstamp, __ATOMIC_RELEASE);
     plat_mutex_unlock(&gstamp_lock);
 }
+
+void vk_guest_written(uint64_t addr, uint64_t size) { written_stamp(addr, size, 1); }
+void vk_gpu_written_stamp(uint64_t addr, uint64_t size) { written_stamp(addr, size, 0); }
 
 int vk_mem_changed(uint64_t addr, uint64_t size, uint32_t since, uint32_t *now) {
     if (!size) { *now = since; return 0; }
@@ -140,7 +156,7 @@ int vk_mem_changed(uint64_t addr, uint64_t size, uint32_t since, uint32_t *now) 
     while (!frozen) {
         uint64_t n = ww_query(lo, hi - lo);
         if (n == UINT64_MAX) { tracked = 0; break; }
-        for (uint64_t k = 0; k < n; k++) stamp_page(gen_pages[k], g);
+        for (uint64_t k = 0; k < n; k++) stamp_page(gen_pages[k], g, 1);
         if (n < sizeof gen_pages / sizeof *gen_pages) break;   // a full answer may have left pages for the next call
     }
     int changed = 0;
@@ -182,7 +198,7 @@ uint64_t snap_regions(uint64_t r0, uint64_t r1, uint32_t epoch) {
         for (;;) {
             uint64_t n = ww_query(a, b - a);
             if (n == UINT64_MAX) { tracked = 0; break; }
-            for (uint64_t j = 0; j < n; j++) stamp_page(gen_pages[j], g);
+            for (uint64_t j = 0; j < n; j++) stamp_page(gen_pages[j], g, 1);
             if (n < sizeof gen_pages / sizeof *gen_pages) break;
         }
         calls++;
@@ -245,7 +261,7 @@ int query_stamp(uint64_t lo, uint64_t hi, uint32_t g) {
     for (;;) {
         uint64_t n = ww_query(lo, hi - lo);
         if (n == UINT64_MAX) return 0;
-        for (uint64_t k = 0; k < n; k++) stamp_page(gen_pages[k], g);
+        for (uint64_t k = 0; k < n; k++) stamp_page(gen_pages[k], g, 1);
         if (n < sizeof gen_pages / sizeof *gen_pages) return 1;
         if (ww_peek) lo = gen_pages[n - 1] + (1ull << GEN_PAGE_SHIFT);   // the pages stay written: go on past them
     }
@@ -286,6 +302,9 @@ void ww_log(uint64_t frame) {
 // vk_mem_shutdown, after every pool went.
 void gen_reset(void) {
     gen_lock_x();
-    for (uint64_t i = 0; i < GEN_CHUNKS; i++) free(gen_chunk[i]), gen_chunk[i] = NULL;
+    for (uint64_t i = 0; i < GEN_CHUNKS; i++) {
+        free(gen_chunk[i]), gen_chunk[i] = NULL;
+        free(cpu_gen_chunk[i]), cpu_gen_chunk[i] = NULL;
+    }
     plat_mutex_unlock(&gen_lock);
 }

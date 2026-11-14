@@ -226,5 +226,5 @@ void vk_gpu_written(uint64_t addr, uint64_t size) {
         }
         plat_mutex_unlock_shared(&pool_lock);
     }
-    vk_guest_written(addr, size);
+    vk_gpu_written_stamp(addr, size);
 }
