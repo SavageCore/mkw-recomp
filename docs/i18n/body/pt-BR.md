@@ -70,11 +70,14 @@ alcançados, e um quadro acima de 33,3 ms faz a corrida rodar mais devagar que o
 1. Extraia o dump de Mario Kart World 1.0.0 ou 1.8.0 do seu Switch 2 (`exefs/` e `romfs/`, descriptografados; a 1.8.0
    com a atualização mesclada à RomFS do jogo base), ou esse mesmo dump empacotado em um único arquivo `.nup` ou `.nx`.
 2. Baixe o launcher para o seu sistema em [Versões](https://github.com/adriadam10/mkw-recomp/releases): no Linux o
-   `.AppImage` (`-aarch64` em ARM; ele guarda o jogo que prepara em `~/.local/share/mkw-recomp`; glibc 2.31 ou mais
+   `.AppImage` (`-aarch64` em ARM; a pasta padrão do jogo é `~/.local/share/mkw-recomp`; glibc 2.31 ou mais
    recente: Debian 11, Ubuntu 20.04, SteamOS e posteriores), no Windows o `.zip`, descompactado em uma pasta. Os dois
    precisam de uns 30 GB livres.
-3. Execute o AppImage (antes, `chmod +x`) ou o `mkw.exe`, abra **Arquivos do jogo**, aponte para o seu dump (**Escolher
-   pasta** ou **Escolher arquivo .nup ou .nx**) e clique em **Preparar**.
+3. Execute o AppImage (antes, `chmod +x`) ou o `mkw.exe`, abra **Arquivos do jogo**, se quiser use **Escolher pasta do
+   jogo** para escolher onde o jogo será instalado (ou uma instalação que já exista), aponte para o seu dump (**Escolher
+   pasta** ou **Escolher arquivo .nup ou .nx**) e clique em **Preparar**. O launcher lembra a pasta de instalação; é
+   nela que ficam o jogo compilado, os arquivos preparados, os saves, as configurações e os caches. Escolher outra pasta
+   deixa os arquivos existentes onde estão.
    A primeira preparação demora um pouco (compila o jogo inteiro e baixa o `nvdisasm` e o `ptxas` da NVIDIA, 84 MB no
    Linux e 126 MB no Windows, para descrever a codificação dos shaders na sua máquina); depois, **Jogar**.
 4. Quando sai uma versão nova, a tela inicial a oferece (**Atualizar para vX**): ela baixa, verifica, substitui o
@@ -99,13 +102,29 @@ Além do console, todos opcionais e desligados (ou no valor do console) por padr
 - **Som**: som surround 5.1.
 - **Controles**: todas as teclas e botões remapeáveis, câmera com o mouse, ícones de botões da Nintendo, Xbox ou
   PlayStation, direção por movimento, intensidade da vibração; multijogador local com um controle para cada um.
+  Os controles do Switch 2 (Pro Controller, Joy-Con, GameCube) funcionam por Bluetooth e, no Linux, por USB; no Windows
+  o USB precisa de um passo único com o driver, abaixo.
 - **Hacks**: turbo (segurar ou alternar F2), pular vídeos, desbloquear tudo, a mesma aleatoriedade sempre, direto para
   contra o relógio ou modo livre.
 - **Idiomas**: os menus em 20 idiomas; o próprio jogo também em catalão, galego e basco.
-- **Arquivos do jogo**: um dump em pastas ou em um único arquivo `.nup` ou `.nx`, usado onde está; atualizações pela
-  tela inicial.
+- **Arquivos do jogo**: escolher a pasta de instalação; um dump em pastas ou em um único arquivo `.nup` ou `.nx`, usado
+  onde está; atualizações pela tela inicial.
 - **Sobreposição de desempenho** (FPS, ou CPU, GPU e memória por completo) e informações do sistema em um clique para
   relatórios de bugs.
+
+### Controles do Switch 2 por USB no Windows
+
+Esses controles só começam a funcionar depois de um comando enviado à sua segunda interface USB, que o Windows deixa
+sem um driver que um aplicativo possa usar. Uma vez por controle, com o [Zadig](https://zadig.akeo.ie/):
+
+1. Conecte o controle com um cabo USB-C e abra o Zadig.
+2. **Options → List All Devices**, e escolha a **Interface 1** do controle (ID USB `057E` e `2069` para o Pro
+   Controller, `2066`/`2067` para o Joy-Con direito/esquerdo, `2073` para o controle de GameCube). Não a Interface 0:
+   ela é a entrada normal do controle, e substituí-la esconde o controle de todos os outros aplicativos.
+3. Driver **WinUSB**, depois **Replace Driver** (ou **Install Driver**).
+
+O mesmo vale para um controle virtual que apareça com esses IDs USB (o modo USB/IP do Switch2Connect). Para desfazer,
+desinstale o dispositivo dessa interface no Gerenciador de Dispositivos com "excluir o driver" marcado.
 
 ## Mods
 

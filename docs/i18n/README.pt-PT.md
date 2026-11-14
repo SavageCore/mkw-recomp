@@ -1,4 +1,4 @@
-<!-- translated from README.md 94fb2ed2d40b -->
+<!-- translated from README.md c71ca2cdc6f0 -->
 
 <p align="center"><img src="../logo.svg" width="128" alt="mkw-recomp logo"></p>
 
@@ -110,11 +110,14 @@ real.
 1. Extraia o dump de Mario Kart World 1.0.0 ou 1.8.0 da sua Switch 2 (`exefs/` e `romfs/`, desencriptados; a 1.8.0 com
    a atualização integrada na RomFS do jogo base), ou esse mesmo dump empacotado num único ficheiro `.nup` ou `.nx`.
 2. Transfira o launcher para o seu sistema em [Versões](https://github.com/adriadam10/mkw-recomp/releases): em Linux o
-   `.AppImage` (`-aarch64` em ARM; guarda o jogo que prepara em `~/.local/share/mkw-recomp`; glibc 2.31 ou mais
+   `.AppImage` (`-aarch64` em ARM; a pasta do jogo por omissão é `~/.local/share/mkw-recomp`; glibc 2.31 ou mais
    recente: Debian 11, Ubuntu 20.04, SteamOS e posteriores), em Windows o `.zip`, descompactado numa pasta. Ambos
    precisam de cerca de 30 GB livres.
-3. Execute o AppImage (antes, `chmod +x`) ou o `mkw.exe`, abra **Ficheiros do jogo**, indique o seu dump (**Escolher
-   pasta** ou **Escolher ficheiro .nup ou .nx**) e carregue em **Preparar**.
+3. Execute o AppImage (antes, `chmod +x`) ou o `mkw.exe`, abra **Ficheiros do jogo**, se quiser use **Escolher pasta do
+   jogo** para escolher onde o jogo será instalado (ou uma instalação já existente), indique o seu dump (**Escolher
+   pasta** ou **Escolher ficheiro .nup ou .nx**) e carregue em **Preparar**. O launcher lembra-se da pasta de
+   instalação; é aí que ficam o jogo compilado, os ficheiros preparados, os jogos guardados, as definições e as caches.
+   Escolher outra pasta deixa os ficheiros existentes onde estão.
    A primeira preparação demora algum tempo (compila o jogo inteiro e transfere o `nvdisasm` e o `ptxas` da NVIDIA,
    84 MB em Linux e 126 MB em Windows, para descrever a codificação dos shaders na sua máquina); depois, **Jogar**.
 4. Quando sai uma versão nova, o ecrã inicial propõe-na (**Atualizar para vX**): transfere-a, verifica-a, substitui o
@@ -139,13 +142,29 @@ Para além da consola, todas opcionais e desligadas (ou no valor da consola) por
 - **Som**: som surround 5.1.
 - **Controlos**: todas as teclas e botões reatribuíveis, câmara com o rato, ícones de botões da Nintendo, Xbox ou
   PlayStation, direção por movimento, intensidade da vibração; multijogador local com um comando para cada um.
+  Os comandos da Switch 2 (Pro Controller, Joy-Con, GameCube) funcionam por Bluetooth e, em Linux, por USB; em Windows
+  o USB precisa de um passo único com o controlador, mais abaixo.
 - **Hacks**: turbo (manter ou alternar F2), saltar vídeos, desbloquear tudo, a mesma aleatoriedade sempre, diretamente
   para contrarrelógio ou modo livre.
 - **Idiomas**: os menus em 20 idiomas; o próprio jogo também em catalão, galego e basco.
-- **Ficheiros do jogo**: um dump em pastas ou num único ficheiro `.nup` ou `.nx`, usado onde está; atualizações a
-  partir do ecrã inicial.
+- **Ficheiros do jogo**: escolher a pasta de instalação; um dump em pastas ou num único ficheiro `.nup` ou `.nx`, usado
+  onde está; atualizações a partir do ecrã inicial.
 - **Sobreposição de desempenho** (FPS, ou CPU, GPU e memória por completo) e informação do sistema num clique para os
   relatórios de erros.
+
+### Comandos da Switch 2 por USB em Windows
+
+Estes comandos só arrancam depois de uma ordem enviada à sua segunda interface USB, que o Windows deixa sem um
+controlador que uma aplicação possa usar. Uma vez por comando, com o [Zadig](https://zadig.akeo.ie/):
+
+1. Ligue o comando com um cabo USB-C e abra o Zadig.
+2. **Options → List All Devices**, e escolha a **Interface 1** do comando (ID USB `057E` e `2069` para o Pro
+   Controller, `2066`/`2067` para o Joy-Con direito/esquerdo, `2073` para o comando de GameCube). Não a Interface 0:
+   essa é a entrada normal do comando, e substituí-la esconde-o de todas as outras aplicações.
+3. Controlador **WinUSB**, depois **Replace Driver** (ou **Install Driver**).
+
+O mesmo vale para um comando virtual que apareça com esses ID USB (o modo USB/IP do Switch2Connect). Para desfazer,
+desinstale o dispositivo dessa interface no Gestor de Dispositivos com «eliminar o controlador» marcado.
 
 ## Mods
 

@@ -1,4 +1,4 @@
-<!-- translated from README.md 94fb2ed2d40b -->
+<!-- translated from README.md c71ca2cdc6f0 -->
 
 <p align="center"><img src="../logo.svg" width="128" alt="mkw-recomp logo"></p>
 
@@ -112,11 +112,14 @@ tiempo real.
    actualización integrada en la RomFS del juego base), o ese mismo volcado empaquetado en un único archivo `.nup` o
    `.nx`.
 2. Descarga el lanzador para tu sistema desde [Versiones](https://github.com/adriadam10/mkw-recomp/releases): en Linux
-   el `.AppImage` (`-aarch64` en ARM; guarda el juego que prepara en `~/.local/share/mkw-recomp`; glibc 2.31 o
+   el `.AppImage` (`-aarch64` en ARM; la carpeta del juego por defecto es `~/.local/share/mkw-recomp`; glibc 2.31 o
    posterior: Debian 11, Ubuntu 20.04, SteamOS y posteriores), en Windows el `.zip`, descomprimido en una carpeta. En
    los dos hacen falta unos 30 GB libres.
-3. Ejecuta el AppImage (antes, `chmod +x`) o `mkw.exe`, abre **Ficheros del juego**, indica tu volcado (**Elegir
-   carpeta** o **Elegir archivo .nup o .nx**) y pulsa **Preparar**.
+3. Ejecuta el AppImage (antes, `chmod +x`) o `mkw.exe`, abre **Ficheros del juego**, si quieres elige con **Elegir
+   carpeta del juego** dónde se instalará el juego (o una instalación que ya exista), indica tu volcado (**Elegir
+   carpeta** o **Elegir archivo .nup o .nx**) y pulsa **Preparar**. El lanzador recuerda la carpeta de instalación; ahí
+   viven el juego compilado, los ficheros preparados, las partidas guardadas, los ajustes y las cachés. Elegir otra
+   carpeta deja los ficheros existentes donde están.
    La primera preparación tarda un rato (compila el juego entero y descarga `nvdisasm` y `ptxas` de NVIDIA, 84 MB en
    Linux y 126 MB en Windows, para describir la codificación de los shaders en tu máquina); después, **Jugar**.
 4. Cuando sale una versión nueva, la pantalla de inicio la ofrece (**Actualizar a vX**): la descarga, la comprueba,
@@ -142,13 +145,29 @@ Más allá de la consola, todas opcionales y desactivadas (o al valor de la cons
 - **Sonido**: sonido envolvente 5.1.
 - **Controles**: todas las teclas y botones reasignables, cámara con el ratón, iconos de botones de Nintendo, Xbox o
   PlayStation, dirección por movimiento, intensidad de la vibración; multijugador local con un mando cada uno.
+  Los mandos de Switch 2 (Pro Controller, Joy-Con, GameCube) funcionan por Bluetooth y, en Linux, por USB; en Windows
+  el USB necesita un paso único con el controlador, más abajo.
 - **Hacks**: turbo (mantener o alternar F2), saltar vídeos, desbloquearlo todo, la misma aleatoriedad cada vez,
   directo a contrarreloj o a modo libre.
 - **Idiomas**: los menús en 20 idiomas; el propio juego también en catalán, gallego y euskera.
-- **Ficheros del juego**: un volcado en carpetas o en un único archivo `.nup` o `.nx`, usado donde está;
-  actualizaciones desde la pantalla de inicio.
+- **Ficheros del juego**: elegir la carpeta de instalación; un volcado en carpetas o en un único archivo `.nup` o
+  `.nx`, usado donde está; actualizaciones desde la pantalla de inicio.
 - **Superposición de rendimiento** (FPS, o CPU, GPU y memoria al completo) e información del sistema en un clic para
   los informes de fallos.
+
+### Mandos de Switch 2 por USB en Windows
+
+Estos mandos solo arrancan tras una orden enviada a su segunda interfaz USB, que Windows deja sin un controlador que
+una aplicación pueda usar. Una vez por mando, con [Zadig](https://zadig.akeo.ie/):
+
+1. Conecta el mando con un cable USB-C y abre Zadig.
+2. **Options → List All Devices**, y elige la **Interface 1** del mando (ID USB `057E` y `2069` para el Pro
+   Controller, `2066`/`2067` para el Joy-Con derecho/izquierdo, `2073` para el mando de GameCube). No la Interface 0:
+   esa es la entrada normal del mando, y sustituirla lo oculta a todas las demás aplicaciones.
+3. Controlador **WinUSB**, y **Replace Driver** (o **Install Driver**).
+
+Lo mismo vale para un mando virtual que aparezca con esos ID USB (el modo USB/IP de Switch2Connect). Para deshacerlo,
+desinstala el dispositivo de esa interfaz en el Administrador de dispositivos con «eliminar el controlador» marcado.
 
 ## Mods
 
