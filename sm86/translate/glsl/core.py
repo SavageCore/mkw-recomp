@@ -58,6 +58,7 @@ class Builder(AluOps, MemOps, TexOps, ThreadOps):
         self.uses_nminmax = False
         self.txq_tex: set[tuple[int, int]] = set()  # textures TXQ reads the size of (txqsz_* functions)
         self.uses_shadow_lod = False
+        self.uses_demote = False
         self.lmem_bytes = 0  # local memory (LDL/STL): the furthest constant extent, 0 = none
         self.task = False  # a task program (VS header, ISBEWR to its payload): set by translate()
         self.mesh = False  # a mesh program (ISBEWR.SKEW per-vertex writes): set by translate()
@@ -252,7 +253,12 @@ class Builder(AluOps, MemOps, TexOps, ThreadOps):
         if op == "PLOP3":
             return self.plop3(i)
         if op == "KILL":
-            return f"if ({pred(i.v('Pp'), i.v('Pp@not'))}) discard;"
+            # Demote, not discard (OpKill): the lane stays a helper to the end, as eden-nx2 emits KIL
+            # (emit_spirv_control_flow.cpp), DXVK and Dawn their discard. OpKill ends it inside divergent flow, and
+            # every NVIDIA 616-621 hang of #22 ("instruction pointer invalid" after 1-1.5 s of a stuck pass) drew
+            # with a fragment stage that kills: 8 of 8 pairs, against 2176 of the 7262 fragment stages (30 %).
+            self.uses_demote = True
+            return f"if ({pred(i.v('Pp'), i.v('Pp@not'))}) demote;"
         if op == "LEA":
             return self.lea(i)
         if op == "USHF":

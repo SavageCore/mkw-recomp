@@ -370,6 +370,7 @@ static int create_device(void) {
     else if (!c->f12.drawIndirectCount) miss = "drawIndirectCount";   // MultiDrawElementsIndirectCount
     else if (!c->f13.dynamicRendering) miss = "dynamicRendering";
     else if (!c->f13.synchronization2) miss = "synchronization2";
+    else if (!c->f13.shaderDemoteToHelperInvocation) miss = "shaderDemoteToHelperInvocation";   // KILL (sm86 core.py)
     else if (!h->shaderStorageImageWriteWithoutFormat) miss = "shaderStorageImageWriteWithoutFormat";
     else if (!c->clip.depthClipControl) miss = "depthClipControl";
     else if (!h->shaderInt64) miss = "shaderInt64";
