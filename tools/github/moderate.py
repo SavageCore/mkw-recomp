@@ -11,7 +11,10 @@ crashes came in several issues, and RecompLauncher's reports (no form) got no la
 Rules (the bot never comments where a maintainer already did):
 - empty (under 30 characters, no attachment) or asking for the game: closed as not planned
 - a bug report without a log and no replies yet: `needs-logs`, closed as not planned after 7 days without a reply from its author
-- a known error: `duplicate` and "looks like #N", closed as its duplicate after 3 days unless its author replies
+- a known error: `duplicate` and "looks like #N", closed as its duplicate at once; its author's reply reopens it
+  (14/11/2026: the 3 days, swept once a day and late, left 13 labelled duplicates open for up to 5 days)
+- a report on a release older than the newest two, quiet for 3 days: `needs-retry`, asked to try the latest; closed as
+  not planned after 7 days without a reply from its author (14/11/2026: 43 of 130 open issues were on 0.1.8 or older)
 - a maintainer's reply with "Fixed in vX": closed if vX is out, else `fixed-next-release`; with "same as #N": duplicate
 - a closed issue is reopened when its author, or anyone attaching a log, says it still happens
 - a published release closes the `fixed-next-release` issues with a link to it
@@ -32,11 +35,14 @@ import classify
 
 MAINTAINERS = {"OWNER", "MEMBER", "COLLABORATOR"}
 MARK = "<!-- mkw-bot:{} -->"
-DUP_DAYS, LOG_DAYS = 3, 7
+DUP_DAYS, LOG_DAYS = 0, 7  # DUP_DAYS 0: duplicates labelled before 14/11/2026, when they waited 3 days, close now
+QUIET_DAYS, RETRY_DAYS = 3, 7
+NOT_RETRIED = {"duplicate", "needs-logs", "needs-retry", "fixed-next-release", "enhancement"}
 NEW_LABELS = {
     "performance": ("fbca04", "Performance report: frame times on a player's machine"),
     "from-source": ("ededed", "Reported on a build from source"),
     "unknown-version": ("ededed", "The release could not be read from the report"),
+    "needs-retry": ("d4c5f9", "Reported on an older release: waiting for a try on the latest"),
 }
 
 TEXT = {
@@ -48,10 +54,15 @@ TEXT = {
     "folder (or `logs/setup.log` if the setup failed) by dragging it into a comment. Without it this issue is closed "
     f"in {LOG_DAYS} days.",
     "dup": "Thanks for the report. This looks like #{issue}: {what}. Please follow and add to that issue instead; this "
-    f"one is closed as its duplicate in {DUP_DAYS} days unless you reply here.",
+    "one is closed as its duplicate. If yours is a different problem, reply here and it is reopened.",
     "dup_old": "Thanks for the report. This looks like #{issue}: {what}, fixed in {fixed}. You are on {ver}: please "
-    "update to the [latest release]({repo_url}/releases/latest). This one is closed as its duplicate in "
-    f"{DUP_DAYS} days unless you reply here.",
+    "update to the [latest release]({repo_url}/releases/latest). This one is closed as its duplicate; if it still "
+    "happens there, reply here with its `logs/mkw.log` and it is reopened.",
+    "retry": "This was reported on {ver}, and {latest} is out with many fixes since. Please try the "
+    "[latest release]({repo_url}/releases/latest) and reply here: whether it still happens, with its `logs/mkw.log` "
+    f"attached. Without a reply this issue is closed in {RETRY_DAYS} days.",
+    "retry_closed": f"Closed: no reply in {RETRY_DAYS} days. If it still happens on the latest release, reply here with "
+    "`logs/mkw.log` attached and it is reopened, or open a new issue.",
     "logs_closed": f"Closed: no log in {LOG_DAYS} days. If it still happens on the latest release, open a new issue "
     "with `logs/mkw.log` attached.",
     "dup_closed": "Closed as a duplicate of #{issue}.",
@@ -177,7 +188,7 @@ class Moderator:
             self.gh.comment(n, "modified", TEXT["modified"].format(ver=mod, repo_url=self.repo_url))
         if on := classify.mods_enabled(logs):
             if "mods" not in have:
-                self.gh.label(n, "mods")   # made on GitHub by hand (#274), not in NEW_LABELS: those are swept as stale
+                self.gh.label(n, "mods")  # made on GitHub by hand (#274), not in NEW_LABELS: those are swept as stale
             if MARK.format("mods") not in said:
                 self.gh.comment(n, "mods", TEXT["mods"].format(mods=on))
         sig = classify.known_error(n, f"{title}\n{body}\n{logs}", ver, self.sigs)
@@ -186,6 +197,7 @@ class Moderator:
             text = TEXT[key].format(issue=sig.issue, what=sig.what, fixed=sig.fixed, ver=ver, repo_url=self.repo_url)
             self.gh.label(n, "duplicate")
             self.gh.comment(n, "dup", text)
+            self.gh.close(n, "duplicate", dup_of=sig.issue)
         elif "needs-logs" in have and classify.has_log(reported):
             self.gh.unlabel(n, "needs-logs")
         elif not sig and not comments and classify.wants_log(title, reported, have | add):
@@ -199,6 +211,17 @@ class Moderator:
         if issue["state"] != "open":
             # #38 (11/11/2026): closed by a "fixed in v0.1.7" reply, then "same error in v0.1.7" with a new log
             mine = c["user"]["login"] == issue["user"]["login"]
+            # closed by the bot as a known error or for no reply: whatever its author says next reopens it
+            by_bot = (
+                mine
+                and ({"duplicate", "needs-retry"} & have)
+                and any(MARK.format(k) in x["body"] for x in self.comments(n) for k in ("dup", "retry"))
+            )
+            if by_bot:
+                print(f"#{n} {issue['title'][:70]}: its author replied after the bot closed it, reopened")
+                self.gh.run("issue", "reopen", str(n))
+                self.gh.unlabel(n, *sorted({"duplicate", "needs-retry"} & have))
+                return False
             if c["author_association"] not in MAINTAINERS and classify.still_happens(c["body"], mine):
                 print(f"#{n} {issue['title'][:70]}: still happens, reopened")
                 self.gh.run("issue", "reopen", str(n))
@@ -221,7 +244,7 @@ class Moderator:
                 self.gh.label(n, "fixed-next-release")
             return False
         if c["user"]["login"] == issue["user"]["login"]:
-            drop = {"duplicate"} & have
+            drop = {"duplicate", "needs-retry"} & have
             if "needs-logs" in have and classify.has_log(c["body"]):
                 drop.add("needs-logs")
             if drop:
@@ -234,12 +257,32 @@ class Moderator:
         times = [e["created_at"] for e in events if e["label"]["name"] == label]
         return datetime.fromisoformat(times[-1]) if times else None
 
+    def ask_retry(self, issue: dict, comments: list[dict]) -> None:
+        """A report on a release older than the newest two, quiet for QUIET_DAYS: asked to try the latest. Not the
+        issues a known error points to (they track it), nor those waiting for something else (NOT_RETRIED)."""
+        n = issue["number"]
+        have = {lb["name"] for lb in issue["labels"]}
+        if have & NOT_RETRIED or n in {s.issue for s in self.sigs}:
+            return
+        old = [lb for lb in have if classify.behind(lb, set(self.releases))]
+        if not old or any(MARK.format("retry") in c["body"] for c in comments):
+            return
+        last = max([issue["created_at"], *(c["created_at"] for c in comments)])
+        if datetime.now(UTC) - datetime.fromisoformat(last) < timedelta(days=QUIET_DAYS):
+            return
+        latest = max(self.releases, key=classify.vkey)
+        print(f"#{n} {issue['title'][:70]}: on {old[0]}, quiet since {last[:10]}: asked to retry")
+        self.ensure_label("needs-retry")
+        self.gh.label(n, "needs-retry")
+        self.gh.comment(n, "retry", TEXT["retry"].format(ver=old[0], latest=latest, repo_url=self.repo_url))
+
     def sweep(self, issue: dict, comments: list[dict]) -> None:
-        """Closes what waited long enough for its author: the log, or an answer to "looks like #N"."""
+        """Closes what waited long enough for its author: the log, an answer to "looks like #N", or a try on the latest
+        release; then asks the old quiet reports for that try."""
         n = issue["number"]
         have = {lb["name"] for lb in issue["labels"]}
         now = datetime.now(UTC)
-        for label, days in (("duplicate", DUP_DAYS), ("needs-logs", LOG_DAYS)):
+        for label, days in (("duplicate", DUP_DAYS), ("needs-logs", LOG_DAYS), ("needs-retry", RETRY_DAYS)):
             if label not in have or not (since := self.labeled_at(n, label)) or now - since < timedelta(days=days):
                 continue
             author = issue["user"]["login"]
@@ -252,9 +295,13 @@ class Moderator:
                     dup = int(m.group(1))
                     self.gh.close(n, "duplicate", TEXT["dup_closed"].format(issue=dup), dup_of=dup)
                     return
+            elif label == "needs-retry":
+                self.gh.close(n, "not planned", TEXT["retry_closed"])
+                return
             else:
                 self.gh.close(n, "not planned", TEXT["logs_closed"])
                 return
+        self.ask_retry(issue, comments)
 
     def release(self, tag: str) -> None:
         url = self.releases.get(tag) or f"{self.repo_url}/releases/tag/{tag}"

@@ -1,6 +1,6 @@
 # Known error signatures and the issue that tracks each, read by classify.py: a new issue whose text holds every string
-# of `all` (case-insensitive) is answered "looks like #issue" and closed as its duplicate after 3 days unless its author
-# replies. With `fixed`, only reports from an earlier release match: the same text on that release or later is a
+# of `all` (case-insensitive) is answered "looks like #issue" and closed as its duplicate at once; its author's reply
+# reopens it. With `fixed`, only reports from an earlier release match: the same text on that release or later is a
 # regression and stays open for a person to read.
 # A row goes in when a reply groups issues by cause; keep the strings specific (a bare "failed (-4)" is every GPU loss).
 

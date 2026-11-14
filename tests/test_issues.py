@@ -144,3 +144,14 @@ def test_mods_from_the_log_line():
     log = "[host] cfg: read mkw.ini\n[host] mods: enabled ClassicGP, 30 FPS Lock\n[host] vk: gpu 0\n"
     assert classify.mods_enabled(log) == "ClassicGP, 30 FPS Lock"
     assert classify.mods_enabled("[host] cfg: read mkw.ini\n") is None
+
+
+def test_behind_the_newest_two():
+    rel = {"v0.1.8", "v0.1.9", "v0.1.10"}
+    assert classify.behind("v0.1.8", rel)
+    assert not classify.behind("v0.1.9", rel)
+    assert not classify.behind("v0.1.10", rel)
+    # labels that are not a published release never count as old
+    assert not classify.behind("v0.1.11", rel)
+    assert not classify.behind("unknown-version", rel)
+    assert not classify.behind("from-source", rel)

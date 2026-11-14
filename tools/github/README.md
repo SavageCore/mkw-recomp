@@ -9,6 +9,10 @@ Issue moderation (`moderate.py`, `classify.py`), run by `.github/workflows/issue
 | `archive.py` | The daily copy to the Internet Archive (`.github/workflows/archive.yml`): git bundle and every issue, pull request, discussion and release as JSON in a dated item, each release's files once, and the changed pages to the Wayback Machine. Prints what it would do unless `--apply` |
 | `signatures.toml` | Known error strings and the issue that tracks each; `fixed` keeps reports on that release or later open as possible regressions |
 
+A known error closes the new issue at once as its duplicate (its author's reply reopens it). A report on a release
+older than the newest two, quiet for 3 days, is asked to try the latest (`needs-retry`) and closed after 7 days without
+its author's reply. The sweep runs every 6 hours.
+
 A maintainer's reply closes its issue when it says "Fixed in vX" opening a sentence (or "is the same as #N, fixed in
 vX") with vX published, or "is the same as #N" (closed as its duplicate). "Fixed in" a release not yet out labels it
 `fixed-next-release`, closed when that release is published. A reply only settles an issue if no player wrote after

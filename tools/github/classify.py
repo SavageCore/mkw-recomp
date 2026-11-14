@@ -49,6 +49,15 @@ def vkey(tag: str) -> tuple[int, ...]:
     return tuple(int(p) for p in tag.lstrip("v").split("."))
 
 
+def behind(label: str, releases: set[str], keep: int = 2) -> bool:
+    """A release label (`v0.1.7`) older than the newest `keep` published releases: a report there is asked to try the
+    latest before it is worked on (14/11/2026: 43 of 130 open issues were on 0.1.8 or older, untouched for days)."""
+    if not re.fullmatch(r"v\d+\.\d+\.\d+", label) or label not in releases:
+        return False
+    newest = sorted(releases, key=vkey, reverse=True)[:keep]
+    return vkey(label) < vkey(newest[-1])
+
+
 def form_field(body: str, label: str) -> str | None:
     m = re.search(rf"^### {re.escape(label)}\s*\n+(.*?)(?=^### |\Z)", body, re.M | re.S)
     return m.group(1).strip() if m else None

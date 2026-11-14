@@ -2,7 +2,9 @@ name: Issue moderation
 
 # tools/github/moderate.py on each issue event: release and GPU labels, empty reports closed, logs asked for, known
 # errors answered (tools/github/signatures.toml), maintainers' "Fixed in vX" / "is the same as #N" replies closed.
-# Once a day it closes what waited long enough for its author; a published release closes the fixed-next-release ones.
+# Every 6 hours it closes what waited long enough for its author and asks old quiet reports to try the latest release
+# (once a day ran hours late and left issues open days past their limit, 14/11/2026); a published release closes the
+# fixed-next-release ones.
 on:
   issues:
     types: [opened, edited, reopened]
@@ -11,7 +13,7 @@ on:
   release:
     types: [published]
   schedule:
-    - cron: "17 6 * * *"
+    - cron: "17 */6 * * *"
   # By hand: the daily sweep, every open issue as if new (backlog) or one issue; dry run prints without acting
   workflow_dispatch:
     inputs:
