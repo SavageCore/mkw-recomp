@@ -79,6 +79,7 @@ typedef struct SparseImg {
     // own instead (tail_*: one allocation, bound once): the race's bushes and cacti sample those levels of the terrain
     // arrays and came out black (m8, m10: still black with every tile resident).
     VmaAllocation tail_alloc;
+    VkDeviceSize va_size;   // the image's memory requirements' size: the address space it reserves
     VkDeviceMemory tail_mem;
     VkDeviceSize tail_base;
     uint32_t nmips, tail_end, tail_blocks;   // levels; first Vulkan mip tail level (nmips: none); blocks a layer in
@@ -110,6 +111,7 @@ static VkSemaphore order_tl;      // timeline: one value per graphics-queue subm
 static VkSemaphore bind_sem;      // MKW_SPARSE_ORDER=0: binary, signalled by a bind for the next replayed submission
 static uint64_t order_val, bind_val;
 static int binary_pending;        // MKW_SPARSE_ORDER=0: a bind signalled bind_sem for the submission being made   // last value handed out; value of the last bind (0: none yet)
+static uint64_t sparse_va;   // address space the live sparse images reserve (their memory requirements' size)
 static int64_t n_slots, n_failed, n_binds, n_images, n_blocks, n_over, n_written, n_tail_writes, n_host_blocks;
 static VmaAllocation *dying_tails;   // tail memory of destroyed images: freed behind the next submission
 static int ndying_tails, cdying_tails, ntail_pending;
@@ -573,13 +575,29 @@ int vk_sparse_create(const VkImageCreateInfo *ci0, const nvn_texdesc *d, uint64_
         free(s);
         return 0;
     }
-    if (vkCreateImage(c->device, &ci, NULL, &s->img) != VK_SUCCESS) {
-        if (plat_inc32(&nwarn) <= 8) rt_log("vk: sparse: vkCreateImage failed (VkFormat %d %ux%u)", (int)ci.format, s->w, s->h);
+    VkResult cr = vkCreateImage(c->device, &ci, NULL, &s->img);
+    if (cr != VK_SUCCESS) {
+        // The virtual range of a sparse image is reserved at creation: on RADV GFX8 (Polaris, #314) the 8192x8192x68
+        // arrays failed, likely past the device's sparse address space. Its size, ours so far and the device's say.
+        if (plat_inc32(&nwarn) <= 8) {
+            VkDeviceImageMemoryRequirements q = {.sType = VK_STRUCTURE_TYPE_DEVICE_IMAGE_MEMORY_REQUIREMENTS, .pCreateInfo = &ci};
+            VkMemoryRequirements2 r2 = {.sType = VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2};
+            vkGetDeviceImageMemoryRequirements(c->device, &q, &r2);
+            plat_mutex_lock(&sp_lock);
+            uint64_t live = sparse_va;
+            plat_mutex_unlock(&sp_lock);
+            rt_log("vk: sparse: vkCreateImage failed (%d; VkFormat %d %ux%u layers %u levels %u, %llu MiB of address space; "
+                   "%llu MiB in %lld sparse images live, device sparse address space %llu MiB)", (int)cr, (int)ci.format,
+                   s->w, s->h, ci.arrayLayers, ci.mipLevels, (unsigned long long)(r2.memoryRequirements.size >> 20),
+                   (unsigned long long)(live >> 20), (long long)n_images,
+                   (unsigned long long)(c->props.limits.sparseAddressSpaceSize >> 20));
+        }
         free(s);
         return 0;
     }
     VkMemoryRequirements mr;
     vkGetImageMemoryRequirements(c->device, s->img, &mr);
+    s->va_size = mr.size;
     uint32_t nr = 1;
     VkSparseImageMemoryRequirements sr;
     vkGetImageSparseMemoryRequirements(c->device, s->img, &nr, &sr);
@@ -607,6 +625,7 @@ int vk_sparse_create(const VkImageCreateInfo *ci0, const nvn_texdesc *d, uint64_
     s->next = images, images = s;
     if (s->tail_pending) ntail_pending++;
     n_images++;
+    sparse_va += s->va_size;
     // Coarse levels first, so a full budget leaves fine detail out rather than whole layers.
     for (int l = (int)s->nlev - 1; l >= 0; l--)
         for (uint32_t y = 0; y < s->layers; y++) {
@@ -617,9 +636,11 @@ int vk_sparse_create(const VkImageCreateInfo *ci0, const nvn_texdesc *d, uint64_
     plat_mutex_unlock(&sp_lock);
     if (ni <= 16 || !(ni & (ni - 1)))
         rt_log("vk: sparse image %lld: %#llx %ux%u layers %u VkFormat %d, NVN tile %ux%u (%u levels, %u pages a layer), "
-               "Vulkan block %ux%u of %llu bytes, mip tail from level %u; %lld slots live", (long long)ni,
+               "Vulkan block %ux%u of %llu bytes, mip tail from level %u, %llu MiB of address space; %lld slots live",
+               (long long)ni,
                (unsigned long long)addr, s->w, s->h, s->layers, (int)ci.format, s->ntw, s->nth, (unsigned)lay[0],
-               s->stride, s->gw, s->gh, (unsigned long long)s->slot_size, nr ? sr.imageMipTailFirstLod : 0, (long long)ns);
+               s->stride, s->gw, s->gh, (unsigned long long)s->slot_size, nr ? sr.imageMipTailFirstLod : 0,
+               (unsigned long long)(s->va_size >> 20), (long long)ns);
     *out = s->img;
     return 1;
 }
@@ -646,6 +667,7 @@ uint64_t vk_sparse_destroy(VkImage img) {
         free(s->dl);
         free(s);
         n_images--;
+        sparse_va -= s->va_size;
     }
     plat_mutex_unlock(&sp_lock);
     return bind_fence;
