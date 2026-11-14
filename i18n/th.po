@@ -112,10 +112,10 @@ msgstr "ปลดล็อกทั้งหมด"
 
 msgctxt "UI_MENU_UNLOCK_ALL_DESC"
 msgid ""
-"Every driver and outfit, vehicle and sticker, and the Special Cup. It goes into your save when "
-"the game saves: turning it off does not lock them again."
+"Every driver and outfit, vehicle and sticker, the Special Cup and Mirror. It goes into your save "
+"when the game saves: turning it off does not lock them again."
 msgstr ""
-"ตัวละครและชุดทุกแบบ ยานพาหนะและสติกเกอร์ และสเปเชียลคัพ จะถูกบันทึกลงเซฟเมื่อเกมบันทึก: "
+"ตัวละครและชุดทุกแบบ ยานพาหนะและสติกเกอร์ สเปเชียลคัพ และมิเรอร์ จะถูกบันทึกลงเซฟเมื่อเกมบันทึก: "
 "ปิดตัวเลือกนี้แล้วจะไม่ล็อกกลับ"
 
 msgctxt "UI_MENU_QUICK_RACE"

@@ -110,9 +110,9 @@ msgstr "모두 해금"
 
 msgctxt "UI_MENU_UNLOCK_ALL_DESC"
 msgid ""
-"Every driver and outfit, vehicle and sticker, and the Special Cup. It goes into your save when "
-"the game saves: turning it off does not lock them again."
-msgstr "모든 드라이버와 코스튬, 탈것, 스티커, 스페셜 컵이 열립니다. 게임이 저장될 때 세이브에 기록되므로, 끄더라도 다시 잠기지 않습니다."
+"Every driver and outfit, vehicle and sticker, the Special Cup and Mirror. It goes into your save "
+"when the game saves: turning it off does not lock them again."
+msgstr "모든 드라이버와 코스튬, 탈것, 스티커, 스페셜 컵, 미러가 열립니다. 게임이 저장될 때 세이브에 기록되므로, 끄더라도 다시 잠기지 않습니다."
 
 msgctxt "UI_MENU_QUICK_RACE"
 msgid "Straight to"

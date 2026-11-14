@@ -1,5 +1,5 @@
 // Unlock everything: MKW_UNLOCK_ALL=1 owns every driver and costume, vehicle and sticker and
-// reveals the Special Cup in the save the game opens (Play/account.sav), as a save editor does. Ported from
+// reveals the Special Cup and opens Mirror in the save the game opens (Play/account.sav), as a save editor does. From
 // Ca1nM/mario-kart-world-save-editor (MIT, mkw_core.py unlock_all / set_owned / reveal_special_cup at b12cbe6): each
 // category is a length-prefixed list of owned ids, a parallel per-slot state array and, for drivers, one bit per owned
 // slot; new items are appended with the state the game gives a new one. The arrays are found by key hash in the save's
@@ -38,6 +38,9 @@ static const Category cats[] = {
 };
 static const Array cup_progress = {0x55A6E00E, 0xF5B0};
 static const Array cup_open_in_gp = {0x9A164573, 0x72C};   // in 1.0.0's table too (50 slots, a 1.0.0 save)
+// Mirror (#292): the class list (main+0x213ec60) offers it when this saved Int is above 0 (main+0x2136688), which the
+// game sets after its "Mirror unlocked" notice (main+0x21366b8). An Int's value sits in its table entry, not behind it.
+#define MIRROR_OPEN_KEY 0x2F65471Cu
 
 typedef struct { uint32_t list, state, mask, cap; } Located;
 
@@ -114,6 +117,13 @@ int unlock_save(uint8_t *b, uint64_t n) {
     uint32_t special_bit = 1u << SPECIAL_CUP_SLOT;
     if (flags && flag_slots > SPECIAL_CUP_SLOT && !(rd(b, flags) & special_bit))
         wr(b, flags, rd(b, flags) | special_bit), total++;
-    rt_log("unlock: %s, Special Cup open (MKW_UNLOCK_ALL)", note);
+    int mirror = 0;
+    for (uint32_t e = KEY_TABLE, end = rd(b, 8); e + 8 <= end && e + 8 <= n; e += 8)
+        if (rd(b, e) == MIRROR_OPEN_KEY) {
+            mirror = 1;
+            if (!rd(b, e + 4)) wr(b, e + 4, 1), total++;
+            break;
+        }
+    rt_log("unlock: %s, Special Cup open, mirror %s (MKW_UNLOCK_ALL)", note, mirror ? "open" : "not in this save");
     return total;
 }

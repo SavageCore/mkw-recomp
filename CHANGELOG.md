@@ -24,6 +24,8 @@ its issue, #N), `### Tested` (what was run from the packages before publishing) 
   other call the Windows C runtime rejects writes a crash report with the game's frames to `logs/mkw.log`.
 - **The setup refuses `exefs` and `romfs` from different game versions** (#315): 1.0.0's program with 1.8.0's game
   files passed the checks and the game crashed while warming up; the setup now says which version each one is.
+- **Unlock everything opens Mirror** (discussion 292): Settings > Hacks > Unlock everything now also offers Mirror in
+  the class select, as the game does after its "Mirror Mode has been unlocked!" notice.
 - **NVIDIA "instruction pointer invalid" crashes, second fix** (#22, #231): 0.1.11's change did not cover Moo Moo
   Meadows. Every logged case was a pass stuck for 1-1.5 s whose draw has a fragment shader that discards pixels
   midway (8 of 8, against 30 % of the game's fragment shaders). A discarded pixel now stays as a helper to the end of
