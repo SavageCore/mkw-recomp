@@ -221,9 +221,13 @@ int cfg_load(const char *path) {
 //
 // The Steam Deck (LCD Jupiter, OLED Galileo; 1280x800, 16:10, 4 Zen 2 cores, RDNA 2 with 8 CUs sharing 16 GB): a
 // window at the screen's 1280x800, fullscreen and vsync, as gamescope composes Game Mode.
-// Starting points to replace with measured ones (docs/tester-guide.md, Steam Deck).
+// RESOLUTION 720: with "original" the output already shrinks to the 720 lines a 16:9 picture gets on the 800-line
+// screen (patches.c output_size), but the 3D scene still renders at the console's docked 2560x1440 (romfs_res.c),
+// passes of that size taking 16 of the GPU's 42 ms a frame (MKW_PASS_TIMING with MKW_VK_RECORDER=0). With 720 they
+// go: race median 36.3 -> 23.4 ms (time trial, low quality preset, UMA 1 GB, 13/11/2026), 35.7 -> 24.6 ms without the
+// timing; a docked Deck on a large screen can pick a higher one in the menu.
 static const struct { const char *key, *value; } DECK[] = {
-    {"FULLSCREEN", "1"}, {"WINDOW_SIZE", "1280x800"}, {"VK_PRESENT", "fifo"},
+    {"FULLSCREEN", "1"}, {"WINDOW_SIZE", "1280x800"}, {"VK_PRESENT", "fifo"}, {"RESOLUTION", "720"},
 };
 static int profile = -1;   // 0 none, 1 Steam Deck
 
