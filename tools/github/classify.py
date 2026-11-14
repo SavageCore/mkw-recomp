@@ -124,11 +124,15 @@ class Signature:
     all: tuple[str, ...]
     what: str
     fixed: str | None = None
+    wiki: str = ""  # anchor of its section in the wiki's Troubleshooting page
 
 
 def load_signatures(path: Path = SIGNATURES) -> list[Signature]:
     rows = tomllib.loads(path.read_text())["signature"]
-    return [Signature(r["issue"], tuple(s.lower() for s in r["all"]), r["what"], r.get("fixed")) for r in rows]
+    return [
+        Signature(r["issue"], tuple(s.lower() for s in r["all"]), r["what"], r.get("fixed"), r.get("wiki", ""))
+        for r in rows
+    ]
 
 
 def known_error(number: int, text: str, ver: str | None, sigs: list[Signature]) -> Signature | None:

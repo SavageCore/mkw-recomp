@@ -1,4 +1,4 @@
-<!-- translated from README.md c71ca2cdc6f0 -->
+<!-- translated from README.md c175259cbc98 -->
 
 <p align="center"><img src="../logo.svg" width="128" alt="mkw-recomp logo"></p>
 
@@ -16,6 +16,7 @@
 
 <p align="center">
   <b><a href="https://github.com/adriadam10/mkw-recomp/releases">发布</a></b> ·
+  <b><a href="https://github.com/adriadam10/mkw-recomp/wiki">帮助 Wiki</a></b> ·
   <a href="../../CHANGELOG.md">更新日志</a> ·
   <a href="../../CONTRIBUTING.md">参与贡献</a> ·
   <a href="../../docs/research.md#sources">来源</a> ·

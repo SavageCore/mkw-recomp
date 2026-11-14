@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Help wiki
+    url: https://github.com/adriadam10/mkw-recomp/wiki
+    about: Installation, settings, controls, known errors by their log line, and a FAQ
   - name: Question
     url: https://github.com/adriadam10/mkw-recomp/discussions/categories/q-a
     about: Building, setting up and running

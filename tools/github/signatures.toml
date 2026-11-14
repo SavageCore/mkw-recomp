@@ -3,120 +3,144 @@
 # reopens it. With `fixed`, only reports from an earlier release match: the same text on that release or later is a
 # regression and stays open for a person to read.
 # A row goes in when a reply groups issues by cause; keep the strings specific (a bare "failed (-4)" is every GPU loss).
+# `wiki` is the anchor of its section in the wiki's Troubleshooting page (what the player can do), linked from the
+# reply; a row goes in with its section. tests/test_issues.py checks that every row has one.
 
 [[signature]]
 issue = 22
+wiki = "nvidia-device-fault-instruction-pointer-invalid"
 all = ["instruction pointer invalid"]
 what = "the GPU faults mid-draw on NVIDIA (\"device fault: instruction pointer invalid\")"
 
 [[signature]]
 issue = 99
+wiki = "nvidia-crash-in-nvgpucomp64dll--libnvidia-gpucomp"
 all = ["nvgpucomp"]
 what = "NVIDIA's shader compiler (`nvgpucomp64.dll` / `libnvidia-gpucomp`) crashes while it compiles a pipeline"
 
 [[signature]]
 issue = 1
+wiki = "setup-errors-fixed-in-old-releases"
 all = ["gamelib.h", "file not found"]
 fixed = "v0.1.2"
 what = "the setup could not find `gamelib.h`"
 
 [[signature]]
 issue = 29
+wiki = "setup-errors-fixed-in-old-releases"
 all = ["spec.py", "args.cc.split"]
 fixed = "v0.1.5"
 what = "the shader step split the compiler's path at a space in the game folder"
 
 [[signature]]
 issue = 18
+wiki = "is-not-mario-kart-world-100--is-not-a-known-version-of-mario-kart-world"
 all = ["is not Mario Kart World 1.0.0 (build id"]
 what = "the game copy is not version 1.0.0 (usually an update merged into the dump)"
 
 [[signature]]
 issue = 18
+wiki = "is-not-mario-kart-world-100--is-not-a-known-version-of-mario-kart-world"
 all = ["is not a known version of Mario Kart World"]
 what = "the game copy is neither 1.0.0 nor 1.8.0 (another update merged into the dump)"
 
 [[signature]]
 issue = 83
+wiki = "crash-when-the-window-loses-focus-during-boot-reading-address-0xd8-f_7002637e5c"
 all = ["reading address 0xd8", "f_7002637e5c"]
 what = "the game window lost the focus during the boot, and the game read a manager it had not made yet"
 
 [[signature]]
 issue = 88
+wiki = "amd-on-windows-device-lost-detected-0-addresses-a-few-seconds-into-the-title"
 all = ["AMD proprietary driver", "Device lost detected; 0 addresses"]
 fixed = "v0.1.8"
 what = "AMD's Windows driver loses the device in a mesh shader dispatch a few seconds into the title"
 
 [[signature]]
 issue = 67
+wiki = "upload-submit-failed--2--device-local-allocation-failed-out-of-gpu-memory"
 all = ["upload submit failed (-2)"]
 what = "the driver refuses a submission for lack of GPU memory (`upload submit failed (-2)`) at the title, on an integrated GPU"
 
 [[signature]]
 issue = 111
+wiki = "amd-on-windows-a-draw-gave-up-on-its-pipeline-after-30000-ms"
 all = ["a draw gave up on its pipeline after 30000 ms", "AMD proprietary driver"]
 what = "AMD's Windows driver takes minutes to compile a few shaders with indirect jumps, so draws give up on their pipelines (black or broken screen)"
 
 [[signature]]
 issue = 123
+wiki = "svc-0x1f-unknown-when-controllers-are-swapped"
 all = ["svc #0x1f unknown", "SwapNpadAssignment"]
 fixed = "v0.1.9"
 what = "the game swapped two players' controllers (`nn::hid::SwapNpadAssignment`), which the port did not handle"
 
 [[signature]]
 issue = 177
+wiki = "module-use-of-python312dll-conflicts-with-this-version-of-python"
 all = ["python312.dll conflicts"]
 what = "the setup's tools took another Python's `PYTHONPATH` or `PYTHONHOME` and failed at generate (\"Module use of python312.dll conflicts with this version of Python\")"
 
 [[signature]]
 issue = 174
+wiki = "intel-gpu-hang-iris-xe-uhd-meteor-lake"
 all = ["vendor 0x8086", "ccfd8df60515649e38fc902d961d4b8c396461b05b48c71988079c051c8d5156"]
 what = "Intel's GPUs hang in a compute program that reaches `barrier()` after an early return (the 1x1x1 dispatch after the 512x512 pass)"
 
 [[signature]]
 issue = 50
+wiki = "amd-on-linux-radv-device-lost-at-the-title"
 all = ["driver radv", "task/mesh draws as mesh shaders", "upload submit failed (-4)"]
 what = "RADV loses the device at the title with the game's mesh shaders run natively: from 0.1.10 RADV draws them as compute passes by default (`mesh_compute = 1` in `mkw.ini` does the same before)"
 
 [[signature]]
 issue = 152
+wiki = "amd-vega-7-integrated-ryzen-50007000-device-lost-while-the-first-textures-upload"
 all = ["device 0x1638", "upload submit failed (-4)"]
 what = "AMD's Vega 7 integrated GPU (Ryzen 5000/7000 APUs) loses the device while the first textures are uploaded"
 
 [[signature]]
 issue = 195
+wiki = "internal-resolution-or-other-settings-ignored-on-180"
 all = ["game version 1.8.0", "Product_100.sarc.zs missing"]
 what = "on game version 1.8.0 the internal resolution setting has no effect (the game keeps its own resolution)"
 
 [[signature]]
 issue = 207
+wiki = "download-fails-with-sha256-cuda_nvcc-archivezip"
 all = ["cuda_nvcc-windows-x86_64-12.8.93-archive.zip: sha256"]
 what = "NVIDIA's shader compiler download reached the setup damaged (a different checksum on each try: antivirus, proxy or a broken connection)"
 
 [[signature]]
 issue = 222
+wiki = "setup-errors-fixed-in-old-releases"
 all = ["max_workers must be <= 61"]
 fixed = "v0.1.10"
 what = "the setup's shader step failed on Windows PCs with more than 61 CPU threads"
 
 [[signature]]
 issue = 220
+wiki = "amd-on-windows-device-lost-at-the-title-or-in-the-warm-up-rx-9070-rx-5500m-890m"
 all = ["AMD proprietary driver", "61fb5ce38233a3f7", "d50d2bc0a9bdca54"]
 what = "AMD's Windows driver loses the device right after the same pair of programs (61fb5ce3… / d50d2bc0…), at the title or in the setup's warm-up"
 
 [[signature]]
 issue = 255
+wiki = "180-crash-at-2160p-reading-address-0xa0-main0xa66e0"
 all = ["reading address 0xa0", "main+0xa66e0"]
 fixed = "v0.1.11"
 what = "the render-buffer allocator of game version 1.8.0 runs out at 2160p and `ShadowPrePass` reads a null block (`main+0xa66e0`, address 0xa0)"
 
 [[signature]]
 issue = 315
+wiki = "are-from-different-versions-romfs--crash-in-lifted-function-f_700078ab50"
 all = ["in lifted function f_700078ab50"]
 fixed = "v0.1.12"
 what = "1.0.0's `exefs/main` with 1.8.0's `romfs/`: the game crashed reading its parameters while warming up"
 
 [[signature]]
 issue = 315
+wiki = "are-from-different-versions-romfs--crash-in-lifted-function-f_700078ab50"
 all = ["are from different versions (RomFS"]
 what = "`exefs` and `romfs` come from different game versions (the setup now refuses them)"

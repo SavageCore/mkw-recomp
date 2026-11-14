@@ -14,6 +14,7 @@
 
 <p align="center">
   <b><a href="https://github.com/adriadam10/mkw-recomp/releases">Releases</a></b> ·
+  <b><a href="https://github.com/adriadam10/mkw-recomp/wiki">Help wiki</a></b> ·
   <a href="CHANGELOG.md">Changelog</a> ·
   <a href="CONTRIBUTING.md">Contributing</a> ·
   <a href="docs/research.md#sources">Sources</a> ·
@@ -93,6 +94,10 @@ reach, and a frame over 33.3 ms runs the race slower than real time.
 | 09/11/2026 | GTX 1050 Ti (Windows) | 1080p | 22-24 | 42-45 ms |
 
 ## Playing
+
+> **Stuck or have a question?** Search the [wiki](https://github.com/adriadam10/mkw-recomp/wiki) first: installation,
+> settings, controls, [known errors by their log line](https://github.com/adriadam10/mkw-recomp/wiki/Troubleshooting)
+> and a [FAQ](https://github.com/adriadam10/mkw-recomp/wiki/FAQ).
 
 ![The start screen once the game is set up](docs/images/launcher-main.png)
 

@@ -8,7 +8,7 @@ body:
       value: |
         Reports go into [docs/performance.md](https://github.com/adriadam10/mkw-recomp/blob/main/docs/performance.md) with the date of the issue, so later reports show what changed.
 
-        - Turn on the performance overlay in Full mode (F1 → Display → Performance overlay, or F10 in game) and read the frame time there.
+        - Turn on the performance overlay in Full mode (F1 → Screen → Performance overlay, or F10 in game) and read the frame time there.
         - Play the scene once and restart the game, so the shader and pipeline caches are warm.
         - Use the settings the start screen gave you unless you say otherwise below.
   - type: input
@@ -44,7 +44,7 @@ body:
     id: resolution
     attributes:
       label: Internal resolution and quality
-      description: Display tab → Internal resolution, and the quality preset or the rows you changed.
+      description: Graphics tab → Internal resolution, and the quality preset or the rows you changed.
       placeholder: Original (1080p), preset High
     validations:
       required: true

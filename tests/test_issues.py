@@ -104,6 +104,12 @@ def test_known_errors_and_regressions():
     assert classify.known_error(94, LAUNCHER, "v0.1.7", SIGS) is None
 
 
+def test_every_signature_links_its_wiki_section():
+    # the bot's duplicate reply sends the player to what they can do (wiki Troubleshooting, one section per row)
+    for s in SIGS:
+        assert s.wiki and s.wiki == s.wiki.lower() and " " not in s.wiki, s
+
+
 def test_still_happens_reopens():
     # #38: another player, a new log, under "fixed in v0.1.7"
     assert classify.still_happens(f"{LOG} Same error in v0.1.7 without GPL=0, freezes on title world map.", False)

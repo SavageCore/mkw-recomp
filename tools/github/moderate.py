@@ -46,12 +46,14 @@ NEW_LABELS = {
 }
 
 TEXT = {
+    "wiki": " What you can do about it is in the wiki: [Troubleshooting]({repo_url}/wiki/Troubleshooting#{wiki}).",
     "empty": "This issue has no details to act on, so it is closed. Please open a new one with the "
     "[bug report form]({repo_url}/issues/new?template=bug_report.yml) and attach `logs/mkw.log`.",
     "game": "Only Mario Kart World 1.0.0 or 1.8.0 dumped from your own console is supported; issues about obtaining the game, "
     "its files or keys are closed.",
     "logs": "Thanks for the report. To find the cause we need the log: please attach `logs/mkw.log` from the game "
-    "folder (or `logs/setup.log` if the setup failed) by dragging it into a comment. Without it this issue is closed "
+    "folder (or `logs/setup.log` if the setup failed) by dragging it into a comment; the wiki says "
+    "[where it is]({repo_url}/wiki/Installation#where-things-live). Without it this issue is closed "
     f"in {LOG_DAYS} days.",
     "dup": "Thanks for the report. This looks like #{issue}: {what}. Please follow and add to that issue instead; this "
     "one is closed as its duplicate. If yours is a different problem, reply here and it is reopened.",
@@ -195,6 +197,8 @@ class Moderator:
         if sig and MARK.format("dup") not in said:
             key = "dup_old" if sig.fixed else "dup"
             text = TEXT[key].format(issue=sig.issue, what=sig.what, fixed=sig.fixed, ver=ver, repo_url=self.repo_url)
+            if sig.wiki:
+                text += TEXT["wiki"].format(repo_url=self.repo_url, wiki=sig.wiki)
             self.gh.label(n, "duplicate")
             self.gh.comment(n, "dup", text)
             self.gh.close(n, "duplicate", dup_of=sig.issue)
@@ -202,7 +206,7 @@ class Moderator:
             self.gh.unlabel(n, "needs-logs")
         elif not sig and not comments and classify.wants_log(title, reported, have | add):
             self.gh.label(n, "needs-logs")
-            self.gh.comment(n, "logs", TEXT["logs"])
+            self.gh.comment(n, "logs", TEXT["logs"].format(repo_url=self.repo_url))
 
     def on_comment(self, issue: dict, c: dict) -> bool:
         """A maintainer's reply that settles the issue, or its author answering the bot. True if it closed it."""

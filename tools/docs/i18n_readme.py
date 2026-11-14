@@ -27,31 +27,33 @@ LANGS = [("zh-CN", "简体中文", False), ("es", "Español", False), ("ar", "ا
 STRINGS = {
     "zh-CN": ("《马力欧赛车 世界》（Nintendo Switch 2）的重编译版本，可在 Linux 和 Windows 上原生运行。", "下载",
               "Windows 最新版", "Linux 最新版 (AppImage)", "Linux ARM 最新版",
-              ["发布", "更新日志", "参与贡献", "来源", "路线图", "性能", "问题", "讨论", "存档"]),
+              ["发布", "帮助 Wiki", "更新日志", "参与贡献", "来源", "路线图", "性能", "问题", "讨论", "存档"]),
     "es": ("Mario Kart World (Nintendo Switch 2) recompilado para funcionar de forma nativa en Linux y Windows.",
            "Descargar", "última para Windows", "última para Linux (AppImage)", "última para Linux ARM",
-           ["Versiones", "Cambios", "Contribuir", "Fuentes", "Hoja de ruta", "Rendimiento", "Issues", "Discussions",
+           ["Versiones", "Wiki de ayuda", "Cambios", "Contribuir", "Fuentes", "Hoja de ruta", "Rendimiento", "Issues", "Discussions",
             "Archivo"]),
     "ar": ("ماريو كارت وورلد (Nintendo Switch 2) معاد تجميعها لتعمل أصليًا على Linux وWindows.", "تنزيل",
            "أحدث إصدار لـ Windows", "أحدث إصدار لـ Linux (AppImage)", "أحدث إصدار لـ Linux ARM",
-           ["الإصدارات", "سجل التغييرات", "المساهمة", "المصادر", "خارطة الطريق", "الأداء", "المشكلات", "النقاشات", "الأرشيف"]),
+           ["الإصدارات", "الويكي", "سجل التغييرات", "المساهمة", "المصادر", "خارطة الطريق", "الأداء", "المشكلات", "النقاشات", "الأرشيف"]),
     "hi": ("Mario Kart World (Nintendo Switch 2), Linux और Windows पर नेटिव रूप से चलने के लिए रीकम्पाइल किया गया।",
            "डाउनलोड", "Windows के लिए नवीनतम", "Linux के लिए नवीनतम (AppImage)", "Linux ARM के लिए नवीनतम",
-           ["रिलीज़", "बदलाव", "योगदान", "स्रोत", "रोडमैप", "प्रदर्शन", "इश्यू", "चर्चाएँ", "आर्काइव"]),
+           ["रिलीज़", "विकी", "बदलाव", "योगदान", "स्रोत", "रोडमैप", "प्रदर्शन", "इश्यू", "चर्चाएँ", "आर्काइव"]),
     "pt-BR": ("Mario Kart World (Nintendo Switch 2) recompilado para rodar nativamente no Linux e no Windows.",
               "Baixar", "mais recente para Windows", "mais recente para Linux (AppImage)",
               "mais recente para Linux ARM",
-              ["Versões", "Mudanças", "Contribuir", "Fontes", "Roteiro", "Desempenho", "Issues", "Discussões",
+              ["Versões", "Wiki de ajuda", "Mudanças", "Contribuir", "Fontes", "Roteiro", "Desempenho", "Issues", "Discussões",
                "Arquivo"]),
     "pt-PT": ("Mario Kart World (Nintendo Switch 2) recompilado para correr nativamente em Linux e Windows.",
               "Transferir", "mais recente para Windows", "mais recente para Linux (AppImage)",
               "mais recente para Linux ARM",
-              ["Versões", "Alterações", "Contribuir", "Fontes", "Roteiro", "Desempenho", "Issues", "Discussões",
+              ["Versões", "Wiki de ajuda", "Alterações", "Contribuir", "Fontes", "Roteiro", "Desempenho", "Issues", "Discussões",
                "Arquivo"]),
 }
 # fmt: on
 LINKS = [
     f"{REPO}/releases",
+    # Help for players: installation, settings, controls, known errors, FAQ (its source is the repository's wiki)
+    f"{REPO}/wiki",
     "../../CHANGELOG.md",
     "../../CONTRIBUTING.md",
     "../../docs/research.md#sources",
@@ -95,7 +97,7 @@ def build(code: str, rtl: bool) -> str:
         return (f'  <a href="{REPO}/releases/latest"><img src="{url}?style=for-the-badge&labelColor=1b2740" '
                 f'alt="{dl}: {what}"></a>')  # fmt: skip
 
-    links = " ·\n  ".join(f'<a href="{u}">{n}</a>' if i else f'<b><a href="{u}">{n}</a></b>'
+    links = " ·\n  ".join(f'<a href="{u}">{n}</a>' if i > 1 else f'<b><a href="{u}">{n}</a></b>'
                           for i, (u, n) in enumerate(zip(LINKS, names)))  # fmt: skip
     body = (I18N / "body" / f"{code}.md").read_text(encoding="utf-8").strip()
     body = REL_HTML.sub(r"\1../../\2", REL_MD.sub(r"\1../../\2", body))

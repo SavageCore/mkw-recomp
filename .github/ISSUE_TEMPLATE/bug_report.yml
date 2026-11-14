@@ -5,8 +5,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        Search open and closed issues for the error text first, and comment there if it is already reported.
-        Only Mario Kart World 1.0.0 dumped from your own console is supported; issues about obtaining the game are closed.
+        Look up the last lines of `logs/mkw.log` in the wiki's [Troubleshooting](https://github.com/adriadam10/mkw-recomp/wiki/Troubleshooting) page and search open and closed issues for the error text first; comment there if it is already reported.
+        Only Mario Kart World 1.0.0 or 1.8.0 dumped from your own console is supported; issues about obtaining the game are closed.
         A slow scene goes into the [Performance report](https://github.com/adriadam10/mkw-recomp/issues/new?template=performance.yml) form.
   - type: input
     id: summary
