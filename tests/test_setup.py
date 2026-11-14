@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sm86/spec"))
 sys.path.insert(0, str(ROOT / "tools/prepare"))
 import prepare  # noqa: E402
+import gamesource  # noqa: E402  (after prepare: it puts recomp/ on the path)
 import gamecode  # noqa: E402
 import spec  # noqa: E402
 import update  # noqa: E402
@@ -123,7 +124,7 @@ def test_check_refuses_other_romfs(tmp_path: Path, monkeypatch, product: int, ok
     res = tmp_path / "romfs/System/Resource"
     res.mkdir(parents=True)
     (res / f"ResourceSizeTable.Product.{product}.Nin_Ounce_NVN2.rsizetable.zs").write_bytes(b"")
-    monkeypatch.setattr(prepare, "count_files", lambda top, enough: enough)  # the file count is not under test
+    monkeypatch.setattr(gamesource, "count_files", lambda top, enough: enough)  # the file count is not under test
     if ok:
         assert prepare.check(tmp_path, tmp_path)[2] == v100
     else:
@@ -273,9 +274,9 @@ def test_unpack_uses_launcher_not_installation(tmp_path: Path, monkeypatch: pyte
         calls.append(argv)
         return process
 
-    monkeypatch.setattr(prepare.subprocess, "Popen", start)
+    monkeypatch.setattr(gamesource.subprocess, "Popen", start)
     package = tmp_path / "Dump ñ.nx"
-    assert prepare.unpack(runtime, package, game, "exefs") == "unpack: 1 files, 64 bytes"
+    assert gamesource.unpack(runtime, package, game, "exefs") == "unpack: 1 files, 64 bytes"
     assert calls == [[str(runtime / ("mkw.exe" if os.name == "nt" else "mkw")),
                       "--unpack", str(package), str(game), "exefs"]]
 
@@ -284,10 +285,10 @@ def test_find_game_packages(tmp_path: Path) -> None:
     # a .nup or .nx package is the source as one file (its exefs and romfs both); any other file is refused
     for name, magic in (("g.nup", b"NUP\x01"), ("g.nx", b"NXAR")):
         (tmp_path / name).write_bytes(magic + bytes(60))
-        assert prepare.find_game(tmp_path / name) == (tmp_path / name, tmp_path / name)
+        assert gamesource.find_game(tmp_path / name) == (tmp_path / name, tmp_path / name)
     (tmp_path / "g.zip").write_bytes(b"PK\x03\x04" + bytes(60))
     with pytest.raises(prepare.Failed):
-        prepare.find_game(tmp_path / "g.zip")
+        gamesource.find_game(tmp_path / "g.zip")
 
 
 def test_regenerate_if_cleaned(tmp_path: Path) -> None:

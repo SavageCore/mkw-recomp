@@ -6,6 +6,7 @@ Why apart: prepare.py holds the steps; this is what they run with. Not run on it
 
 import json
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -158,3 +159,17 @@ def mem_gb() -> float:
         return build.mem_total_gb()
     except OSError:
         return 8.0
+
+
+def run(cmd: list[str], env: dict[str, str] | None = None, progress_prefix: str = "") -> None:
+    """A tool's run; its 'progress n total' lines (translate.py) pass through, the rest goes to stderr."""
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
+    tail = []
+    for line in p.stdout:
+        if progress_prefix and line.startswith(progress_prefix):
+            emit(line.strip())
+        else:
+            sys.stderr.write(line)
+            tail = (tail + [line.strip()])[-5:]
+    if p.wait():
+        raise Failed(f"{Path(cmd[1] if len(cmd) > 1 else cmd[0]).name} failed: {' / '.join(tail)}")

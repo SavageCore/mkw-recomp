@@ -71,131 +71,29 @@ import game_texts  # (build_all: the game's texts in ca, gl, eu)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from gamecode import compile_game
+from gamesource import check, is_nx, loose_romfs, unpack
 from gamecopy import clear_dir, copy_tree, remove_stale
-from nup import Nup, is_nup
+from nup import Nup
 from machine import (
     Failed,
-    crt_spec,
     default_cc,
     default_glslc,
     emit,
     mem_gb,
     own_children,
+    run,
     shader_jobs,
-    tool_env,
 )
+from shaderstep import shaders, spec_command, translator_key  # noqa: F401  (spec_command: tests/test_setup.py)
 import update  # (ca_file)
 
 PREP_VERSION = 1  # bump when a step's output changes meaning: every step runs again
 # (build.py put recomp/ on the path)
-from versions import ROMFS_PRODUCT, Version, build_id_of, detect_id, romfs_mismatch
+from versions import Version
 
-ROMFS_MARGIN = 0.95  # a few short still passes: some dumping tools skip empty files
 SHADER_DIRS = ("Effect", "Layout", "Lib")  # extract.py's SHADER_DIRS: with Shader/, the RomFS folders it reads
 STEPS = ("check", "exefs", "romfs", "generate", "compile", "shaders", "warm", "cleanup")
 WARM_SECONDS = 60  # the driver cache is saved every 20 s and the pipeline keys every 2 (vk_pipeline.c, vk_pipe_keys.c)
-
-
-# ---- check
-def is_nx(path: Path) -> bool:
-    """A .nx package (NXFormat): read through the runtime (mkw --unpack, runtime/sdk/fs/nx.cpp), which has its reader."""
-    try:
-        with path.open("rb") as f:
-            return f.read(4) == b"NXAR"
-    except OSError:
-        return False
-
-
-def unpack(runtime: Path, pkg: Path, dest: Path | str, *prefixes: str) -> str:
-    """Files of a packed dump (.nup or .nx) under dest as loose files, by the runtime: only those under the prefixes
-    ("exefs", "romfs/Mals"). Returns its "unpack: N files, B bytes" line (the log lines come first); dest "-" counts only."""
-    exe = runtime / ("mkw.exe" if os.name == "nt" else "mkw")
-    p = subprocess.Popen([str(exe), "--unpack", str(pkg), str(dest), *prefixes], stdout=subprocess.PIPE,
-                         stderr=subprocess.STDOUT, text=True)  # fmt: skip
-    head, tail = "", []
-    for line in p.stdout:
-        if line.startswith("progress "):
-            emit(*line.split())
-        else:
-            head = head or (line.strip() if line.startswith("unpack: ") else "")
-            tail = (tail + [line.strip()])[-5:]
-            sys.stderr.write(line)
-    if p.wait():
-        raise Failed(f"{pkg} could not be unpacked: {' / '.join(tail)}", "source", str(pkg))
-    return head
-
-
-def loose_romfs(runtime: Path, romfs: Path, work: Path, *dirs: str) -> Path:
-    """romfs as a folder with at least dirs in it: itself when loose, else those dirs unpacked from the package."""
-    if not romfs.is_file():
-        return romfs
-    unpack(runtime, romfs, work / "pack", *(f"romfs/{d}" for d in dirs))
-    return work / "pack" / "romfs"
-
-
-def find_game(src: Path) -> tuple[Path, Path]:
-    """src a .nup or .nx package (both are then its path), else exefs/ and romfs/ in src or up to two levels below it."""
-    if src.is_file():
-        if is_nup(src) or is_nx(src):
-            return src, src
-        raise Failed(f"{src} is not a .nup or .nx package", "nogame", str(src))
-    for depth in range(3):
-        for d in [src, *src.glob("/".join(["*"] * depth))] if depth else [src]:
-            # romfs/ loose, or a .nup (or a link to one) next to a loose exefs/: a packed copy with its exefs for tools
-            if (d / "exefs/main").is_file() and ((d / "romfs").is_dir() or is_nup(d / "romfs")):
-                return d / "exefs", d / "romfs"
-    raise Failed(f"no exefs/main and romfs/ in {src}", "nogame", str(src))
-
-
-def count_files(top: Path, enough: int) -> int:
-    n = 0
-    for _, _, files in os.walk(top):
-        n += len(files)
-        if n >= enough:
-            break
-    return n
-
-
-def check(src: Path, game: Path, runtime: Path | None = None) -> tuple[Path, Path, Version]:
-    runtime = runtime or game
-    exefs, romfs = find_game(src)
-    if is_nx(exefs):  # a .nx package: its exefs/main through the runtime
-        unpack(runtime, exefs, game / "setup-work/pack", "exefs/main")
-        main = game / "setup-work/pack/exefs/main"
-        head, where = main.read_bytes()[:0x48], f"{exefs}::exefs/main"
-    elif exefs.is_file():  # a .nup package
-        nup = Nup(exefs)
-        if "main" not in nup.files("exefs"):
-            raise Failed(f"{exefs} has no exefs/main", "nogame", str(exefs))
-        head, where = nup.read(nup.files("exefs")["main"])[:0x48], f"{exefs}::exefs/main"
-    else:
-        head, where = (exefs / "main").read_bytes()[:0x48], str(exefs / "main")
-    try:
-        got = build_id_of(head, where)
-    except ValueError:
-        raise Failed(f"{where} is not an NSO: decrypted exefs needed", "encrypted", where) from None
-    try:
-        v = detect_id(got)
-    except ValueError as e:
-        raise Failed(str(e), "version", got) from None
-    need = int(v.romfs_files * ROMFS_MARGIN)
-    if is_nx(romfs):
-        n = int(unpack(runtime, romfs, "-", "romfs").split()[1])
-    else:
-        n = len(Nup(romfs).files("romfs")) if romfs.is_file() else count_files(romfs, need)
-    if n < need:
-        raise Failed(f"the RomFS has {n} files, {v.name} has {v.romfs_files}: an incomplete copy", "romfs", str(n))
-    if not is_nx(romfs):
-        res = Path(ROMFS_PRODUCT).parent
-        names = (
-            Nup(romfs).files("romfs")
-            if romfs.is_file()
-            else (f"{res.as_posix()}/{p.name}" for p in (romfs / res).glob("*"))
-        )
-        if why := romfs_mismatch(v, names):
-            raise Failed(f"the RomFS and exefs/main are from different versions ({why})", "mismatch", why)
-    emit("version", v.name)
-    return exefs, romfs, v
 
 
 def ini_set(ini: Path, key: str, value: str) -> None:
@@ -238,20 +136,6 @@ def code_mods(game: Path) -> tuple[list[dict], str]:
     return image, hashlib.sha256(blob).hexdigest()[:16]
 
 
-# ---- the game code
-def run(cmd: list[str], env: dict[str, str] | None = None, progress_prefix: str = "") -> None:
-    """A tool's run; its 'progress n total' lines (translate.py) pass through, the rest goes to stderr."""
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
-    tail = []
-    for line in p.stdout:
-        if progress_prefix and line.startswith(progress_prefix):
-            emit(line.strip())
-        else:
-            sys.stderr.write(line)
-            tail = (tail + [line.strip()])[-5:]
-    if p.wait():
-        raise Failed(f"{Path(cmd[1] if len(cmd) > 1 else cmd[0]).name} failed: {' / '.join(tail)}")
-
 
 def generate(exefs: Path, work: Path, jobs: int, v: Version, image: list[dict]) -> None:
     gen = work / "generated"
@@ -292,57 +176,6 @@ GENERATOR = [
     *sorted((ROOT / "recomp").glob("patches-mkw*.txt")),
 ]  # each version's table
 COMPILER = [*GENERATOR, ROOT / "tools/build/build.py", Path(__file__).with_name("gamecode.py")]
-
-
-# ---- shaders and the overlay
-def translator_key() -> str:
-    """The shader step's key: every file the translation's output depends on (the translator, the decoder, extract.py
-    and translate.py), as translate.py's translator_hash minus the spec, which this step builds. With translate.py
-    alone, an update that changed only sm86/translate kept the old SPIR-V (#26: 0.1.7's translator fixes and the
-    position default never reached a set-up game)."""
-    h = hashlib.sha256()
-    files = sorted((ROOT / "sm86/translate").rglob("*.py")) + sorted((ROOT / "sm86/decode").rglob("*.py"))
-    for f in [*files, ROOT / "tools/shaders/extract.py", ROOT / "tools/shaders/translate.py"]:
-        h.update(f.read_bytes())
-    return h.hexdigest()[:16]
-
-
-def sm86_spec(game: Path, work: Path, cc: list[str]) -> Path:
-    """The spec translate.py decodes with: a source checkout's own build/sm86, else built once into <game>/sm86."""
-    for spec in (ROOT / "build/sm86/instructions.json", game / "sm86/instructions.json"):
-        if spec.is_file():
-            return spec
-    crt = crt_spec(game, cc)  # spec.py links a DLL too on Windows: without it, zig builds its libc there (issue #2)
-    run(spec_command(game, work, cc, crt))
-    return game / "sm86/instructions.json"
-
-
-def spec_command(game: Path, work: Path, cc: list[str], crt: Path | None) -> list[str]:
-    """spec.py's command line; the compiler goes as JSON, whose paths may have spaces (issue #29)."""
-    return [sys.executable, str(ROOT / "sm86/spec/spec.py"), "--out", str(game / "sm86"), "--cache",
-            str(work / "nvidia"), "--cc", json.dumps(cc), *(["--crt", str(crt)] if crt else [])]  # fmt: skip
-
-
-def shaders(exefs: Path, romfs: Path, game: Path, work: Path, glslc: str, jobs: int, cc: list[str]) -> None:
-    spec = sm86_spec(game, work, cc)
-    sh = work / "shaders"
-    run([sys.executable, str(ROOT / "tools/shaders/extract.py"), "--romfs", str(romfs), "--exefs", str(exefs),
-         "--out", str(sh)])  # fmt: skip
-    while True:
-        try:
-            run([sys.executable, str(ROOT / "tools/shaders/translate.py"), "--shaders", str(sh),
-                 "--out", str(game / "spirv"), "--glslc", glslc, "--no-validate", "--progress", "--jobs", str(jobs),
-                 "--spec", str(spec)], env=tool_env(glslc), progress_prefix="progress")  # fmt: skip
-            break
-        except Failed as e:
-            # A worker that dies (the system ends it when memory runs out) breaks the whole pool (issue #24,
-            # BrokenProcessPool). What is translated stays (translate.py resumes); half the workers need half the memory.
-            if "BrokenProcessPool" not in str(e) or jobs == 1:
-                raise
-            jobs = max(1, jobs // 2)
-            print(f"shaders: a worker ended abruptly, again with {jobs} workers", file=sys.stderr)
-    for p in (game / "spirv").glob("*.glsl"):  # the runtime reads .spv and .res.json; the GLSL only made them
-        p.unlink()
 
 
 def warm(game: Path, work: Path, runtime: Path | None = None) -> None:
