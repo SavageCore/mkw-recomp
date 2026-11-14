@@ -12,5 +12,6 @@ Replacements of `nn::*` functions by name: system, input, audio, video, graphics
 | `ov_oe2.c` | MKW's own: the `nn::oe` that totk-pc-recomp does not replace (version 1.0.0, graphics scale, notifications) |
 | `ov_chat.c` | MKW 1.8.0's `nn::chat` (GameChat): a console where no chat is started; the room-info event is real and never signalled |
 | `ov_net.c` | MKW's own: offline network (`nifm`, `friends`, `ldn`, `nsd`, `prepo`); with `MKW_LAN=1`, `nifm`'s local network mode (the LAN lobby) is connected with the host's address |
+| `ov_lanaddr.c` | MKW's own: the address and mask `nifm` reports in LAN mode, chosen from the host's interfaces (or `MKW_LAN_IP`) |
 | `ov_socket.c` | MKW's own: `nn::socket` as main's network-down stub by default; with `MKW_LAN=1`, over the host's sockets (datagrams, poll, eventfd), with the console's FreeBSD sockaddr, options and flags: the base of LAN play. Bind and SendTo take local network addresses only (private, link-local, multicast, broadcast), so LAN play cannot reach the internet. LAN tested on Linux only; on Windows it compiles, with ICMP resets off on datagram sockets and no eventfd (only gRPC, online, calls it) |
 | `ov_time2.c` | MKW's own: the `nn::time` that totk-pc-recomp does not replace (exact network clock, host time zone, instant clock correction) |
