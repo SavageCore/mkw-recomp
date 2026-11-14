@@ -9,7 +9,9 @@
 #   LIVE_WRAP="gamescope --backend headless -W 1280 -H 720 --hdr-enabled --hdr-debug-force-support --" (gamescope's
 #   Vulkan layer on with ENABLE_GAMESCOPE_WSI=1, exported before live.sh).
 # LIVE_BIN: another runtime than build/mkw, e.g. a prepared player folder of another game version
-#   (LIVE_BIN=scratchpad/prep-linux-180/mkw: 1.8.0, whose game code build/mkw does not carry).
+#   (LIVE_BIN=scratchpad/prep-linux-180/mkw: 1.8.0, whose game code build/mkw does not carry). A runtime from a release
+#   AppImage links the sysroot's libvpx.so.6 and SDL3, which only the AppImage's lib/ has: LIVE_LIB=<that lib/> (e.g.
+#   from `AppImage --appimage-extract 'lib/*'`) puts it first on the library path.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 n=${1:?usage: live.sh NAME [SECONDS]}; secs=${2:-900}
@@ -48,5 +50,6 @@ export MKW_BACKGROUND_WINDOW=${MKW_BACKGROUND_WINDOW:-1} MKW_ASSUME_FOCUS=${MKW_
 tools/run/kwin-rule.sh --ensure >/dev/null   # the rule that keeps that window minimized and without focus
 # job start runs a systemd service, which does not inherit this shell's environment: the MKW_* go by env.
 mapfile -t vars < <(env | grep -E '^(MKW_|ENABLE_GAMESCOPE_WSI=)')
+[ -n "${LIVE_LIB:-}" ] && vars+=("LD_LIBRARY_PATH=$(realpath "$LIVE_LIB")")
 JOB_MEM=${JOB_MEM:-7G} tools/run/job.sh start "$n" env "${vars[@]}" bash -c "timeout -s KILL $secs ${LIVE_WRAP:-} $bin > build/run/$n.log 2>&1"
 echo "live: $n up; commands: tools/run/ctl.sh $n frame|shot PATH|dump DIR [ubo]|flight|press <ticks> <button> [hold]|stop"
