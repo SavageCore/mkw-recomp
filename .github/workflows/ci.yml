@@ -22,8 +22,8 @@ jobs:
   checks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
         with:
           enable-cache: true
       - name: Lint
@@ -44,8 +44,8 @@ jobs:
   setup-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
         with:
           enable-cache: true
       - name: Setup command lines (no game)
@@ -60,10 +60,10 @@ jobs:
       # Arch's libraries instead, the v0.1.12 release rebuilt the sysroot (107 s) and every object (88 s).
       - name: Tools
         run: pacman -Syu --noconfirm --needed git ccache clang lld llvm ninja make cmake pkgconf expat binutils uv python
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: ccache in the checkout, kept between runs (build.py compiles through it when installed)
         run: echo "CCACHE_DIR=$PWD/.ccache" >> "$GITHUB_ENV"
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: .ccache
           key: ccache-${{ github.job }}-${{ github.sha }}
@@ -73,7 +73,7 @@ jobs:
           mkdir -p scratchpad/vma
           curl -sSfL -o scratchpad/vma/vk_mem_alloc.h "$VMA_URL"
           echo "$VMA_SHA256  scratchpad/vma/vk_mem_alloc.h" | sha256sum -c -
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: build/sysroot
           key: sysroot-${{ hashFiles('tools/build/sysroot.py') }}
@@ -90,10 +90,10 @@ jobs:
     steps:
       - name: Tools
         run: pacman -Syu --noconfirm --needed git ccache clang lld llvm ninja make cmake pkgconf expat binutils uv python
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: ccache in the checkout, kept between runs (build.py compiles through it when installed)
         run: echo "CCACHE_DIR=$PWD/.ccache" >> "$GITHUB_ENV"
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: .ccache
           key: ccache-${{ github.job }}-${{ github.sha }}
@@ -103,7 +103,7 @@ jobs:
           mkdir -p scratchpad/vma
           curl -sSfL -o scratchpad/vma/vk_mem_alloc.h "$VMA_URL"
           echo "$VMA_SHA256  scratchpad/vma/vk_mem_alloc.h" | sha256sum -c -
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: build/sysroot-aarch64
           key: sysroot-aarch64-${{ hashFiles('tools/build/sysroot.py') }}
@@ -118,15 +118,15 @@ jobs:
     steps:
       - name: Tools
         run: pacman -Syu --noconfirm --needed git ccache ninja cmake uv python
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: ccache in the checkout, kept between runs (build.py compiles through it when installed)
         run: echo "CCACHE_DIR=$PWD/.ccache" >> "$GITHUB_ENV"
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: .ccache
           key: ccache-${{ github.job }}-${{ github.sha }}
           restore-keys: ccache-${{ github.job }}-
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: build/win
           key: windeps-${{ hashFiles('tools/build/windeps.py') }}
@@ -134,7 +134,7 @@ jobs:
         run: uv run tools/build/windeps.py
       - name: mkw.exe (no game)
         run: uv run tools/build/build.py --target windows --dist --runtime-only
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: mkw-windows-runtime
           path: build/dist/windows/mkw.exe
