@@ -9,6 +9,10 @@ updates:
       timezone: Europe/Madrid
     commit-message:
       prefix: ci
+    groups:
+      actions-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
 
   - package-ecosystem: uv
     directory: /
