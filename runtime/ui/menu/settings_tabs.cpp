@@ -382,9 +382,10 @@ static const char *button_icons_note(void) {
     return note;
 }
 
-// Each player's controller and its battery (input/input_power.c), over the settings (discussion #516).
+// Each player's controller and its battery (input/input_power.c), over the settings (discussion #516). On the start
+// screen the gamepads start on first use and follow hotplug through input_hotplug (the main page keeps its own list).
 static void pad_rows(void) {
-    if (!input_gamepads_running()) return;   // the start screen shows them on its main page (launcher.cpp pad_row)
+    if (!input_gamepads_running()) return;
     opt_group(UI_MENU_PADS);
     int shown = 0;
     for (int p = 0; p < INPUT_MAX_PLAYERS; p++) {

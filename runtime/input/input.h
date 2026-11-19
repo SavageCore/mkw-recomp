@@ -91,6 +91,9 @@ const char *input_power_text(const InputPower *p, char *out, int out_size);
 void input_power_start(void);
 // The game's gamepad input is up (SDL gamepads opened by input.c): not on the start screen, which reads SDL itself.
 int input_gamepads_running(void);
+// A gamepad arrived or left (SDL_EVENT_GAMEPAD_ADDED/REMOVED): the start screen calls this from its event loop so the
+// settings follow hotplug the same way; a no-op unless the gamepads are running (hotplug alone never starts them).
+void input_hotplug(void);
 // input.c, for input_power.c: SDL's SDL_PowerState of the player's gamepad (-2 none), its name, joystick id and percent.
 int input_pad_power_sdl(int player, char *name, size_t name_size, uint32_t *id, int *percent);
 

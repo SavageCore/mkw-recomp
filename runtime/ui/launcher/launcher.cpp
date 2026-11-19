@@ -2188,7 +2188,10 @@ extern "C" int launcher_run(void) {
                 continue;
             }
             if (e.type == SDL_EVENT_QUIT) L.result = LAUNCHER_QUIT;
-            if (e.type == SDL_EVENT_GAMEPAD_ADDED || e.type == SDL_EVENT_GAMEPAD_REMOVED) pads_refresh();
+            if (e.type == SDL_EVENT_GAMEPAD_ADDED || e.type == SDL_EVENT_GAMEPAD_REMOVED) {
+                pads_refresh();   // the main page's own list
+                input_hotplug();   // the settings' list (input.c) follows the same event, when it is running
+            }
             if (e.type == SDL_EVENT_JOYSTICK_ADDED && !SDL_IsGamepad(e.jdevice.which)) input_wheel_map();
             if (e.type == SDL_EVENT_KEY_DOWN && e.key.scancode == SDL_SCANCODE_F11 && !e.key.repeat)
                 SDL_SetWindowFullscreen(L.win, !(SDL_GetWindowFlags(L.win) & SDL_WINDOW_FULLSCREEN));

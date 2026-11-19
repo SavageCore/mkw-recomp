@@ -306,6 +306,15 @@ static void pads_update(void) {
     SDL_UpdateGamepads();
 }
 
+// A gamepad arrived or left: open the new ones, close the gone, as the periodic rescan does. The start screen calls
+// this from its SDL event loop (it reads its own gamepads for its main page and never polls here); a no-op unless
+// the gamepads are running, so hotplug alone never starts the input, its power thread and the Switch 2 handling.
+void input_hotplug(void) {
+    plat_mutex_lock(&lock);
+    if (state == 1) scan_pads();
+    plat_mutex_unlock(&lock);
+}
+
 // A gamepad's inputs by position (pd[PAD_*] != 0 held).
 static void gamepad_physical(SDL_Gamepad *g, uint8_t pd[PAD_COUNT]) {
     for (int p = PAD_SOUTH; p < PAD_ZL; p++) pd[p] = SDL_GetGamepadButton(g, pad_sdl[p]);
