@@ -8,7 +8,10 @@ import http.client
 import socket
 import sys
 import threading
+import time
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools/mod"))
@@ -35,10 +38,20 @@ def test_race_connect_skips_dead_address(monkeypatch) -> None:
     monkeypatch.setattr(socket, "getaddrinfo", lambda *_, **__: [dead, live])
 
     conn = http.client.HTTPConnection("example.invalid", timeout=10)
-    gamebanana._race_connect(conn)
+    assert conn._create_connection is gamebanana._race_create_connection   # connect() itself stays CPython's
+    conn.connect()
     try:
         assert accepted.wait(10)
         assert conn.sock.getpeername()[1] == port
     finally:
         conn.close()
         server.close()
+
+
+def test_all_dead_fails_at_once(monkeypatch) -> None:
+    dead = (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("127.0.0.1", 1))
+    monkeypatch.setattr(socket, "getaddrinfo", lambda *_, **__: [dead, dead])
+    start = time.monotonic()
+    with pytest.raises(OSError):
+        gamebanana._race_create_connection(("example.invalid", 80), 20)
+    assert time.monotonic() - start < 5   # not the 20 s timeout
