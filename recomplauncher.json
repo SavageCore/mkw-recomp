@@ -1,0 +1,311 @@
+{
+  "$schema": "https://recomplauncher.com/schema/recomplauncher.json",
+  "format": 1,
+  "name": "mkw-recomp",
+  "repo": "adriadam10/mkw-recomp",
+  "game": {
+    "kind": "iso_or_folder",
+    "label": "Your copy of Mario Kart World (Switch 2) from your own console: its folder with exefs/ and romfs/ (decrypted), or the same dump packed as one .nup or .nx file."
+  },
+  "start": {
+    "program": ["mkw.exe", "mkw"],
+    "env": {
+      "MKW_START_SCREEN": "skip",
+      "MKW_UPDATE_CHECK": "0"
+    }
+  },
+  "prepare": {
+    "program": ["setup/python/python.exe", "setup/python/bin/python3"],
+    "args": ["-I", "{install}/setup/src/tools/prepare/rl_prepare.py", "--source", "{game}", "--game", "{install}"],
+    "label": "Building the game from your copy",
+    "timeout": 7200,
+    "done": ["{install}/setup-state.json", "{install}/mkwgame.id"],
+    "version": "1",
+    "options": [
+      {
+        "id": "link_romfs",
+        "label": "Link the RomFS instead of copying it",
+        "note": "Faster setup and less disk used, but the game needs your copy where it is every time it starts.",
+        "args": ["--romfs", "link"],
+        "default": false
+      }
+    ]
+  },
+  "config": [
+    {
+      "id": "main",
+      "format": "ini",
+      "file": [{ "path": "{install}/mkw.ini" }]
+    }
+  ],
+  "saves": ["{install}/profile", "{install}/mkw.ini"],
+  "folders": {
+    "saves": [{ "path": "{install}/profile" }, { "path": "{install}/mkw.ini" }],
+    "logs": [{ "path": "{install}/logs" }]
+  },
+  "actions": [
+    { "id": "saves", "label": "Saves", "help": "Your profiles and saves, with their backups.", "open": "saves" },
+    { "id": "logs", "label": "Logs", "help": "The game's and the setup's logs, for bug reports.", "open": "logs" }
+  ],
+  "system": {
+    "linux": { "glibc": "2.31", "graphics": { "vulkan": "1.3" } },
+    "windows": { "graphics": { "vulkan": "1.3" } }
+  },
+  "requires": ["start", "settings.ini", "settings.choices", "settings.slider"],
+  "settings": [
+    {
+      "id": "fullscreen", "label": "Fullscreen", "group": "Display",
+      "help": "Fullscreen fills your screen. Off plays in a window.",
+      "choices": [
+        { "label": "On", "set": { "fullscreen": "1" } },
+        { "label": "Off (windowed)", "set": { "fullscreen": "0" } }
+      ],
+      "defaults": { "fullscreen": "0" }
+    },
+    {
+      "id": "resolution", "label": "Resolution", "group": "Display",
+      "help": "What the 3D scene renders at. Console's is the Switch 2's own; higher needs a faster graphics card.",
+      "choices": [
+        { "label": "Console's", "set": { "resolution": "original" } },
+        { "label": "540p", "set": { "resolution": "540" } },
+        { "label": "720p", "set": { "resolution": "720" } },
+        { "label": "900p", "set": { "resolution": "900" } },
+        { "label": "1080p", "set": { "resolution": "1080" } },
+        { "label": "1440p", "set": { "resolution": "1440" } },
+        { "label": "2160p (4K)", "set": { "resolution": "2160" } }
+      ],
+      "defaults": { "resolution": "original" }
+    },
+    {
+      "id": "aspect", "label": "Aspect ratio", "group": "Display",
+      "help": "Races show more at the sides in 21:9 and wider; the menus stay 16:9.",
+      "choices": [
+        { "label": "16:9", "set": { "aspect": "16:9" } },
+        { "label": "Follow the window", "set": { "aspect": "window" } },
+        { "label": "21:9", "set": { "aspect": "21:9" } },
+        { "label": "32:9", "set": { "aspect": "32:9" } },
+        { "label": "48:9", "set": { "aspect": "48:9" } }
+      ],
+      "defaults": { "aspect": "16:9" }
+    },
+    {
+      "id": "hud_position", "label": "HUD position", "group": "Display",
+      "help": "Where the race HUD sits on a wider screen than 16:9.",
+      "choices": [
+        { "label": "Middle 16:9", "set": { "hud_position": "16:9" } },
+        { "label": "Screen edges", "set": { "hud_position": "edges" } }
+      ],
+      "defaults": { "hud_position": "16:9" }
+    },
+    {
+      "id": "fps", "label": "Frame rate", "group": "Display",
+      "help": "Automatic is the console's: 60 fps, dropping to 30 when 60 is out of reach.",
+      "choices": [
+        { "label": "Automatic", "set": { "fps": "auto" } },
+        { "label": "Console's", "set": { "fps": "game" } },
+        { "label": "60 fps", "set": { "fps": "60" } },
+        { "label": "30 fps", "set": { "fps": "30" } },
+        { "label": "20 fps", "set": { "fps": "20" } },
+        { "label": "15 fps", "set": { "fps": "15" } }
+      ],
+      "defaults": { "fps": "auto" }
+    },
+    {
+      "id": "framegen", "label": "Frame generation", "group": "Display",
+      "help": "Smoother, not faster: the picture is up to one frame later, and fast motion can smear.",
+      "choices": [
+        { "label": "Off", "set": { "framegen": "off" } },
+        { "label": "Automatic", "set": { "framegen": "auto" } },
+        { "label": "2x", "set": { "framegen": "2" } },
+        { "label": "3x", "set": { "framegen": "3" } },
+        { "label": "4x", "set": { "framegen": "4" } },
+        { "label": "To 120 fps", "set": { "framegen": "120" } }
+      ],
+      "defaults": { "framegen": "off" }
+    },
+    {
+      "id": "vsync", "label": "VSync", "group": "Display",
+      "help": "On waits for the screen; off tears instead of waiting.",
+      "choices": [
+        { "label": "On", "set": { "vk_present": "mailbox" } },
+        { "label": "On, always wait", "set": { "vk_present": "fifo" } },
+        { "label": "Off", "set": { "vk_present": "immediate" } }
+      ],
+      "defaults": { "vk_present": "mailbox" }
+    },
+    {
+      "id": "vrr", "label": "Variable refresh", "group": "Display",
+      "help": "For G-Sync and FreeSync screens: shows each frame the moment it is ready. Tell it whether your screen has it.",
+      "choices": [
+        { "label": "Off", "set": { "vrr": "0" } },
+        { "label": "On", "set": { "vrr": "1" } }
+      ],
+      "defaults": { "vrr": "0" }
+    },
+    {
+      "id": "hdr", "label": "HDR", "group": "Display",
+      "help": "Automatic shows HDR when your display is in HDR, as on the console.",
+      "choices": [
+        { "label": "Automatic", "set": { "hdr": "auto" } },
+        { "label": "Off", "set": { "hdr": "off" } }
+      ],
+      "defaults": { "hdr": "auto" }
+    },
+    {
+      "id": "upscaler", "label": "Upscaling", "group": "Display",
+      "help": "FSR 1 sharpens the picture as it is fitted to your screen. Costs next to nothing.",
+      "choices": [
+        { "label": "Bilinear", "set": { "upscaler": "bilinear" } },
+        { "label": "FSR 1", "set": { "upscaler": "fsr" } }
+      ],
+      "defaults": { "upscaler": "bilinear" }
+    },
+    {
+      "id": "sharpness", "label": "Sharpness", "group": "Display",
+      "help": "How much FSR 1 sharpens the picture.",
+      "slider": { "key": "sharpness", "min": 0, "max": 100, "step": 1, "format": "%d" },
+      "defaults": { "sharpness": "80" }
+    },
+    {
+      "id": "perf_overlay", "label": "Performance overlay", "group": "Display",
+      "help": "The frame rate in the corner of the screen.",
+      "choices": [
+        { "label": "Off", "set": { "perf_overlay": "off" } },
+        { "label": "FPS", "set": { "perf_overlay": "fps" } },
+        { "label": "Full", "set": { "perf_overlay": "full" } }
+      ],
+      "defaults": { "perf_overlay": "off" }
+    },
+    {
+      "id": "low_latency", "label": "Low latency", "group": "Display", "advanced": true,
+      "help": "Starts each frame as late as the card allows, so a press reaches the screen sooner.",
+      "choices": [
+        { "label": "On", "set": { "low_latency": "1" } },
+        { "label": "Off", "set": { "low_latency": "0" } }
+      ],
+      "defaults": { "low_latency": "1" }
+    },
+    {
+      "id": "aniso", "label": "Texture filtering", "group": "Graphics",
+      "help": "Keeps the road and the markings sharp at shallow angles. Costs next to nothing.",
+      "choices": [
+        { "label": "Game's own", "set": { "aniso": "game" } },
+        { "label": "2x", "set": { "aniso": "2" } },
+        { "label": "4x", "set": { "aniso": "4" } },
+        { "label": "8x", "set": { "aniso": "8" } },
+        { "label": "16x", "set": { "aniso": "16" } }
+      ],
+      "defaults": { "aniso": "game" }
+    },
+    {
+      "id": "tex_quality", "label": "Texture quality", "group": "Graphics",
+      "help": "Lower uses less graphics memory. Needs a restart.",
+      "choices": [
+        { "label": "Full", "set": { "tex_quality": "full" } },
+        { "label": "Half", "set": { "tex_quality": "half" } },
+        { "label": "Quarter", "set": { "tex_quality": "quarter" } }
+      ],
+      "defaults": { "tex_quality": "full" }
+    },
+    {
+      "id": "detail_distance", "label": "Detail distance", "group": "Graphics",
+      "help": "How far away the courses keep their full detail. Needs a restart.",
+      "choices": [
+        { "label": "1x", "set": { "detail_distance": "1" } },
+        { "label": "1.5x", "set": { "detail_distance": "1.5" } },
+        { "label": "2x (console's)", "set": { "detail_distance": "2" } },
+        { "label": "3x", "set": { "detail_distance": "3" } },
+        { "label": "4x", "set": { "detail_distance": "4" } }
+      ],
+      "defaults": { "detail_distance": "2" }
+    },
+    {
+      "id": "shadow_size", "label": "Shadow quality", "group": "Graphics",
+      "help": "The size of the shadows' map. Needs a restart.",
+      "choices": [
+        { "label": "Console's", "set": { "shadow_size": "console" } },
+        { "label": "1024", "set": { "shadow_size": "1024" } },
+        { "label": "2048", "set": { "shadow_size": "2048" } },
+        { "label": "3072", "set": { "shadow_size": "3072" } },
+        { "label": "4096", "set": { "shadow_size": "4096" } }
+      ],
+      "defaults": { "shadow_size": "console" }
+    },
+    {
+      "id": "volume", "label": "Volume", "group": "Audio",
+      "help": "The game's volume.",
+      "slider": { "key": "volume", "min": 0, "max": 100, "step": 1, "format": "%d" },
+      "defaults": { "volume": "100" }
+    },
+    {
+      "id": "audio_channels", "label": "Speakers", "group": "Audio",
+      "help": "Automatic follows your system. Needs a restart.",
+      "choices": [
+        { "label": "Automatic", "set": { "audio_channels": "auto" } },
+        { "label": "Stereo", "set": { "audio_channels": "2" } },
+        { "label": "5.1 surround", "set": { "audio_channels": "6" } }
+      ],
+      "defaults": { "audio_channels": "auto" }
+    },
+    {
+      "id": "menu_lang", "label": "Menu language", "group": "Language",
+      "help": "The language of the menus and the start screen. Automatic follows your system.",
+      "choices": [
+        { "label": "Automatic", "set": { "menu_lang": "" } },
+        { "label": "English", "set": { "menu_lang": "en" } },
+        { "label": "Japanese", "set": { "menu_lang": "ja" } },
+        { "label": "French", "set": { "menu_lang": "fr" } },
+        { "label": "German", "set": { "menu_lang": "de" } },
+        { "label": "Italian", "set": { "menu_lang": "it" } },
+        { "label": "Spanish", "set": { "menu_lang": "es" } },
+        { "label": "Dutch", "set": { "menu_lang": "nl" } },
+        { "label": "Portuguese", "set": { "menu_lang": "pt" } },
+        { "label": "Portuguese (Brazil)", "set": { "menu_lang": "pt-BR" } },
+        { "label": "Russian", "set": { "menu_lang": "ru" } },
+        { "label": "Chinese (Simplified)", "set": { "menu_lang": "zh-Hans" } },
+        { "label": "Chinese (Traditional)", "set": { "menu_lang": "zh-Hant" } },
+        { "label": "Korean", "set": { "menu_lang": "ko" } },
+        { "label": "Spanish (Latin America)", "set": { "menu_lang": "es-419" } },
+        { "label": "Catalan", "set": { "menu_lang": "ca" } },
+        { "label": "Galician", "set": { "menu_lang": "gl" } },
+        { "label": "Basque", "set": { "menu_lang": "eu" } },
+        { "label": "Polish", "set": { "menu_lang": "pl" } },
+        { "label": "Turkish", "set": { "menu_lang": "tr" } },
+        { "label": "Ukrainian", "set": { "menu_lang": "uk" } },
+        { "label": "Thai", "set": { "menu_lang": "th" } }
+      ],
+      "defaults": { "menu_lang": "" }
+    },
+    {
+      "id": "lang", "label": "Game language", "group": "Language",
+      "help": "The language the game itself speaks. Automatic follows your system. Needs a restart.",
+      "choices": [
+        { "label": "Automatic", "set": { "lang": "" } },
+        { "label": "Japanese", "set": { "lang": "ja" } },
+        { "label": "English (US)", "set": { "lang": "en-US" } },
+        { "label": "French", "set": { "lang": "fr" } },
+        { "label": "German", "set": { "lang": "de" } },
+        { "label": "Italian", "set": { "lang": "it" } },
+        { "label": "Spanish", "set": { "lang": "es" } },
+        { "label": "Chinese (Simplified)", "set": { "lang": "zh-CN" } },
+        { "label": "Korean", "set": { "lang": "ko" } },
+        { "label": "Dutch", "set": { "lang": "nl" } },
+        { "label": "Portuguese", "set": { "lang": "pt" } },
+        { "label": "Russian", "set": { "lang": "ru" } },
+        { "label": "Chinese (Traditional)", "set": { "lang": "zh-TW" } },
+        { "label": "English (UK)", "set": { "lang": "en-GB" } },
+        { "label": "French (Canada)", "set": { "lang": "fr-CA" } },
+        { "label": "Spanish (Latin America)", "set": { "lang": "es-419" } },
+        { "label": "Chinese (Simplified, Hans)", "set": { "lang": "zh-Hans" } },
+        { "label": "Chinese (Traditional, Hant)", "set": { "lang": "zh-Hant" } },
+        { "label": "Portuguese (Brazil)", "set": { "lang": "pt-BR" } },
+        { "label": "Polish", "set": { "lang": "pl" } },
+        { "label": "Thai", "set": { "lang": "th" } },
+        { "label": "Catalan", "set": { "lang": "ca" } },
+        { "label": "Galician", "set": { "lang": "gl" } },
+        { "label": "Basque", "set": { "lang": "eu" } }
+      ],
+      "defaults": { "lang": "" }
+    }
+  ]
+}

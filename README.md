@@ -227,7 +227,7 @@ see [tools/shaders/README.md](tools/shaders/README.md). Everything generated goe
 | [docs/](docs/README.md) | Research, sources and performance |
 | `.github/` | CI, issue and pull request templates |
 
-At the root: `pyproject.toml` and `uv.lock` (the Python environment of the tools), `.gitignore`, `LICENSE`,
+At the root: `pyproject.toml` and `uv.lock` (the Python environment of the tools), `recomplauncher.json` (RecompLauncher's setup: game, settings, prepare step), `.gitignore`, `LICENSE`,
 `CONTRIBUTING.md`, `CHANGELOG.md` (each release's changes, its notes), `AGENTS.md` (a guide for coding agents) and
 `Makefile` (shortcuts for the build flows: `make help`).
 

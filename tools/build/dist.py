@@ -9,6 +9,7 @@ mismatch stops.
 
 Layout of build/dist/<target>/ (after build.py --dist):
     mkw, mkwgame.id                 the runtime (mkw.exe and its DLLs on Windows; mkwgame.* comes from the setup)
+    recomplauncher.json             RecompLauncher's setup (the repo root's copy: game, settings, prepare step)
     setup/python, setup/zig, setup/glslc
     setup/clang/                    (Linux x86-64, Windows) LLVM's own clang of zig's version: llvm_clang.py
     setup/src/                      recomp/, sm86/, tools/{build,prepare,romfs,shaders}, runtime/{cpu,core/boot/gamelib.h}
@@ -295,6 +296,10 @@ def main() -> None:
         for dll in WIN_DLLS:
             shutil.copy2(ROOT / "build/win/deps/bin" / dll, out / dll)
     copy_sources(setup / "src")
+    rl = ROOT / "recomplauncher.json"
+    if not rl.is_file():
+        sys.exit("recomplauncher.json missing at the repository root")
+    shutil.copy2(rl, out / "recomplauncher.json")
     size = sum(p.stat().st_size for p in out.rglob("*") if p.is_file() and not p.is_symlink())
     print(f"{out}: {size / 2**20:.0f} MiB")
     if args.target == "linux" or (args.target == "linux-aarch64" and platform.machine() in ("aarch64", "arm64")):

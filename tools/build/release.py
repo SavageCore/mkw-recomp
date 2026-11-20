@@ -137,6 +137,10 @@ def linux(dist: Path, version: str, arch: str = "x86_64") -> Path:
     shutil.rmtree(app, ignore_errors=True)
     app.mkdir(parents=True)
     shutil.copy2(exe, app / "mkw")
+    rl = dist / "recomplauncher.json"
+    if not rl.is_file():
+        sys.exit(f"{rl} missing: run tools/build/dist.py for this target first")
+    shutil.copy2(rl, app / "recomplauncher.json")
     shutil.copytree(dist / "setup", app / "setup", symlinks=True)
     bundle_libs(exe, app / "lib")
     licenses(app / "licenses")
@@ -167,7 +171,10 @@ def _glibc_versions(text: str) -> list[str]:
 
 def windows(dist: Path, version: str) -> Path:
     out = OUT / f"mkw-recomp-{version}-windows-x64.zip"
-    files = [dist / "mkw.exe", *(dist / d for d in WIN_DLLS), *sorted((dist / "setup").rglob("*"))]
+    rl = dist / "recomplauncher.json"
+    if not rl.is_file():
+        sys.exit(f"{rl} missing: uv run tools/build/dist.py --target windows first")
+    files = [dist / "mkw.exe", *(dist / d for d in WIN_DLLS), rl, *sorted((dist / "setup").rglob("*"))]
     check_no_game(dist / "setup")
     top = Path("mkw-recomp")
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
