@@ -29,11 +29,14 @@ Usage: gamebanana.py --cache DIR browse [--page N] [--sort downloads|new|likes]
 import argparse
 import hashlib
 import html
+import http.client
 import json
 import os
 import re
+import socket
 import sys
 import tempfile
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -44,6 +47,48 @@ API = "https://gamebanana.com/apiv11"
 USER_AGENT = "mkw-recomp (+https://github.com/adriadam10/mkw-recomp)"
 TTL, PER_MINUTE, PER_PAGE = 600, 60, 20
 SORTS = {"downloads": "Generic_MostDownloaded", "new": "Generic_Newest", "likes": "Generic_MostLiked"}
+
+
+def _race_connect(self):
+    """Every resolved address at once, staggered (Happy Eyeballs): CPython tries them one after another with the
+    full timeout each, which stalls for tens of seconds when IPv6 is blackholed but IPv4 answers (or the reverse).
+    The first connection wins; the losers are closed."""
+    addrs = socket.getaddrinfo(self.host, self.port, type=socket.SOCK_STREAM)
+    if len(addrs) < 2:
+        http.client.HTTPConnection._orig_connect(self)
+        return
+    won, winner, done = threading.Event(), {}, threading.Event()
+
+    def attempt(family, kind, proto, addr):
+        try:
+            sock = socket.socket(family, kind, proto)
+            sock.settimeout(self.timeout)
+            if self.source_address:
+                sock.bind(self.source_address)
+            sock.connect(addr)
+        except OSError:
+            return
+        if not done.is_set() and "sock" not in winner:
+            winner["sock"] = sock
+            done.set()
+            won.set()
+        else:
+            sock.close()
+
+    threads = []
+    for family, kind, proto, _, addr in addrs:
+        t = threading.Thread(target=attempt, args=(family, kind, proto, addr), daemon=True)
+        threads.append(t)
+        t.start()
+        if done.wait(0.25):
+            break
+    if not won.wait(self.timeout):
+        raise OSError(f"all {len(addrs)} addresses failed for {self.host}")
+    self.sock = winner["sock"]
+
+
+http.client.HTTPConnection._orig_connect = http.client.HTTPConnection.connect
+http.client.HTTPConnection.connect = _race_connect
 
 
 def field(v) -> str:
